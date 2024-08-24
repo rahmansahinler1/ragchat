@@ -76,7 +76,6 @@ celerybeat.pid
 .env
 .venv/
 venv/
-db/
 
 # VS Code
 .vscode/
