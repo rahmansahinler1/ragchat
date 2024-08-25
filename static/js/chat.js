@@ -8,7 +8,7 @@ function initChat(chatArea, userInput, sendButton) {
 
     window.addMessageToChat = (sender, message) => addMessageToChat(chatArea, sender, message);
 }
-
+//TODO: There is an error with this configuration. Web page can't print the message from the backend
 function sendMessage(chatArea, userInput) {
     const message = userInput.value.trim();
     if (message) {

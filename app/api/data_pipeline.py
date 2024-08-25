@@ -8,11 +8,11 @@ import json
 import re
 import textwrap
 
-from functions.reading_functions import ReadingFunctions
-from functions.embedding_functions import EmbeddingFunctions
-from functions.indexing_functions import IndexingFunctions
-from functions.chatbot_functions import ChatbotFunctions
-import globals
+from ..functions.reading_functions import ReadingFunctions
+from ..functions.embedding_functions import EmbeddingFunctions
+from ..functions.indexing_functions import IndexingFunctions
+from ..functions.chatbot_functions import ChatbotFunctions
+from .. import globals
 
 
 class FileDetector:
@@ -99,7 +99,6 @@ class FileProcessor:
             index = self.indf.create_flat_index(embeddings=embeddings)
         return index
 
-    
     def index_insert(
         self,
         changes: List[Dict[str, str]],
@@ -278,4 +277,3 @@ class FileProcessor:
 
     def clean_processor(self):
         self.change_dict = {}
-    

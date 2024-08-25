@@ -24,15 +24,12 @@ async function uploadFile(file) {
         });
 
         if (!response.ok) {
-            throw new Error('HTTP error! status: ${response.status}');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
-        if (typeof window.addMessageToChat === 'function') {
-            window.addMessageToChat('System', 'File uploaded correctly ${result.filename}');
-        } else {
-            console.error('addMessageToChat function is not available!');
-        }
+        window.addMessageToChat('System', `File uploaded successfully! File Name: ${result.filename}`);
+        
     } catch (error) {
         console.error('Error uploading file!', error)
     }
