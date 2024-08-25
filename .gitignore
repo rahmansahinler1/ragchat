@@ -79,3 +79,6 @@ venv/
 
 # VS Code
 .vscode/
+
+# Data
+db/
