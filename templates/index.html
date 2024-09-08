@@ -4,20 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ragchat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', Arial, sans-serif;
             margin: 0;
             padding: 0;
             display: flex;
+            flex-direction: column;
             height: 100vh;
+            background-color: #f5f5f5;
         }
-        .sidebar {
-            width: 250px;
-            background-color: #f0f0f0;
+        .header {
+            background-color: #ffffff;
             padding: 20px;
             display: flex;
+            align-items: flex-start;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .logo {
+            width: 90px;
+            height: 95px;
+            margin-right: 20px;
+        }
+        .header-text {
+            display: flex;
             flex-direction: column;
+            justify-content: flex-start;
+            height: 95px;
+        }
+        .header-text h1 {
+            font-size: 36px;
+            margin: 0 0 10px 0;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .header-text p {
+            font-size: 18px;
+            margin: 0;
+            font-weight: 400;
         }
         .main-content {
             flex-grow: 1;
@@ -27,47 +52,54 @@
         }
         .chat-area {
             flex-grow: 1;
-            border: 1px solid #ccc;
+            border: 1px solid #e0e0e0;
             border-radius: 5px;
             padding: 10px;
             margin-bottom: 20px;
             overflow-y: auto;
+            background-color: #ffffff;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
         }
         .input-area {
             display: flex;
+            align-items: center;
         }
         #userInput {
             flex-grow: 1;
-            padding: 10px;
-            font-size: 16px;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px 0 0 5px;
+            max-width: calc(100% - 230px); /* Slightly increased to account for button gap */
         }
         button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4CAF50;
+            padding: 8px 15px;
+            font-size: 14px;
             color: white;
             border: none;
             cursor: pointer;
-            margin: 5px 0;
         }
         button:hover {
-            background-color: #45a049;
+            opacity: 0.9;
         }
         #sendButton {
-            margin-left: 10px;
+            background-color: #4CAF50;
+            border-radius: 0 5px 5px 0; /* Restored right border radius */
+            margin-right: 5px; /* Added margin to create gap */
         }
-        #fileInput {
-            display: none;
+        #checkUpdatesButton {
+            background-color: #222222;
+            border-radius: 5px; /* Full border radius for separated look */
         }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <h2>settings</h2>
-        <input type="file" id="fileInput" />
-        <button id="uploadButton">Upload File</button>
-        <button id="createIndexButton">Create Index</button>
-        <button id="loadIndexButton">Load Index</button>
+    <div class="header">
+        <img src="/static/images/ragchat_logo.png" alt="ragchat logo" class="logo">
+        <div class="header-text">
+            <h1>ragchat</h1>
+            <p>What do you want to know?</p>
+        </div>
     </div>
     <div class="main-content">
         <div class="chat-area" id="chatArea">
@@ -76,6 +108,7 @@
         <div class="input-area">
             <input type="text" id="userInput" placeholder="Type your message...">
             <button id="sendButton">Send</button>
+            <button id="checkUpdatesButton">Check Updates</button>
         </div>
     </div>
 

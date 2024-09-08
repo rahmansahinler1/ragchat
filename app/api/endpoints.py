@@ -1,22 +1,31 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from pydantic import BaseModel
 from pathlib import Path
 
-from .data_pipeline import FileDetector, FileProcessor
+from .core import FileDetector, FileProcessor
 from .. import globals
 
 router = APIRouter()
 detector = FileDetector(domain_folder_path=globals.domain_folder_path, memory_file_path=globals.memory_file_path)
 processor = FileProcessor(db_folder_path=globals.db_folder_path)
 
+class Query(BaseModel):
+    user_query: str
+
     
 @router.post("/qa/generate_answer")
-async def create_embedding(user_query:str):
+async def generate_answer(user_input: Query):
     index_object = processor.indf.load_index(index_path=globals.index_path)
     globals.index = processor.create_index(embeddings=index_object["embeddings"])
     try:
         if globals.index:
-            response, resource_text = processor.search_index(user_query=user_query)
-            return response, resource_text
+            response, resources = processor.search_index(
+                user_query=user_input.user_query,
+                file_paths=index_object["file_path"],
+                sentences=index_object["sentences"],
+                file_sentence_amount=index_object["file_sentence_amount"]
+            )
+            return {"response": response, "resources": resources}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     

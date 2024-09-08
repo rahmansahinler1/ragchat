@@ -199,26 +199,23 @@ class FileProcessor:
     
     def search_index(
             self,
-            user_query: np.ndarray,
+            user_query: str,
+            file_paths: List[str],
+            sentences: List[str],
+            file_sentence_amount: List[int],
     ):
         query_vector = self.ef.create_vector_embedding_from_query(query=user_query)
         _, I = globals.index.search(query_vector, 5)
-        widen_sentences = self.widen_sentences(window_size=1, convergence_vector=I[0])
+        widen_sentences = self.widen_sentences(window_size=1, convergence_vector=I[0], sentences=sentences)
         context = f"""Context1: {widen_sentences[0]}
         Context2: {widen_sentences[1]}
         Context3: {widen_sentences[2]}
         Context4: {widen_sentences[3]}
         Context5: {widen_sentences[4]}
         """
-        resources = self.extract_resources(convergence_vector=I[0])
-        resources_text = "- References in " + globals.selected_domain + ":"
-        for i, resource in enumerate(resources):
-            resources_text += textwrap.dedent(f"""
-                {i+1}
-                - file Name: {resource["file_name"].split("/")[-1]}
-                - Page Number: {resource["page"]}
-            """)
-        return self.cf.response_generation(query=user_query, context=context), resources_text
+        resources = self.extract_resources(file_paths=file_paths, convergence_vector=I[0], file_sentence_amount=file_sentence_amount)
+        response = self.cf.response_generation(query=user_query, context=context)
+        return response, resources
     
     def file_change_to_memory(self, change: Dict):
         # Create embeddings
@@ -249,26 +246,26 @@ class FileProcessor:
         all_vectors = np.empty((num_vectors, dimension), dtype=np.float32)
         return index.reconstruct_n(0, num_vectors, all_vectors)
 
-    def widen_sentences(self, window_size: int, convergence_vector: np.ndarray):  
+    def widen_sentences(self, window_size: int, convergence_vector, sentences: List[str]):  
         widen_sentences = []
         for index in convergence_vector:
             start = max(0, index - window_size)
-            end = min(len(globals.sentences) - 1, index + window_size)
-            widen_sentences.append(f"{globals.sentences[start]} {globals.sentences[index]} {globals.sentences[end]}")
+            end = min(len(sentences) - 1, index + window_size)
+            widen_sentences.append(f"{sentences[start]} {sentences[index]} {sentences[end]}")
         return widen_sentences
 
-    def extract_resources(self, convergence_vector: np.ndarray):
+    def extract_resources(self, file_paths, file_sentence_amount, convergence_vector):
         resources = []
         for index in convergence_vector:
             cumulative_file_sentence_sum = 0
-            for i, sentence_amount in enumerate(globals.file_sentence_amount):
+            for i, sentence_amount in enumerate(file_sentence_amount):
                 cumulative_file_sentence_sum += sum(sentence_amount)
                 if cumulative_file_sentence_sum > index:
                     cumulative_page_sentence_sum = 0
                     for j, page_sentence_amount in enumerate(sentence_amount):
                         cumulative_page_sentence_sum += page_sentence_amount
-                        if sum(sum(page_sentence_amount) for page_sentence_amount in globals.file_sentence_amount[:i]) + cumulative_page_sentence_sum  > index:
-                            resource = {"file_name": globals.files[i], "page": j + 1}
+                        if sum(sum(page_sentence_amount) for page_sentence_amount in file_sentence_amount[:i]) + cumulative_page_sentence_sum  > index:
+                            resource = {"file_name": file_paths[i], "page": j + 1}
                             if resource not in resources:
                                 resources.append(resource)
                             break

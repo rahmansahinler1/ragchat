@@ -8,58 +8,28 @@ function loadScript(url) {
     });
 }
 
-async function checkForChanges() {
-    window.sendMessage("Welcome the ragchat! Please wait ragchat to check it's memory for any change...");
-    try {
-        const response = await fetch('/api/v1/data_pipeline/check_changes', {
-            method: 'POST'
-        });
-        if (!response.ok) {
-            throw new Error('Failed to check for changes');
-        }
-        const changedFileMessages = await response.json();
-        changedFileMessages.forEach(message => {
-            window.sendMessage(message);
-        });
-        window.sendMessage("Memory is sync. You can start asking!");
-
-    } catch (error) {
-        console.error('Error checking for changes:', error);
-        window.sendMessage('Error while checking changes!')
-    }
-}
-
-async function initializeApp() {
+async function initialize() {
     try {
         // Load scripts
-        await loadScript('/static/js/chat.js');
-        await loadScript('/static/js/upload.js');
-        await loadScript('/static/js/indexing.js');
+        await loadScript('/static/js/app.js');
 
         // Load chat elements
         const chatArea = document.getElementById('chatArea');
         const userInput = document.getElementById('userInput');
         const sendButton = document.getElementById('sendButton');
-
-        // Load file upload elements
-        const uploadButton = document.getElementById('uploadButton');
-        const fileInput = document.getElementById('fileInput');
-
-        // Load index operation elements
-        const createIndexButton = document.getElementById('createIndexButton');
-        const loadIndexButton = document.getElementById('loadIndexButton');
+        const checkChangesButton = document.getElementById('checkUpdatesButton')
 
         // Initialize functions
         initChat(chatArea, userInput, sendButton);
-        initFileUpload(uploadButton, fileInput);
-        initIndexOperations(createIndexButton, loadIndexButton);
+        initDataPipeline(checkChangesButton);
 
         // Check for changes when the app initializes
-        await checkForChanges();
+        window.addMessageToChat("Welcome the ragchat! Please wait ragchat to check it's memory for any change...", 'ragchat');
+        await checkChanges();
 
     } catch (error) {
         console.error('Error initializing app:', error);
     }
 }
 
-document.addEventListener('DOMContentLoaded', initializeApp);
+document.addEventListener('DOMContentLoaded', initialize);
