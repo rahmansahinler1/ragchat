@@ -52,3 +52,4 @@ class ReadingFunctions:
         valid_sentences = [sentence for sentence in sentences if len(sentence) > 15]
         file_data["page_sentence_amount"].append(len(valid_sentences))
         file_data["sentences"].extend(valid_sentences)
+        

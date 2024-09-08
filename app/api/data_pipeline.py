@@ -18,10 +18,10 @@ from .. import globals
 class FileDetector:
     def __init__(
             self,
-            db_folder_path: Path,
+            domain_folder_path: Path,
             memory_file_path: Path
         ):
-        self.db_folder_path = db_folder_path
+        self.domain_folder_path = domain_folder_path
         self.memory_file_path = memory_file_path
     
     def check_changes(self):
@@ -36,7 +36,7 @@ class FileDetector:
         
         # Load current db information
         current_file_data = []
-        for file in self.db_folder_path.rglob("*"):
+        for file in self.domain_folder_path.rglob("*"):
             file_data = {}
             file_name = file.parts[-1]
             domain = file.parts[-2]
@@ -74,12 +74,14 @@ class FileDetector:
 class FileProcessor:
     def __init__(
             self,
-            change_dict: Dict = {},
+            db_folder_path: Path,
+            change_dict: Dict = {}
     ):
         self.ef = EmbeddingFunctions()
         self.rf = ReadingFunctions()
         self.indf = IndexingFunctions()
         self.cf = ChatbotFunctions()
+        self.db_folder_path = db_folder_path
         self.change_dict = change_dict
     
     def update_memory(
@@ -102,7 +104,6 @@ class FileProcessor:
     def index_insert(
         self,
         changes: List[Dict[str, str]],
-        db_folder_path: Path,
         ):
         # Add insertion changes to memory
         for change in changes:
@@ -111,7 +112,7 @@ class FileProcessor:
         # Index insertion
         for key, value in self.change_dict.items():
             # Open corresponding index if already created, if not initialize one
-            index_path = db_folder_path / "indexes" / (key + ".pickle")
+            index_path = self.db_folder_path / "indexes" / (key + ".pickle")
             try:
                 index_object = self.indf.load_index(index_path)
                 index_object["file_path"].extend(path for path in value["file_path"])
@@ -131,7 +132,6 @@ class FileProcessor:
     def index_update(
         self,
         changes: List[Dict[str, str]],
-        db_folder_path: Path,
         ):
         # Add update changes to memory
         for change in changes:
@@ -139,7 +139,7 @@ class FileProcessor:
         
         # Index update
         for key, value in self.change_dict.items():
-            index_path = db_folder_path / "indexes" / (key + ".pickle")
+            index_path = self.db_folder_path / "indexes" / (key + ".pickle")
             try:
                 index_object = self.indf.load_index(index_path)
                 # Take changed file indexes
@@ -174,7 +174,6 @@ class FileProcessor:
     def index_delete(
         self,
         changes: List[Dict[str, str]],
-        db_folder_path: Path,
         ):
         # Delete corresponding parts from memory
         for change in changes:
@@ -182,7 +181,7 @@ class FileProcessor:
             match = re.search(pattern, change["file_path"])
             if match:
                 domain = match[0]
-                index_path = db_folder_path / "indexes" / (domain + ".pickle")
+                index_path = self.db_folder_path / "indexes" / (domain + ".pickle")
                 try:
                     index_object = self.indf.load_index(index_path)
                     file_path_index = index_object["file_path"].index(change["file_path"])
@@ -227,7 +226,7 @@ class FileProcessor:
         file_embeddings = self.ef.create_vector_embeddings_from_sentences(sentences=file_data["sentences"])
 
         # Detect changed domain
-        pattern = r'domain\d+'
+        pattern = r'domain'
         match = re.search(pattern, change["file_path"])
         if match:
             domain = match[0]

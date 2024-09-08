@@ -6,19 +6,33 @@ function initChat(chatArea, userInput, sendButton) {
         }
     });
 
-    window.addMessageToChat = (sender, message) => addMessageToChat(chatArea, sender, message);
+    // Expose sendMessage to global scope
+    window.sendMessage = (message) => {
+        addMessageToChat(chatArea, 'ragchat', message);
+    };
 }
-//TODO: There is an error with this configuration. Web page can't print the message from the backend
-function sendMessage(chatArea, userInput) {
+
+async function sendMessage(chatArea, userInput) {
     const message = userInput.value.trim();
     if (message) {
         addMessageToChat(chatArea, 'you', message);
-        userInput.value = '';
-        // Here you would typically send the message to your backend
-        // For now, we'll just mock a response
-        setTimeout(() => {
-            addMessageToChat(chatArea, 'ragchat: ', 'This is a mock response from the chatbot.');
-        }, 1000);
+        try {
+            const response = await fetch('/api/v1/qa/generate_answer', {
+                method: 'POST'
+            });
+            if (!response.ok) {
+                throw new Error('Failed to generate response!');
+            }
+            const changedFileMessages = await response.json();
+            changedFileMessages.forEach(message => {
+                window.sendMessage(message);
+            });
+            window.sendMessage("Memory is sync. You can start asking!");
+    
+        } catch (error) {
+            console.error('Error checking for changes:', error);
+            window.sendMessage('Error while checking changes!')
+        }
     }
 }
 
