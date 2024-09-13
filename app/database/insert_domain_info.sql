@@ -1,0 +1,1 @@
+INSERT INTO domain_info (domian_uuid,domain_name,pdf_name,pdf_date,page_sentences) VALUES (%s,%s,%s,%s,%s)
