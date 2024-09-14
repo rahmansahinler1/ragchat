@@ -1,0 +1,1 @@
+INSERT INTO file_info (file_uuid,domain_uuid,domain_name,file_name,file_date) VALUES (%s,%s,%s,%s,%s)

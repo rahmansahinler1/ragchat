@@ -12,19 +12,6 @@ class DatabaseFunctions:
         self.conn = psycopg2.connect(**db_config) # Initialize connection with db
         self.cursor = self.conn.cursor() # Initialize cursor
     
-    # Create Master Database
-    # def execute_create_database_query(self):
-    #     path = Path("app/database/create_db.sql")
-    #     with path.open('r') as file:
-    #         query = file.read()
-    #     try:
-    #         self.cursor.execute(query)
-    #         self.conn.commit()
-    #     except DatabaseError as e:
-    #         self.conn.rollback()
-    #         print(f"Error while executing {e}")
-    #         raise e
-    
     # Create DB tables
     def execute_create_table_query(self):
         path = Path("app/database/create_table.sql")
@@ -39,7 +26,7 @@ class DatabaseFunctions:
             raise e
     
     # Insert to domain_content table
-    def execute_insert_domaincontent_query(self,data:list):
+    def insert_domaincontent_query(self,data:list):
         psycopg2.extras.register_uuid()
         path = Path("app/database/insert_domain_content.sql")
         with path.open('r') as file:
@@ -52,10 +39,10 @@ class DatabaseFunctions:
             print(f"Error while executing {e}")
             raise e
         
-    # Insert to domain_info table    
-    def execute_insert_domaininfo_query(self,data:list):
+    # Insert to file_info table    
+    def insert_fileinfo_query(self,data:list):
         psycopg2.extras.register_uuid()
-        path = Path("app/database/insert_domain_info.sql")
+        path = Path("app/database/insert_file_info.sql")
         with path.open('r') as file:
             query = file.read()
         try:
@@ -65,15 +52,15 @@ class DatabaseFunctions:
             self.conn.rollback()
             print(f"Error while executing {e}")
             raise e
-    
-    # Read from domain_content with or without filtering
-    def execute_read_query(self,domain_name : str = None):
-        path = Path("app/database/select.sql")
+
+    # Read all data from domain_content with filter
+    def execute_domain_content_read_query(self,domain_uuid : str = None):
+        path = Path("app/database/select_domaincontent.sql")
         with path.open('r') as file:
             query = file.read()
         try:
-            if domain_name:
-                query = f"{query} WHERE domain_name = '{domain_name}';"
+            if domain_uuid:
+                query = f"{query} WHERE domain_uuid = '{domain_uuid}';"
             self.cursor.execute(query)
             rows = self.cursor.fetchall()
             self.conn.commit()
@@ -83,35 +70,35 @@ class DatabaseFunctions:
             print(f"Error while executing {e}")
             raise e
         
-    # Delete pages on domain_content
-    def execute_delete_pdf_sentences_query(self,pdf_name : str ,page_start : int ,page_advance : int ,domain_name : str = None):
+    # Read all data from file_info with filter
+    def execute_file_info_read_query(self,file_uuid : str = None):
+        path = Path("app/database/select_fileinfo.sql")
+        with path.open('r') as file:
+            query = file.read()
         try:
-            if domain_name:
-                query = f""" with delete_pages as (with cte_deleted as (select sum(s)
-                    from
-                    (SELECT domain_name,pdf_name,UNNEST (page_sentences) as s
-                        from public.domain_info where pdf_name = '{pdf_name}' LIMIT {page_advance} OFFSET {page_start})
-                        ),
-                    cte_start as (select sum(s)
-                    from
-                    (SELECT domain_name,pdf_name,UNNEST (page_sentences) as s
-                        from public.domain_info where pdf_name = '{pdf_name}' LIMIT {page_start})
-                        )
-                    select * from public.domain_content WHERE domain_name = {domain_name} LIMIT (select * from cte_deleted) OFFSET (select * from cte_start))
-                    select * from delete_pages ;
+            if file_uuid:
+                query = f"{query} WHERE file_uuid = '{file_uuid}';"
+            self.cursor.execute(query)
+            rows = self.cursor.fetchall()
+            self.conn.commit()
+            return rows
+        except DatabaseError as e:
+            self.conn.rollback()
+            print(f"Error while executing {e}")
+            raise e
+
+    # Delete sentence range from domain_content 
+    # Here sentence order nmber range parameters are included on deletion
+    def execute_delete_file_sentences_query(self,file_uuid : str, sentence_order_number_start : int, sentence_order_number_end : int):
+        query = f"""
+            DELETE from domain_content
+            where file_uuid = '{file_uuid}' and sentence_order_number between {sentence_order_number_start} and {sentence_order_number_end} ;
+
+            UPDATE domain_content
+            SET sentence_order_number = sentence_order_number-{sentence_order_number_end}
+            where file_uuid = '{file_uuid}' and sentence_order_number > {sentence_order_number_end};
             """
-            else:
-                query = f""" with cte_deleted as (select sum(s) from
-                (SELECT domain_name,pdf_name,UNNEST (page_sentences) as s
-                    from public.domain_info where pdf_name = '{pdf_name}' LIMIT {page_advance} OFFSET {page_start})
-                    ),
-                cte_start as (select sum(s)
-                from
-                (SELECT domain_name,pdf_name,UNNEST (page_sentences) as s
-                    from public.domain_info where pdf_name = '{pdf_name}' LIMIT {page_start})
-                    )
-                select * from public.domain_content  LIMIT (select * from cte_deleted) OFFSET (select * from cte_start);
-            """
+        try:
             self.cursor.execute(query)
             self.conn.commit()
         except DatabaseError as e:
@@ -119,14 +106,27 @@ class DatabaseFunctions:
             print(f"Error while executing {e}")
             raise e
     
-    # Delete all data frm the domain
-    def execute_delete_query(self,domain_name : str = None):
-        path = Path("app/database/delete.sql")
+    # Delete all data from the domain_content with filter
+    def execute_domain_content_delete_query(self,file_uuid : str):
+        path = Path("app/database/delete_domaincontent.sql")
         with path.open('r') as file:
             query = file.read()
         try:
-            if domain_name:
-                query = f"{query} WHERE domain_name = '{domain_name}';"
+            query = f"{query} WHERE file_uuid = '{file_uuid}';"
+            self.cursor.execute(query)
+            self.conn.commit()
+        except DatabaseError as e:
+            self.conn.rollback()
+            print(f"Error while executing {e}")
+            raise e
+        
+    # Delete all data from the file_info with filter
+    def execute_file_info_delete_query(self,file_uuid : str):
+        path = Path("app/database/delete_fileinfo.sql")
+        with path.open('r') as file:
+            query = file.read()
+        try:
+            query = f"{query} WHERE file_uuid = '{file_uuid}';"
             self.cursor.execute(query)
             self.conn.commit()
         except DatabaseError as e:

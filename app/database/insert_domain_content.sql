@@ -1,1 +1,1 @@
-INSERT INTO domain_content (domain_uuid,domain_name,sentences,embeddings) VALUES (%s,%s,%s,%s)
+INSERT INTO domain_content (file_uuid,domain_uuid,sentences,sentence_order_number,embeddings) VALUES (%s,%s,%s,%s,%s)

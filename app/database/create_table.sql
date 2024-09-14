@@ -1,13 +1,14 @@
-CREATE TABLE IF NOT EXISTS domain_info(
-    domian_uuid UUID PRIMARY KEY,
-    domain_name VARCHAR NOT NULL,
-    pdf_name VARCHAR,
-    pdf_date VARCHAR,
-    page_sentences int []
+CREATE TABLE IF NOT EXISTS file_info(
+    file_uuid  UUID PRIMARY KEY,
+    domain_uuid UUID,
+    domain_name VARCHAR,
+    file_name VARCHAR,
+    file_date VARCHAR
 );
 CREATE TABLE IF NOT EXISTS domain_content(
-    domain_uuid UUID NOT NULL,
-    domain_name VARCHAR NOT NULL,
+    file_uuid UUID NOT NULL,
+    domain_uuid VARCHAR NOT NULL,
     sentences VARCHAR,
+    sentence_order_number INT,
     embeddings float []
 );
