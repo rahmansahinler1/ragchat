@@ -16,16 +16,18 @@ async function initialize() {
         // Load chat elements
         const chatArea = document.getElementById('chatArea');
         const userInput = document.getElementById('userInput');
+        const fileInput = document.getElementById('fileInput');
         const sendButton = document.getElementById('sendButton');
-        const checkChangesButton = document.getElementById('checkUpdatesButton')
+        const addFilesButton = document.getElementById('addFilesButton');
+        const uploadFilesButton = document.getElementById('uploadFilesButton');
 
         // Initialize functions
         initChat(chatArea, userInput, sendButton);
-        initDataPipeline(checkChangesButton);
+        initAddFiles(addFilesButton, fileInput, uploadFilesButton);
+        initUploadFiles(uploadFilesButton)
 
-        // Check for changes when the app initializes
-        window.addMessageToChat("Welcome the ragchat! Please wait ragchat to check it's memory for any change...", 'ragchat');
-        await checkChanges();
+        // Welcome message
+        window.addMessageToChat("Welcome the ragchat!", 'ragchat');
 
     } catch (error) {
         console.error('Error initializing app:', error);

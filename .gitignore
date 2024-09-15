@@ -80,5 +80,6 @@ venv/
 # VS Code
 .vscode/
 
-# Data
-db/
+# Database
+db_local/
+*.ini

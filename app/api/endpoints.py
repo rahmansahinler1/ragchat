@@ -1,9 +1,14 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form
+from fastapi.responses import JSONResponse
+from datetime import datetime
 from pydantic import BaseModel
-from pathlib import Path
+from typing import List
+import logging
 
 from .core import FileDetector, FileProcessor
 from .. import globals
+from ..db.database import Database
+from ..db.database import DatabaseFunctions
 
 router = APIRouter()
 detector = FileDetector(domain_folder_path=globals.domain_folder_path, memory_file_path=globals.memory_file_path)
@@ -11,6 +16,15 @@ processor = FileProcessor(db_folder_path=globals.db_folder_path)
 
 class Query(BaseModel):
     user_query: str
+
+class UploadAction(BaseModel):
+    action: str
+
+class FileInfo(BaseModel):
+    domain_name: str
+    file_name: str
+    file_date: str
+    file_sentences: list[str]
 
     
 @router.post("/qa/generate_answer")
@@ -29,7 +43,7 @@ async def generate_answer(user_input: Query):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-@router.post("/data_pipeline/check_changes")
+@router.post("/db/check_changes")
 async def check_changes():
     try:
         changes, updated_memory = detector.check_changes()
@@ -52,4 +66,70 @@ async def check_changes():
         return changed_file_message
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/io/add_files")
+async def add_files(
+    files: List[UploadFile] = File(...),
+    lastModified: List[int] = Form(...)
+):
+    try:
+        file_names = []
+        for file, last_modified_date in zip(files, lastModified):
+            bytes = await file.read()
+            file_datetime = datetime.fromtimestamp(int(last_modified_date) / 1000)
+            file_date = f"{file_datetime.day}/{file_datetime.month}/{file_datetime.year}"
+            file_info = {
+                "file_domain": "domain1",
+                "file_name": file.filename,
+                "file_date": file_date,
+                "bytes": bytes
+            }
+            file_names.append(file.filename)
+            globals.files.append(file_info)
+        return JSONResponse(content={"message": "Files uploaded successfully", "file_names": file_names, "total_files": len(globals.files)}, status_code=200)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/io/upload_files")
+async def upload_files(action: UploadAction):
+    if action.action != 'upload':
+        raise HTTPException(status_code=400, detail="Invalid action")
+    
+    if not globals.files:
+        raise HTTPException(status_code=400, detail="No file to be upload")
+    
+    try:
+        with Database() as db:
+            db_functions = DatabaseFunctions(db)
+            for file in globals.files:
+                file_info = {}
+                bytes = file["bytes"]
+                type = file["file_name"].split(".")[-1]
+                file_sentences = processor.rf.read_file(file_bytes=bytes, file_type=type)
+                file_info.update(file.pop("bytes"))
+                file_info["file_sentences"] = file_sentences
+                db_functions.insert_file_info(file_info=file_info)
+            
+            globals.files.clear()
+            return {
+            "success": True,
+            "message": "Files uploaded successfully"
+            }
+    except Exception as e:
+        if hasattr(db, 'conn'):
+            db.conn.rollback()
+        logging.error(f"Error during file upload: {str(e)}")
+        return {
+            "success": False,
+            "message": str(e)
+        }
+
+# with Database() as db:
+#         db_functions = DatabaseFunctions(db)
+#         try:
+#             # TODO: Inserting function call implementation
+#             db_functions.insert_file_info(file_info.model_dump())
+#             return {"message": "Domain info inserted successfully"}
+#         except Exception as e:
+#             logging.error(f"Error in insert_file_info endpoint: {e}")
+#             raise HTTPException(status_code=500, detail=str(e))
