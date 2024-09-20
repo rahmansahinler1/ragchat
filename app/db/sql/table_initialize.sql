@@ -1,7 +1,8 @@
 CREATE TABLE IF NOT EXISTS file_info(
     domain_name VARCHAR NOT NULL,
     file_name VARCHAR,
-    file_date VARCHAR
+    file_date VARCHAR,
+    file_sentences VARCHAR
 );
 
 CREATE TABLE IF NOT EXISTS domain_content(

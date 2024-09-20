@@ -12,15 +12,15 @@ class ReadingFunctions:
         )
 
     def read_file(self, file_bytes, file_type):
-        sentences = {}
+        sentences = []
         try:
             if file_type == 'pdf':
                 pdf_file = io.BytesIO(file_bytes)
                 pdf_reader = PdfReader(pdf_file)
-                for page_num, page in enumerate(pdf_reader.pages):
+                for _, page in enumerate(pdf_reader.pages):
                     page_text = page.extract_text()
                     valid_sentences = self._process_text(page_text)
-                    sentences[page_num + 1] = valid_sentences
+                    sentences.append(valid_sentences)
                 return sentences
         except Exception as e:
             raise ValueError(f"Error reading file!. Error: {str(e)}")

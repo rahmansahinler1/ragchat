@@ -79,9 +79,9 @@ async def add_files(
             file_datetime = datetime.fromtimestamp(int(last_modified_date) / 1000)
             file_date = f"{file_datetime.day}/{file_datetime.month}/{file_datetime.year}"
             file_info = {
-                "file_domain": "domain1",
-                "file_name": file.filename,
-                "file_date": file_date,
+                "domain": "domain1",
+                "name": file.filename,
+                "date": file_date,
                 "bytes": bytes
             }
             file_names.append(file.filename)
@@ -100,15 +100,14 @@ async def upload_files(action: UploadAction):
     
     try:
         with Database() as db:
-            db_functions = DatabaseFunctions(db)
+            dbf = DatabaseFunctions(db)
             for file in globals.files:
-                file_info = {}
-                bytes = file["bytes"]
-                type = file["file_name"].split(".")[-1]
-                file_sentences = processor.rf.read_file(file_bytes=bytes, file_type=type)
-                file_info.update(file.pop("bytes"))
-                file_info["file_sentences"] = file_sentences
-                db_functions.insert_file_info(file_info=file_info)
+                file_info = file.copy()
+                file_bytes = file["bytes"]
+                file_type = file["name"].split(".")[-1]
+                file_sentences = processor.rf.read_file(file_bytes=file_bytes, file_type=file_type)
+                file_info["sentences"] = file_sentences
+                dbf.insert_file_info(file_info=file_info)
             
             globals.files.clear()
             return {
@@ -123,13 +122,3 @@ async def upload_files(action: UploadAction):
             "success": False,
             "message": str(e)
         }
-
-# with Database() as db:
-#         db_functions = DatabaseFunctions(db)
-#         try:
-#             # TODO: Inserting function call implementation
-#             db_functions.insert_file_info(file_info.model_dump())
-#             return {"message": "Domain info inserted successfully"}
-#         except Exception as e:
-#             logging.error(f"Error in insert_file_info endpoint: {e}")
-#             raise HTTPException(status_code=500, detail=str(e))

@@ -1,6 +1,7 @@
 from psycopg2 import DatabaseError
 from pathlib import Path
 import logging
+import json
 
 
 class DatabaseFunctions:
@@ -32,19 +33,17 @@ class DatabaseFunctions:
         
     def insert_file_info(self, file_info):
         query = """
-        INSERT INTO domain_info (domain_name, file_name, file_date, file_sentences)
+        INSERT INTO file_info (domain_name, file_name, file_date, file_sentences)
         VALUES (%s, %s, %s, %s)
         """
         try:
-            self.db.cursor.execute(query, (
-                file_info['domain_name'],
-                file_info['file_name'],
-                file_info['file_date'],
-                file_info['file_sentences']
+            self.db.execute(query, (
+                file_info["domain"],
+                file_info['name'],
+                file_info['date'],
+                json.dumps(file_info['sentences'])
             ))
             self.db.conn.commit()
-            logging.info(f"File info inserted successfully: {file_info['file_name']}")
         except DatabaseError as e:
             self.db.conn.rollback()
-            logging.error(f"Error inserting file info: {e}")
             raise e
