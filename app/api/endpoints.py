@@ -4,11 +4,11 @@ from datetime import datetime
 from pydantic import BaseModel
 from typing import List
 import logging
+import uuid
 
 from .core import FileDetector, FileProcessor
 from .. import globals
 from ..db.database import Database
-from ..db.database import DatabaseFunctions
 
 router = APIRouter()
 detector = FileDetector(domain_folder_path=globals.domain_folder_path, memory_file_path=globals.memory_file_path)
@@ -76,17 +76,18 @@ async def add_files(
         file_names = []
         for file, last_modified_date in zip(files, lastModified):
             bytes = await file.read()
-            file_datetime = datetime.fromtimestamp(int(last_modified_date) / 1000)
-            file_date = f"{file_datetime.day}/{file_datetime.month}/{file_datetime.year}"
+            file_modified_date = datetime.fromtimestamp(int(last_modified_date) / 1000).strftime('%Y-%m-%d')
             file_info = {
-                "domain": "domain1",
-                "name": file.filename,
-                "date": file_date,
-                "bytes": bytes
+                "file_id": str(uuid.uuid4()),
+                "user_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+                "file_domain": "domain1",
+                "file_name": file.filename,
+                "file_modified_date": file_modified_date,
+                "file_bytes": bytes
             }
             file_names.append(file.filename)
-            globals.files.append(file_info)
-        return JSONResponse(content={"message": "Files uploaded successfully", "file_names": file_names, "total_files": len(globals.files)}, status_code=200)
+            globals.file_additions.append(file_info)
+        return JSONResponse(content={"message": "Files uploaded successfully", "file_names": file_names, "total_files": len(globals.file_additions)}, status_code=200)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -95,25 +96,32 @@ async def upload_files(action: UploadAction):
     if action.action != 'upload':
         raise HTTPException(status_code=400, detail="Invalid action")
     
-    if not globals.files:
+    if not globals.file_additions:
         raise HTTPException(status_code=400, detail="No file to be upload")
     
     try:
-        with Database() as db:
-            dbf = DatabaseFunctions(db)
-            for file in globals.files:
-                file_info = file.copy()
-                file_bytes = file["bytes"]
-                file_type = file["name"].split(".")[-1]
-                file_sentences = processor.rf.read_file(file_bytes=file_bytes, file_type=file_type)
-                file_info["sentences"] = file_sentences
-                dbf.insert_file_info(file_info=file_info)
+        for file_addition in globals.file_additions:
+            file_info = {}
+            file_info["file_id"] = file_addition["file_id"]
+            file_info["user_id"] = file_addition["user_id"]
+            file_info["file_domain"] = file_addition["file_domain"]
+            file_info["file_name"] = file_addition["file_name"].split(".")[0]
+            file_info["file_type"] = file_addition["file_name"].split(".")[-1]
+            file_info["file_modified_date"] = file_addition["file_modified_date"]
+
+            file_sentences = processor.rf.read_file(file_bytes=file_addition["file_bytes"], file_type=file_info["file_type"])
+            file_embeddings = processor.ef.create_embeddings_from_sentences(file_sentences=file_sentences)
+
+            with Database() as db:
+                db.insert_file_info(file_info=file_info)
+                db.insert_file_content(file_id=file_info["file_id"], file_sentences=file_sentences, file_embeddings=file_embeddings)
+                db.conn.commit()
             
-            globals.files.clear()
-            return {
-            "success": True,
-            "message": "Files uploaded successfully"
-            }
+        globals.file_additions.clear()
+        return {
+        "success": True,
+        "message": "Files uploaded successfully"
+        }
     except Exception as e:
         if hasattr(db, 'conn'):
             db.conn.rollback()

@@ -109,7 +109,7 @@ async function uploadFiles(uploadFilesButton) {
         const data = await response.json();
         
         if (data.success) {
-            window.addMessageToChat(`Files uploaded successfully: ${data.file_names.join(', ')}`, 'ragchat');
+            window.addMessageToChat(`Files uploaded successfully`, 'ragchat');
         } else {
             throw new Error(data.message || 'Upload failed');
         }
