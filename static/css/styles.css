@@ -1,66 +1,287 @@
 body {
-    height: 100vh;
-  }
-  .sidebar {
-    width: 245px;
-    height: 1050px;
-    background-color: #D9D9D9;
-    padding: 15px;
-  }
-  .btn-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    font-size: 18px;
-    text-align: center;
-    padding: 5px;
-    margin: 5px;
-  }
-  .file-list, .chosen-files {
-    max-height: 200px;
-    overflow-y: auto;
-  }
-  .file-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px;
-    line-height: 15%;
-  }
-  .file-item input {
-    margin-right: 10px;
-  }
-  .upload-section {
-    border: 2px dashed #ccc;
-    padding: 15px;
-    text-align: center;
-    margin-top: 15px;
-  }
-  .upload-section .fa-cloud-upload-alt {
-    font-size: 40px;
-    margin-bottom: 10px;
-  }
-  hr {
-    position: relative;
-    bottom: 1%;
-    border:none;
-    background-color: black;
-    color: black;
-  }
-  .text-muted {
+  height: 100vh;
+  overflow: hidden;
+}
 
-  }
-  #domain-remove {
-    position: relative;
-    bottom: 1%;
-  }
-  #btn-domain {
-    border: black px;
-    background-color: transparent;
-    border: 2px solid black;
-  }
-  @media (max-width: 768px) {
-    .sidebar {
-      width: 100%;
-      height: auto;
-    }
-  }
+.sidebar {
+  width: 245px;
+  background-color: #D9D9D9;
+  padding: 15px;
+  position: fixed;
+  height: 100vh;
+
+}
+.chat-section {
+  margin-left: 245px; 
+  display: flex;
+  flex-direction: column;
+  flex: 4; /* Ensure it takes up available space */ 
+  position: relative;
+  
+}
+
+.chat-box {
+  border: 1px solid #ced4da;
+  border-radius: 20px;
+  background-color: white;
+  padding: 10px;
+  display: inline-block; /* Auto-size according to the text */
+  max-width: 90%; /* Prevent it from being too wide */
+  word-wrap: break-word; /* Wrap text to the next line */
+  margin-left: 3%; /* Close to the left */
+  position: absolute;
+  top: 20%;
+  max-height: 60%;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+  
+}
+.total-chat, .chat-box {
+  height: 80%;
+  overflow-y: auto;
+  padding: 10px;
+}
+.chat-box p {
+  margin: 0;
+  line-height: 30px;
+}
+
+.resource-section {
+  background-color: #ffffff;
+  flex: 1; 
+  overflow-y: auto;
+  position: relative;
+  left: 0; /* Remove left offset */
+  margin-left: 10px;
+}
+#section-divider {
+  height: 100%;
+  background-color: black;
+  opacity: 100%;
+  box-shadow: 1px 1px 1px black;
+  position: absolute;
+  width: 2px;
+  bottom: 0;
+  left: -1px;
+}
+.btn-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 18px;
+  text-align: center;
+}
+.file-list {
+  position: relative;
+  bottom: 1.5%;
+  margin-top: -10px; 
+  height: 17%;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  line-height: 15%;
+}
+
+.file-item input {
+  margin-right: 10px;
+}
+
+.upload-section {
+  border: 3px dashed #ccc;
+  padding-top: 5%;
+  text-align: center;
+  margin-top: -20%; 
+}
+
+.upload-section .fa-cloud-upload-alt {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+#domain-hr {
+  border-top: 2px solid black;
+  opacity: 100%;
+  box-shadow: 1px 1px 1px black;
+  position: relative;
+  bottom: 0.5%;
+}
+
+#second-hr {
+  border-top: 1px solid black;
+  opacity: 100%;
+  box-shadow: 1px 1px 1px black;
+  position: relative;
+}
+
+#upload-hr {
+  border-top: 2px solid black;
+  opacity: 100%;
+  box-shadow: 1px 1px 1px black;
+  position: relative;
+}
+#user-msg-text {
+  font-weight: bold;
+}
+.box-user-msg {
+  background-color: #D9D9D9;
+  width: auto;
+  max-width: 80%; /* Prevent it from being too wide */
+  padding: 10px;
+  margin: 10px;
+  text-align: center;
+  position: absolute; /* Position it absolutely within the chat section */
+  bottom: 80%;
+  right: 1%; /* Slight gap from the right */
+  border-radius: 10px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+  background-color: #5CDBF6;
+  height: 5%;
+}
+#send-message-box {
+  flex: 1; /* Allow it to grow and shrink */
+  padding: 10px;
+  background-color: #D9D9D9;
+  border-top: 2px solid black;
+  border: none;
+  border-radius: 10px;
+}
+.btn-send {
+  border-radius: 10px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+  background-color: #5CDBF6;
+  border: none;
+  width: 20%;
+}
+#bottom-send-tools {
+  display: flex;
+  align-items: center;
+  position: absolute;
+  left: 48%;
+  transform: translateX(-50%);
+  width: 87%; /* Adjust width as needed */
+  bottom: 0;
+  background-color: white;
+}
+#sidebar-seperator {
+  width: 2px;
+  height: 100%;
+  background-color: black;
+  border-top: 2px solid black;
+  opacity: 100%;
+  box-shadow: 1px 1px 1px black;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+#domain-remove {
+  position: relative;
+  bottom: 3%;
+}
+
+#btn-domain-number {
+  background-color: transparent;
+  border: 2px solid black;
+  font-size: 30px;
+  margin: auto;
+  position: relative;
+  margin-bottom: 10%;
+}
+
+#btn-domain-number:hover {
+  background-color: black;
+  color: white;
+}
+
+#domain-number {
+  position: relative;
+  -webkit-transform: translate(10%, -25%);
+  transform: translate(10%, -25%);
+  right: 20%;
+}
+
+.section-chosen-files {
+  position: relative;
+  bottom: 4%;
+  margin-top: -10px; 
+  height: 13%;
+  overflow-y: auto;
+}
+
+.chosen-files-list {
+  align-items: center;
+  margin-bottom: 8px;
+  line-height: 15%;
+}
+
+#text-chosen-files {
+  position: relative;
+  bottom: 3.5%;
+}
+
+#second-hr {
+  position: relative;
+  bottom: 5%;
+}
+
+.domain-info {
+  position: relative;
+  bottom: 2%;
+}
+
+#domain-info-hr {
+  border-top: 1px solid black;
+  opacity: 100%;
+  box-shadow: 1px 1px 1px black;
+  margin-bottom: 3%;
+  position: relative;
+  bottom: 3.5%;
+}
+
+#btn-select-file {
+  background-color: black;
+  color: white;
+  border: 2px solid black;
+  margin-bottom: 5%;
+}
+
+#btn-remove, #btn-add {
+  width: 50%; 
+  position: relative;
+  margin-bottom: 10%;
+}
+
+#button-container {
+  position: relative;
+  bottom: 3%;
+}
+
+#info-message {
+  margin-top: -10px;
+}
+
+.domain-info p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.empty-message {
+  display: none;
+  color: #888;
+  text-align: center;
+  margin-top: 10px;
+}
+.box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #4ae0c7;
+  margin: 0;
+}

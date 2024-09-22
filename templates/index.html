@@ -3,88 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel = "stylesheet" href = "../static/css/styles.css">
+    <link rel="stylesheet" href="../static/css/styles.css">
+    <script src="/static/js/main.js" defer></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <title>RAGChat</title>
 </head>
 <body>
     <div class="sidebar">
-        <h1 class="text-center">Domain</h1>
-        <hr>
-        <div class="d-flex justify-content-between mb-2">
-          <button class="btn btn-circle" id = "btn-domain">1</button>
-          <button class="btn btn-circle" id = "btn-domain">2</button>
-          <button class="btn btn-circle" id = "btn-domain">3</button>
-          <button class="btn btn-circle" id = "btn-domain">4</button>
-          <button class="btn btn-circle" id = "btn-domain">5</button>
+        <div id="sidebar-seperator"></div>
+        <h2 class="text-center">Domain</h2>
+        <hr id="domain-hr">
+        <div class="d-flex mb-2">
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">1</p></button>
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">2</p></button>
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">3</p></button>
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">4</p></button>
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">5</p></button>
         </div>
-        
-        <div class="mb-3">
-          <label for="domain" class="form-label">Domain: Blank</label>
+
+        <div class="domain-info">
+            <p><b>Domain: </b><span id="domain-title">Analysis Report</span></p>
         </div>
-        <hr>
+        <hr id="domain-info-hr">
         <div class="file-list mb-4">
-          <div class="file-item">
-            <input type="checkbox"> <label>research.pdf</label>
+            <p class="empty-message">Please attach a document</p>
+            <div class="file-item">
+                <input type="checkbox" class="file-checkbox"> <label>statistics.docx</label>
+            </div>
+            <div class="file-item">
+                <input type="checkbox" class="file-checkbox"> <label>statistics2.docx</label>
+            </div>
+            <div class="file-item">
+              <input type="checkbox" class="file-checkbox"> <label>statistics.docx</label>
           </div>
           <div class="file-item">
-            <input type="checkbox"> <label>statistics.docx</label>
+              <input type="checkbox" class="file-checkbox"> <label>statistics2.docx</label>
           </div>
           <div class="file-item">
-            <input type="checkbox"> <label>placeholder.txt</label>
-          </div>
-          <div class="file-item">
-            <input type="checkbox"> <label>research2.pdf</label>
-          </div>
-          <div class="file-item">   
-            <input type="checkbox"> <label>statistics2.docx</label>
-          </div>
-          <div class="file-item">
-            <input type="checkbox"> <label>placeholder2.txt</label>
-          </div>
-          <div class="file-item">
-            <input type="checkbox"> <label>placeholder3.txt</label>
-          </div>
+            <input type="checkbox" class="file-checkbox"> <label>statistics.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics2.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics2.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics2.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics2.docx</label>
         </div>
         
+    </div>
+
         <button class="btn btn-secondary w-100 mb-3" id="domain-remove" disabled>Remove</button>
-        
-        <h6>Chosen Files</h6>
-        <hr>
-        <div class="chosen-files mb-3">
-          <div class="file-item">
-            <input type="checkbox"> <label>statistics4.docx</label>
-          </div>
-          <div class="file-item">
-            <input type="checkbox"> <label>placeholder4.txt</label>
-          </div>
-          <div class="file-item">
-            <input type="checkbox"> <label>research4.pdf</label>
-          </div>
-          <div class="file-item">
-            <input type="checkbox"> <label>statistics5.docx</label>
-          </div>
-          <div class="file-item">
-            <input type="checkbox"> <label>placeholder5.txt</label>
-          </div>
+        <h4 id="text-chosen-files">Chosen Files</h4>
+        <hr id="second-hr">
+
+        <div class="section-chosen-files">
+            <p class="empty-message">Please attach a document</p>
+            <div class="chosen-files-list mb-3">
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics4.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>research.pdf</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics2.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics2.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics2.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics2.docx</label>
+                </div>
+            </div>
         </div>
-        
-        <div class="d-flex justify-content-between mb-3">
-          <button class="btn btn-secondary" disabled>Remove</button>
-          <button class="btn btn-secondary">Add</button>
+
+        <div class="d-flex justify-content-center mb-3" id="button-container">
+            <button class="btn btn-secondary mx-2" id="btn-remove" disabled>Remove</button>
+            <button class="btn btn-secondary mx-2" id="btn-add">Add</button>
         </div>
+
         <div class="upload-section">
-          <i class="fa fa-cloud-upload-alt"></i>
-          <p>Drag and Drop here or</p>
-          <button class="btn btn-light">Select File</button>
-          <p class="text-muted small">PDF, DOCX, TXT &lt; 5MB</p>
+            <i class="fa fa-cloud-upload-alt"></i>
+            <p>Drag and Drop here <br>or</p>
+            <button type="file" class="btn btn-light" id="btn-select-file">Select File</button>
+            <br>
+            <b><p>PDF, DOCX, TXT &lt; 5MB</p></b>
         </div>
-        
-        <div class="mt-2 text-center">
-          <small class="text-muted">You Can Also Drag & Drop on Domains to Upload Files</small>
+
+        <div class="mt-2 text-center" id="info-message">
+            <i class="fa fa-info-circle"></i>
+            <small>You Can Also Drag & Drop on Domains to Upload Files</small>
         </div>
-      </div>
+    </div>
+
+    <div class="container-fluid vh-100">
+        <div class="row h-100">
+            <!-- Chat Section -->
+            <div class="col chat-section d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center p-3">
+                    <div class="header">
+                        <h2>RAGChat</h2>
+                    </div>
+                </div>
+                <div class="total-chat">
+                    <div class = "box-user-msg">
+                        <p id = "user-msg-text">What is RAGChat?</p>
+                    </div>
+                    <div class="chat-box">
+                        <p>
+                            Lorem, ipsum dolor sit amet consectetur adipisicing elit. Culpa reprehenderit, asperiores laudantium minima quos, animi quam vitae nemo necessitatibus earum neque? Cupiditate ipsam enim amet sunt eveniet dolorum eligendi, quisquam rem quo impedit corrupti ea blanditiis! Quibusdam maiores unde ad vitae, eaque exercitationem consequatur enim, tempora veritatis dolore dignissimos sapiente dicta voluptatibus odit corrupti delectus ipsa quisquam quod! Asperiores inventore magnam nesciunt ab, iure nisi fugiat quia numquam qui corporis suscipit dolores accusantium illum dolorum, labore sit ratione beatae ipsum maxime repudiandae libero! Suscipit fugit voluptate accusamus aspernatur fugiat totam unde perspiciatis quibusdam tempora laudantium voluptatem nam quidem, labore vitae?
+                            Lorem ipsum dolor sit amet consectetur adipisicing elit. Eveniet dignissimos quaerat, odio reprehenderit veniam nemo consequatur laudantium amet tempora autem consectetur culpa, optio voluptate quasi! Nulla fuga totam deleniti temporibus aspernatur numquam animi iure voluptatum ea laborum earum, sint quia saepe expedita non molestiae eligendi nihil id aliquam, rerum labore tenetur nostrum vitae voluptatibus! Tempore obcaecati nesciunt impedit rerum natus iusto deleniti sit, incidunt illo reprehenderit eius unde nemo temporibus velit ratione sequi facere dignissimos inventore recusandae dolor odit eum reiciendis. Necessitatibus ducimus non ipsum possimus sint, nam laudantium consectetur iste tempora corporis sapiente at, unde aut veritatis quod provident?
+                            Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellendus necessitatibus voluptatum, nisi harum repellat blanditiis dolorum, esse unde facilis amet molestiae consequatur iste, neque alias sequi commodi! Repellendus incidunt natus aliquam corrupti ea deserunt quibusdam quae officiis inventore itaque quisquam, reiciendis doloremque libero eius quam excepturi explicabo pariatur quos maxime ab! Iste, harum sint quo id adipisci labore facere fuga commodi veritatis officia modi esse ex aperiam itaque recusandae quidem odio necessitatibus nam eum debitis doloribus praesentium numquam ducimus? Alias provident ad ipsam molestiae magni sunt illo, in quam et ratione ipsum officiis soluta! Accusantium quia repudiandae tempore facilis id.
+                            Lorem ipsum dolor sit amet consectetur adipisicing elit. Fuga blanditiis itaque, amet exercitationem accusamus enim tempore dolore et quod necessitatibus provident vero aperiam totam dolor facilis error laudantium adipisci accusantium, voluptatum facere dignissimos. Deserunt hic esse autem eos quaerat ratione, corrupti dignissimos repellendus provident vero, repudiandae cum inventore, voluptas laudantium!
+                        </p>
+                    </div>
+                </div>
+                <div class="d-flex p-3" id="bottom-send-tools">
+                    <input type="text" class="form-control me-2" placeholder="Send Message..." id="send-message-box">
+                    <button class="btn-send">Send</button>
+                </div>
+            </div>
+            
+            <!-- Resources Section -->
+            <div class="col resource-section bg-white p-3">
+              <hr id = "section-divider">
+                <h4>Resources</h4>
+                <div class="resource-item">
+                    <h6>Resource From: research.pdf</h6>
+                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
+                </div>
+                <div class="resource-item">
+                    <h6>Resource From: statistics.docx</h6>
+                    <p>Duis dignissim, sapien nec finibus tempor...</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous"></script>
 </html>
