@@ -200,11 +200,9 @@ class FileProcessor:
     def search_index(
             self,
             user_query: str,
-            file_paths: List[str],
             sentences: List[str],
-            file_sentence_amount: List[int],
     ):
-        query_vector = self.ef.create_vector_embedding_from_query(query=user_query)
+        query_vector = self.ef.create_embedding_from_query(query=user_query)
         _, I = globals.index.search(query_vector, 5)
         widen_sentences = self.widen_sentences(window_size=1, convergence_vector=I[0], sentences=sentences)
         context = f"""Context1: {widen_sentences[0]}
@@ -213,10 +211,9 @@ class FileProcessor:
         Context4: {widen_sentences[3]}
         Context5: {widen_sentences[4]}
         """
-        resources = self.extract_resources(file_paths=file_paths, convergence_vector=I[0], file_sentence_amount=file_sentence_amount)
+        # TODO: add resource extraction based on database search
         response = self.cf.response_generation(query=user_query, context=context)
-        return response, resources
-    
+        return response
     def file_change_to_memory(self, change: Dict):
         # Create embeddings
         file_data = self.rf.read_file(file_path=change["file_path"])

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import List
 import logging
 import uuid
+import numpy as np
 
 from .core import FileDetector, FileProcessor
 from .. import globals
@@ -23,44 +24,36 @@ class UploadAction(BaseModel):
 class UserEmailRequest(BaseModel):
     user_email: str
 
+class QueryWithEmail(BaseModel):
+    user_query: str
+    user_email: str
+
     
 @router.post("/qa/generate_answer")
-async def generate_answer(user_input: Query):
-    index_object = processor.indf.load_index(index_path=globals.index_path)
-    globals.index = processor.create_index(embeddings=index_object["embeddings"])
+async def generate_answer(request: QueryWithEmail):
     try:
-        if globals.index:
-            response, resources = processor.search_index(
-                user_query=user_input.user_query,
-                file_paths=index_object["file_path"],
-                sentences=index_object["sentences"],
-                file_sentence_amount=index_object["file_sentence_amount"]
-            )
-            return {"response": response, "resources": resources}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        if not globals.index:
+            with Database() as db:
+                user_info = db.get_user_info(request.user_email)
+                if not user_info:
+                    raise HTTPException(status_code=404, detail="User not found")
+                # Create index
+                file_infos = db.get_file_info(user_info['user_id'])
+                file_ids = [file_info["file_id"] for file_info in file_infos]
+                file_content = db.get_file_content(file_ids)
+                embeddings = np.vstack([np.frombuffer(row[3], dtype=np.float64).reshape(1, -1) for row in file_content if row[3] is not None])
+                globals.sentences = [row[0] for row in file_content if row[0] is not None]
+                globals.index = processor.create_index(embeddings=embeddings)
+                
+        # Search index and return answer
+        answer = processor.search_index(user_query=request.user_query, sentences=globals.sentences)
+        response = {
+            "answer": answer
+        }
+        
+        return JSONResponse(content=response)
     
-@router.post("/db/check_changes")
-async def check_changes():
-    try:
-        changes, updated_memory = detector.check_changes()
-        changed_file_message = ["No change detected"]
-        if any(changes.values()):
-            changed_file_message = [
-                "File changes detected!",
-                f"--> {len(changes["insert"])} addition",
-                f"--> {len(changes["update"])} update",
-                f"--> {len(changes["delete"])} deletion",
-                "Please wait ragchat to synchronize it's memory..."
-            ]
-            if changes["insert"]:
-                processor.index_insert(changes=changes["insert"])
-            if changes["update"]:
-                processor.index_update(changes=changes["update"])
-            if changes["delete"]:
-                processor.index_delete(changes=changes["delete"])
-            processor.update_memory(updated_memory=updated_memory, memory_json_path=globals.memory_file_path)
-        return changed_file_message
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -69,9 +62,9 @@ async def get_user_info(request: UserEmailRequest):
     try:
         with Database() as db:
             user_info = db.get_user_info(request.user_email)
-            domain_info = db.get_file_info(user_info['user_id'])
+            file_info = db.get_file_info(user_info['user_id'])
         
-        return user_info, domain_info
+        return user_info, file_info
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -148,6 +141,28 @@ async def upload_files(action: UploadAction):
         if hasattr(db, 'conn'):
             db.conn.rollback()
         logging.error(f"Error during file upload: {str(e)}")
+        return {
+            "success": False,
+            "message": str(e)
+        }
+
+@router.post("/io/remove_file_upload")
+async def remove_file_upload(request: UserEmailRequest):
+    try:
+        with Database() as db:
+            user_info = db.get_user_info(request.user_email)
+            deleted_content = db.clear_file_content(user_id=user_info["user_id"])
+            deleted_files = db.clear_file_info(user_id=user_info["user_id"])
+            db.conn.commit()
+        
+        return {
+        "success": True,
+        "message": {
+            "deleted_content": deleted_content,
+            "deleted_files": deleted_files
+        }
+        }
+    except Exception as e:
         return {
             "success": False,
             "message": str(e)

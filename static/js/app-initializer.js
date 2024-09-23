@@ -8,25 +8,6 @@ function loadScript(url) {
     });
 }
 
-async function fetchInitialUserData(userEmail) {
-    try {
-        const response = await fetch('/api/v1/db/get_user_info', {
-            method: 'POST',
-            body: JSON.stringify({ user_email: userEmail }),
-            headers: {
-                'Content-Type': 'application/json'
-            },
-        });
-        if (!response.ok) {
-            throw new Error('Failed to fetch initial user data');
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching initial user data:', error);
-        return null;
-    }
-}
-
 async function initialize() {
     try {
         // Load scripts
@@ -36,9 +17,9 @@ async function initialize() {
         const userEmail = "rahmansahinler1@gmail.com";
 
         // Fetch initial user data
-        const initialUserData = await fetchInitialUserData(userEmail);
-        if (!initialUserData) {
-            throw new Error('Failed to load initial user data');
+        const userData = await window.fetchUserData(userEmail);
+        if (!userData) {
+            throw new Error('Failed to load user data');
         }
 
         // Load chat elements
@@ -56,14 +37,15 @@ async function initialize() {
         const selectedFileList = document.getElementById('selectedFileList');
         
         // Initialize functions
-        initChat(chatArea, userInput, sendButton);
+        initChat(chatArea, userInput, sendButton, userEmail);
         initAddFiles(selectFilesButton, fileInput, uploadFilesButton, selectedFileList, removeSelectionButton);
-        initUploadFiles(uploadFilesButton);
+        initUploadFiles(uploadFilesButton, userEmail, domainFileList, removeUploadButton, selectedFileList);
         initRemoveSelection(selectedFileList, uploadFilesButton, removeSelectionButton);
-        initRemoveUpload(removeUploadButton);
+        initRemoveUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail);
 
         // Update the initial widgets when first loaded
-        initWidgetLoad(initialUserData, domainFileList, removeUploadButton);
+        updateDomainList(userData, domainFileList, removeUploadButton);
+        window.addMessageToChat(`Welcome ${userData[0].user_name}, how are you today?`, 'ragchat');
 
     } catch (error) {
         console.error('Error initializing app:', error);

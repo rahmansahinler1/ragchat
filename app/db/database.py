@@ -71,14 +71,28 @@ class Database:
 
     def get_file_info(self, user_id: str):
         query = """
-        SELECT DISTINCT file_domain, file_name, file_type
+        SELECT DISTINCT file_domain, file_name, file_type, file_id
         FROM file_info
         WHERE user_id = %s
         """
         try:
             self.cursor.execute(query, (user_id, ))
             data = self.cursor.fetchall()
-            return [{"file_domain": row[0], "file_name": row[1], "file_type": row[2]} for row in data] if data else None
+            return [{"file_domain": row[0], "file_name": row[1], "file_type": row[2], "file_id": row[3]} for row in data] if data else None
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+    
+    def get_file_content(self, file_ids: list):
+        query = """
+        SELECT sentence, sentence_order, page_number, embedding
+        FROM file_content
+        WHERE file_id IN %s
+        """
+        try:
+            self.cursor.execute(query, (tuple(file_ids),))
+            data = self.cursor.fetchall()
+            return data
         except DatabaseError as e:
             self.conn.rollback()
             raise e
@@ -113,6 +127,43 @@ class Database:
                 for sentence_order, (sentence, embedding) in enumerate(zip(page_sentences, page_embeddings))
                 ]
                 extras.execute_values(self.cursor, query, inserted_data)
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+    
+    def clear_file_info(self, user_id: str):
+        query = """
+        DELETE FROM file_info
+        WHERE user_id = %s
+        """
+        try:
+            self.cursor.execute(query, (user_id,))
+            return self.cursor.rowcount
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+    
+    def clear_file_content(self, user_id: str):
+        get_file_ids_query = """
+        SELECT DISTINCT file_id
+        FROM file_info
+        WHERE user_id = %s
+        """
+
+        clear_content_query = """
+        DELETE FROM file_content
+        WHERE file_id IN %s
+        """
+        try:
+            self.cursor.execute(get_file_ids_query, (user_id,))
+            file_ids = [row[0] for row in self.cursor.fetchall()]
+
+            if file_ids:
+                self.cursor.execute(clear_content_query, (tuple(file_ids),))
+                total_cleared = self.cursor.rowcount
+                return total_cleared
+            else:
+                return 0
         except DatabaseError as e:
             self.conn.rollback()
             raise e
