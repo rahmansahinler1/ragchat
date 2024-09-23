@@ -20,11 +20,8 @@ class Query(BaseModel):
 class UploadAction(BaseModel):
     action: str
 
-class FileInfo(BaseModel):
-    domain_name: str
-    file_name: str
-    file_date: str
-    file_sentences: list[str]
+class UserEmailRequest(BaseModel):
+    user_email: str
 
     
 @router.post("/qa/generate_answer")
@@ -66,9 +63,20 @@ async def check_changes():
         return changed_file_message
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/db/get_user_info")
+async def get_user_info(request: UserEmailRequest):
+    try:
+        with Database() as db:
+            user_info = db.get_user_info(request.user_email)
+            domain_info = db.get_file_info(user_info['user_id'])
+        
+        return user_info, domain_info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     
-@router.post("/io/add_files")
-async def add_files(
+@router.post("/io/select_files")
+async def select_files(
     files: List[UploadFile] = File(...),
     lastModified: List[int] = Form(...)
 ):
@@ -86,30 +94,44 @@ async def add_files(
                 "file_bytes": bytes
             }
             file_names.append(file.filename)
-            globals.file_additions.append(file_info)
-        return JSONResponse(content={"message": "Files uploaded successfully", "file_names": file_names, "total_files": len(globals.file_additions)}, status_code=200)
+            globals.file_selections.append(file_info)
+        return JSONResponse(content={"message": "Files uploaded successfully", "file_names": file_names, "total_files": len(globals.file_selections)}, status_code=200)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/io/remove_file_selections")
+async def remove_file_selections():
+    try:
+        globals.file_selections.clear()
+        return {
+        "success": True,
+        "message": "Files deleted successfully"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": str(e)
+        }
 
 @router.post("/io/upload_files")
 async def upload_files(action: UploadAction):
     if action.action != 'upload':
         raise HTTPException(status_code=400, detail="Invalid action")
     
-    if not globals.file_additions:
+    if not globals.file_selections:
         raise HTTPException(status_code=400, detail="No file to be upload")
     
     try:
-        for file_addition in globals.file_additions:
+        for file_selection in globals.file_selections:
             file_info = {}
-            file_info["file_id"] = file_addition["file_id"]
-            file_info["user_id"] = file_addition["user_id"]
-            file_info["file_domain"] = file_addition["file_domain"]
-            file_info["file_name"] = file_addition["file_name"].split(".")[0]
-            file_info["file_type"] = file_addition["file_name"].split(".")[-1]
-            file_info["file_modified_date"] = file_addition["file_modified_date"]
+            file_info["file_id"] = file_selection["file_id"]
+            file_info["user_id"] = file_selection["user_id"]
+            file_info["file_domain"] = file_selection["file_domain"]
+            file_info["file_name"] = file_selection["file_name"].split(".")[0]
+            file_info["file_type"] = file_selection["file_name"].split(".")[-1]
+            file_info["file_modified_date"] = file_selection["file_modified_date"]
 
-            file_sentences = processor.rf.read_file(file_bytes=file_addition["file_bytes"], file_type=file_info["file_type"])
+            file_sentences = processor.rf.read_file(file_bytes=file_selection["file_bytes"], file_type=file_info["file_type"])
             file_embeddings = processor.ef.create_embeddings_from_sentences(file_sentences=file_sentences)
 
             with Database() as db:
@@ -117,7 +139,7 @@ async def upload_files(action: UploadAction):
                 db.insert_file_content(file_id=file_info["file_id"], file_sentences=file_sentences, file_embeddings=file_embeddings)
                 db.conn.commit()
             
-        globals.file_additions.clear()
+        globals.file_selections.clear()
         return {
         "success": True,
         "message": "Files uploaded successfully"

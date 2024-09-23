@@ -44,16 +44,25 @@ async function sendMessage(userInput) {
 }
 
 // File Operations
-function initAddFiles(addFilesButton, fileInput, uploadFilesButton) {
-    addFilesButton.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', () => addFiles(fileInput, uploadFilesButton))
+function initAddFiles(selectFilesButton, fileInput, uploadFilesButton, selectedFileList, removeSelectionButton) {
+    selectFilesButton.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => addFiles(fileInput, uploadFilesButton, selectedFileList, removeSelectionButton))
+}
+
+function initRemoveSelection(selectedFileList, uploadFilesButton, removeSelectionButton) {
+    removeSelectionButton.addEventListener('click', () => removeFileSelection(selectedFileList, uploadFilesButton, removeSelectionButton));
 }
 
 function initUploadFiles(uploadFilesButton) {
     uploadFilesButton.addEventListener('click', () => uploadFiles(uploadFilesButton));
 }
 
-async function addFiles(fileInput, uploadFilesButton) {
+function initRemoveUpload(removeUploadButton) {
+    removeUploadButton.addEventListener('click', () => removeFileUpload(selectedFileList, uploadFilesButton, removeSelectionButton));
+}
+
+
+async function addFiles(fileInput, uploadFilesButton, selectedFileList, removeSelectionButton) {
     const files = fileInput.files;
     const formData = new FormData();
     
@@ -67,7 +76,7 @@ async function addFiles(fileInput, uploadFilesButton) {
     }
 
     try {
-        const response = await fetch('api/v1/io/add_files', {
+        const response = await fetch('api/v1/io/select_files', {
             method: 'POST',
             body: formData
         });
@@ -77,10 +86,17 @@ async function addFiles(fileInput, uploadFilesButton) {
         }
         
         const data = await response.json();
-        window.addMessageToChat(`Files added successfully: ${data.file_names.join(', ')}`, 'ragchat');
+        if (data && data.file_names) {
+            data.file_names.forEach(fileName => {
+                const li = document.createElement('li');
+                li.textContent = fileName;
+                selectedFileList.appendChild(li);
+            });
+        }
 
         if (data.total_files > 0) {
-            uploadFilesButton.disabled = false
+            uploadFilesButton.disabled = false;
+            removeSelectionButton.disabled = false;
         }
     } catch (error) {
         console.error('Error uploading files:', error);
@@ -88,6 +104,36 @@ async function addFiles(fileInput, uploadFilesButton) {
     }
 
     fileInput.value = '';
+}
+
+async function removeFileSelection(selectedFileList, uploadFilesButton, removeSelectionButton) {
+    try {
+        const response = await fetch('api/v1/io/remove_file_selections', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to remove files!');
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            selectedFileList.innerHTML = '';
+            uploadFilesButton.disabled = true;
+            removeSelectionButton.disabled = true;
+
+            window.addMessageToChat(`Selected files deleted`, 'ragchat');
+        } else {
+            throw new Error(data.message || 'Failed to remove files');
+        }
+    } catch (error) {
+        console.error('Error removing files:', error);
+        window.addMessageToChat('Error while removing files: ' + error.message, 'ragchat');
+    }
 }
 
 async function uploadFiles(uploadFilesButton) {
@@ -122,8 +168,24 @@ async function uploadFiles(uploadFilesButton) {
     }
 }
 
+function initWidgetLoad(initialUserData, domainFileList, removeUploadButton) {
+    const userName = initialUserData[0].user_name
+    const domainFiles = initialUserData[1]
+
+    if (domainFiles) {
+        domainFileList.innerHTML = '';
+        domainFiles.forEach(file => {
+            const li = document.createElement('li');
+            li.textContent = `${file.file_domain}: ${file.file_name}.${file.file_type}`;
+            domainFileList.appendChild(li);
+        });
+        removeUploadButton.disabled = false;
+    }
+    window.addMessageToChat(`Welcome ${userName}, how are you today?`, 'ragchat');
+}
 
 window.initChat = initChat;
 window.addMessageToChat = addMessageToChat;
 window.initAddFiles = initAddFiles;
 window.initUploadFiles = initUploadFiles;
+window.removeFileSelection = removeFileSelection;

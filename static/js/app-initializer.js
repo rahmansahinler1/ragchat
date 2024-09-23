@@ -8,26 +8,62 @@ function loadScript(url) {
     });
 }
 
+async function fetchInitialUserData(userEmail) {
+    try {
+        const response = await fetch('/api/v1/db/get_user_info', {
+            method: 'POST',
+            body: JSON.stringify({ user_email: userEmail }),
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        });
+        if (!response.ok) {
+            throw new Error('Failed to fetch initial user data');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching initial user data:', error);
+        return null;
+    }
+}
+
 async function initialize() {
     try {
         // Load scripts
         await loadScript('/static/js/app.js');
+        
+        // In the future, this will be updated after logic process
+        const userEmail = "rahmansahinler1@gmail.com";
+
+        // Fetch initial user data
+        const initialUserData = await fetchInitialUserData(userEmail);
+        if (!initialUserData) {
+            throw new Error('Failed to load initial user data');
+        }
 
         // Load chat elements
         const chatArea = document.getElementById('chatArea');
         const userInput = document.getElementById('userInput');
-        const fileInput = document.getElementById('fileInput');
         const sendButton = document.getElementById('sendButton');
-        const addFilesButton = document.getElementById('addFilesButton');
-        const uploadFilesButton = document.getElementById('uploadFilesButton');
 
+        // Load file operation elements
+        const fileInput = document.getElementById('fileInput');
+        const selectFilesButton = document.getElementById('selectFilesButton');
+        const uploadFilesButton = document.getElementById('uploadFilesButton');
+        const removeSelectionButton = document.getElementById('removeSelectionButton');
+        const removeUploadButton = document.getElementById('removeUploadButton');
+        const domainFileList = document.getElementById('domainFileList');
+        const selectedFileList = document.getElementById('selectedFileList');
+        
         // Initialize functions
         initChat(chatArea, userInput, sendButton);
-        initAddFiles(addFilesButton, fileInput, uploadFilesButton);
-        initUploadFiles(uploadFilesButton)
+        initAddFiles(selectFilesButton, fileInput, uploadFilesButton, selectedFileList, removeSelectionButton);
+        initUploadFiles(uploadFilesButton);
+        initRemoveSelection(selectedFileList, uploadFilesButton, removeSelectionButton);
+        initRemoveUpload(removeUploadButton);
 
-        // Welcome message
-        window.addMessageToChat("Welcome the ragchat!", 'ragchat');
+        // Update the initial widgets when first loaded
+        initWidgetLoad(initialUserData, domainFileList, removeUploadButton);
 
     } catch (error) {
         console.error('Error initializing app:', error);

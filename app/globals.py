@@ -1,6 +1,6 @@
 from pathlib import Path
 
-file_additions = []
+file_selections = []
 file_sentence_amount = None
 sentences = None
 index = None

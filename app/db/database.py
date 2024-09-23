@@ -55,9 +55,33 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def add_user(self):
-        # TODO: add user function
-        pass
+    def get_user_info(self, user_email: str):
+        query = """
+        SELECT DISTINCT user_id, user_name
+        FROM user_info
+        WHERE user_email = %s
+        """
+        try:
+            self.cursor.execute(query, (user_email, ))
+            data = self.cursor.fetchone()
+            return {"user_id": data[0], "user_name": data[1],} if data else None
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+
+    def get_file_info(self, user_id: str):
+        query = """
+        SELECT DISTINCT file_domain, file_name, file_type
+        FROM file_info
+        WHERE user_id = %s
+        """
+        try:
+            self.cursor.execute(query, (user_id, ))
+            data = self.cursor.fetchall()
+            return [{"file_domain": row[0], "file_name": row[1], "file_type": row[2]} for row in data] if data else None
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
 
     def insert_file_info(self, file_info):
         query = """
@@ -71,7 +95,7 @@ class Database:
                 file_info["file_domain"][:100],
                 file_info["file_name"][:255],
                 file_info["file_type"][:50],
-                file_info["file_modified_date"]
+                file_info["file_modified_date"],
             ))
         except DatabaseError as e:
             self.conn.rollback()
