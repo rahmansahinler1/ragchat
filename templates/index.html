@@ -131,42 +131,60 @@
             <!-- Chat Section -->
             <div class="col chat-section d-flex flex-column">
                 <div class="d-flex justify-content-between align-items-center p-3">
-                    <div class="header">
-                        <h2>RAGChat</h2>
+                        <div class="colored-div-chat">
+                            <h2 class = "text-center">RAGChat</h2>
+                        
                     </div>
                 </div>
-                <div class="total-chat">
-                    <div class = "box-user-msg">
-                        <p id = "user-msg-text">What is RAGChat?</p>
-                    </div>
-                    <div class="chat-box">
-                        <p>
-                            Lorem, ipsum dolor sit amet consectetur adipisicing elit. Culpa reprehenderit, asperiores laudantium minima quos, animi quam vitae nemo necessitatibus earum neque? Cupiditate ipsam enim amet sunt eveniet dolorum eligendi, quisquam rem quo impedit corrupti ea blanditiis! Quibusdam maiores unde ad vitae, eaque exercitationem consequatur enim, tempora veritatis dolore dignissimos sapiente dicta voluptatibus odit corrupti delectus ipsa quisquam quod! Asperiores inventore magnam nesciunt ab, iure nisi fugiat quia numquam qui corporis suscipit dolores accusantium illum dolorum, labore sit ratione beatae ipsum maxime repudiandae libero! Suscipit fugit voluptate accusamus aspernatur fugiat totam unde perspiciatis quibusdam tempora laudantium voluptatem nam quidem, labore vitae?
-                            Lorem ipsum dolor sit amet consectetur adipisicing elit. Eveniet dignissimos quaerat, odio reprehenderit veniam nemo consequatur laudantium amet tempora autem consectetur culpa, optio voluptate quasi! Nulla fuga totam deleniti temporibus aspernatur numquam animi iure voluptatum ea laborum earum, sint quia saepe expedita non molestiae eligendi nihil id aliquam, rerum labore tenetur nostrum vitae voluptatibus! Tempore obcaecati nesciunt impedit rerum natus iusto deleniti sit, incidunt illo reprehenderit eius unde nemo temporibus velit ratione sequi facere dignissimos inventore recusandae dolor odit eum reiciendis. Necessitatibus ducimus non ipsum possimus sint, nam laudantium consectetur iste tempora corporis sapiente at, unde aut veritatis quod provident?
-                            Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellendus necessitatibus voluptatum, nisi harum repellat blanditiis dolorum, esse unde facilis amet molestiae consequatur iste, neque alias sequi commodi! Repellendus incidunt natus aliquam corrupti ea deserunt quibusdam quae officiis inventore itaque quisquam, reiciendis doloremque libero eius quam excepturi explicabo pariatur quos maxime ab! Iste, harum sint quo id adipisci labore facere fuga commodi veritatis officia modi esse ex aperiam itaque recusandae quidem odio necessitatibus nam eum debitis doloribus praesentium numquam ducimus? Alias provident ad ipsam molestiae magni sunt illo, in quam et ratione ipsum officiis soluta! Accusantium quia repudiandae tempore facilis id.
-                            Lorem ipsum dolor sit amet consectetur adipisicing elit. Fuga blanditiis itaque, amet exercitationem accusamus enim tempore dolore et quod necessitatibus provident vero aperiam totam dolor facilis error laudantium adipisci accusantium, voluptatum facere dignissimos. Deserunt hic esse autem eos quaerat ratione, corrupti dignissimos repellendus provident vero, repudiandae cum inventore, voluptas laudantium!
-                        </p>
-                    </div>
+                <div class="chat-box flex-grow-1">
+                    <div class="message user-message">What is RAGChat?</div>
+                    <div class="message bot-message">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Dolores fugit quidem esse, est, hic voluptas deleniti eveniet nostrum non vel similique officia porro quisquam, dolor ipsam ducimus impedit! Necessitatibus ipsam, dolorem optio eaque debitis dolore magnam quasi sint esse dolor laboriosam, praesentium nobis? Atque corporis earum laboriosam reprehenderit itaque inventore sint iste ducimus non officiis molestias explicabo assumenda consequuntur aliquid fuga, magni placeat ipsum sequi? Esse adipisci exercitationem voluptatibus quis rerum distinctio a, dolorum repudiandae, vel facilis ullam minus fugit aperiam, accusantium ipsum! Inventore, numquam aliquid? Dicta, ad. Tempore animi id aut officiis nostrum laboriosam, excepturi blanditiis eveniet maiores pariatur!</div>
+                    <div class="message user-message">What RAGChat is used for?</div>
+                    <div class="message bot-message">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Dolores fugit quidem esse, est, hic voluptas deleniti eveniet nostrum non vel similique officia porro quisquam, dolor ipsam ducimus impedit! Necessitatibus ipsam, dolorem optio eaque debitis dolore magnam quasi sint esse dolor laboriosam, praesentium nobis? Atque corporis earum laboriosam reprehenderit itaque inventore sint iste ducimus non officiis molestias explicabo assumenda consequuntur aliquid fuga, magni placeat ipsum sequi?</div>
                 </div>
+    
+                <!-- Input Box & Send Button -->
                 <div class="d-flex p-3" id="bottom-send-tools">
                     <input type="text" class="form-control me-2" placeholder="Send Message..." id="send-message-box">
                     <button class="btn-send">Send</button>
                 </div>
             </div>
             
-            <!-- Resources Section -->
-            <div class="col resource-section bg-white p-3">
-              <hr id = "section-divider">
-                <h4>Resources</h4>
-                <div class="resource-item">
-                    <h6>Resource From: research.pdf</h6>
-                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>
+            <div class="col-lg-4 col-md-3 col-sm-2 resource-section bg-white p-3"> <!-- Smaller resources section -->
+                <div id="vertical-line"></div>
+                <div class="colored-div-resources">
+                    <h2 class="text-center">Resources</h2> <!-- Centered title -->
                 </div>
                 <div class="resource-item">
-                    <h6>Resource From: statistics.docx</h6>
-                    <p>Duis dignissim, sapien nec finibus tempor...</p>
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
                 </div>
             </div>
+            
         </div>
     </div>
 </body>
