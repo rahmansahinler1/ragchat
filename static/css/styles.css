@@ -1,0 +1,357 @@
+body {
+    height: 100vh;
+    overflow:visible;
+  }
+  
+  
+  /* Sidebar styling start point*/
+  
+  
+  .sidebar {
+    width: 245px;
+    background-color: #D9D9D9;
+    padding: 15px;
+    position: fixed;
+    height: 100vh;
+  }
+  .resource-section {
+    max-width: 50%; /* Adjust as needed */
+    overflow-y: auto;
+  }
+  
+  .btn-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 18px;
+    text-align: center;
+  }
+  
+  .section-domain-files {
+    position: relative;
+    bottom: 1.5%;
+    margin-top: -10px; 
+    height: 17%;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  
+  .domain-file-list {
+    align-items: center;
+    margin-bottom: 8px;
+    line-height: 15%;
+  }
+  
+  .file-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    line-height: 15%;
+  }
+  
+  .file-item input {
+    margin-right: 10px;
+  }
+  
+  .selection-section {
+    border: 3px dashed #ccc;
+    padding-top: 5%;
+    text-align: center;
+    margin-top: -20%; 
+  }
+  
+  .selection-section .fa-cloud-upload-alt {
+    font-size: 40px;
+    margin-bottom: 10px;
+  }
+  
+  #domain-hr {
+    border-top: 2px solid black;
+    opacity: 100%;
+    box-shadow: 1px 1px 1px black;
+    position: relative;
+    bottom: 0.5%;
+  }
+  
+  #second-hr {
+    border-top: 1px solid black;
+    opacity: 100%;
+    box-shadow: 1px 1px 1px black;
+    position: relative;
+  }
+  
+  #upload-hr {
+    border-top: 2px solid black;
+    opacity: 100%;
+    box-shadow: 1px 1px 1px black;
+    position: relative;
+  }
+
+  #sidebar-seperator {
+    width: 2px;
+    height: 100%;
+    background-color: black;
+    border-top: 2px solid black;
+    opacity: 100%;
+    box-shadow: 1px 1px 1px black;
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+  
+  #btn-remove-upload {
+    position: relative;
+    bottom: 3%;
+  }
+  
+  #btn-domain-number {
+    background-color: transparent;
+    border: 2px solid black;
+    font-size: 30px;
+    margin: auto;
+    position: relative;
+    margin-bottom: 10%;
+  }
+  
+  #btn-domain-number:hover {
+    background-color: black;
+    color: white;
+  }
+  
+  #domain-number {
+    position: relative;
+    -webkit-transform: translate(10%, -25%);
+    transform: translate(10%, -25%);
+    right: 20%;
+  }
+  
+  .section-selected-files {
+    position: relative;
+    bottom: 4%;
+    margin-top: -10px; 
+    height: 13%;
+    overflow-y: auto;
+  }
+  
+  .selected-file-list {
+    align-items: center;
+    margin-bottom: 8px;
+    line-height: 15%;
+  }
+  
+  #text-selected-files {
+    position: relative;
+    bottom: 3.5%;
+  }
+  
+  #second-hr {
+    position: relative;
+    bottom: 5%;
+  }
+  
+  .domain-info {
+    position: relative;
+    bottom: 2%;
+  }
+  
+  #domain-info-hr {
+    border-top: 1px solid black;
+    opacity: 100%;
+    box-shadow: 1px 1px 1px black;
+    margin-bottom: 3%;
+    position: relative;
+    bottom: 3.5%;
+  }
+  
+  #btn-select-file {
+    background-color: black;
+    color: white;
+    border: 2px solid black;
+    margin-bottom: 5%;
+  }
+  
+  #btn-remove, #btn-add {
+    width: 50%; 
+    position: relative;
+    margin-bottom: 10%;
+  }
+  
+  #button-container {
+    position: relative;
+    bottom: 3%;
+  }
+  
+  #info-message {
+    margin-top: -10px;
+  }
+  .domain-info p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .empty-message {
+    display: none;
+    color: #888;
+    text-align: center;
+    margin-top: 10px;
+  }
+  
+  
+  /* Header styling for chat and resources */
+  .colored-div-chat,
+  .colored-div-resources {
+    background-color: #D9D9D9; /* Set background color */
+    padding: 20px; /* Increased padding for more space inside the header */
+    margin-bottom: 3.5%; /* Space below the header */
+    border-radius: 8px; /* Rounded corners for a softer look */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: adds a subtle shadow */
+    width: 100%; /* Make the header take the full width */
+    height: 80px; /* Fixed height for the header */
+    display: flex; /* Use flex to center content */
+    align-items: center; /* Center items vertically */
+    justify-content: center; /* Center items horizontally */
+  }
+  
+  /* Optional: Center text inside headers */
+  .colored-div-chat h2,
+  .colored-div-resources h2 {
+    margin: 0; /* Remove default margin */
+    text-align: center; /* Center the text */
+  }
+  
+  /* Chat section adjustments */
+  .chat-section {
+    margin-left: 245px; 
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  /* General chat box styling */
+  .chat-box {
+    width: 100%;
+    max-height: 80%; /* Adjust height as needed */
+    overflow-y: auto; /* Makes the chat-box scrollable */
+    padding: 10px;
+    padding-bottom: 70px; /* Add padding to prevent overlap with the input box */
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Message box styling */
+  .message {
+    padding: 2%;
+    margin-bottom: 3%;
+    border-radius: 10px;
+    max-width: 80%; /* Limit the width of messages */
+    word-wrap: break-word; /* Wrap long words */
+    box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+  }
+  
+  .user-message {
+    background-color: #b2fbf2; /* Light green for user messages */
+    align-self: flex-end; /* Aligns to the right */
+    font-size: 18px;
+    font-weight: bold;
+  }
+  
+  .bot-message {
+    background-color: #FFFFFF; /* Light red for bot messages */
+    align-self: flex-start; /* Aligns to the left */
+  }
+  
+  /* Scrollbar styling (optional, to make it look better) */
+  .chat-box::-webkit-scrollbar, .resource-section::-webkit-scrollbar, .section-selected-files::-webkit-scrollbar,  .section-domain-files::-webkit-scrollbar{
+    width: 8px;
+  }
+  
+  .chat-box::-webkit-scrollbar-thumb, .resource-section::-webkit-scrollbar-thumb, .section-selected-files::-webkit-scrollbar-thumb, .section-domain-files::-webkit-scrollbar {
+    width: 8px;
+    background-color: #888;
+    border-radius: 10px;
+  }
+  
+  .chat-box::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+  }
+  
+  #send-message-box {
+    cursor: pointer;
+    overflow: hidden;
+    padding: 10px;
+    background-color: #D9D9D9;
+    border: none;
+    border-radius: 10px;
+    flex-grow: 1; /* Makes input box take available space */
+    margin-right: 10px; /* Adds spacing between input and send button */
+  }
+  
+  .btn-send-message {
+    border-radius: 10px;
+    background-color: #b2fbf2;
+    border: none;
+    padding: 10px 20px; /* Adjust for desired button size */
+  }
+  
+  #bottom-send-tools {
+    display: flex;
+    align-items: center;
+    background-color: white;
+    padding: 10px;
+    border-top: 1px solid #ddd; /* Optional: adds a divider line */
+    z-index: 10;
+  }
+  
+  #section-divider {
+    width: 2px;
+    height: 100%;
+    background-color: black;
+    border-top: 2px solid black;
+    opacity: 100%;
+    box-shadow: 1px 1px 1px black;
+    position: absolute;
+    top:0;
+  }
+  #vertical-line {
+    width: 2px;
+    height: 100%;
+    background-color: black;
+    border-top: 2px solid black;
+    opacity: 100%;
+    box-shadow: 1px 1px 1px black;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+  }
+  /* Resource section styling start point */
+  .resource-section {
+    max-width: 50%;
+    max-height: 98%; /* Adjust height as needed */
+    overflow-y: auto;
+  }
+  
+  .resource-item {
+    margin-bottom: 1rem; /* Space underneath each resource item */
+  }
+  
+  h6 {
+    font-size: 1.2rem; /* Large font size for resource heading */
+  }
+  
+  .document-title {
+    font-size: 1rem; /* Large, but not bold font for document title */
+    font-weight: normal; /* Ensure document title is not bold */
+  }
+  
+  .description {
+    font-size: 0.9rem; /* Small font for descriptions */
+    line-height: 1.5; /* Improve readability */
+  }
+  
+  .bullet {
+    font-weight: bold; /* Makes the bullet arrow bold */
+    margin-right: 0.5rem; /* Space between the bullet and text */
+  }
+  

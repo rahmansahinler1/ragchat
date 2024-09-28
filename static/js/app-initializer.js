@@ -23,29 +23,31 @@ async function initialize() {
         }
 
         // Load chat elements
-        const chatArea = document.getElementById('chatArea');
-        const userInput = document.getElementById('userInput');
-        const sendButton = document.getElementById('sendButton');
+        const chatBox = document.querySelector('.chat-box');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.querySelector('.btn-send-message');
 
-        // Load file operation elements
-        const fileInput = document.getElementById('fileInput');
-        const selectFilesButton = document.getElementById('selectFilesButton');
-        const uploadFilesButton = document.getElementById('uploadFilesButton');
-        const removeSelectionButton = document.getElementById('removeSelectionButton');
-        const removeUploadButton = document.getElementById('removeUploadButton');
-        const domainFileList = document.getElementById('domainFileList');
-        const selectedFileList = document.getElementById('selectedFileList');
+        // Load file selection elements
+        const fileInput = document.getElementById('file-input');
+        const selectedFileList = document.querySelector('.selected-file-list');
+        const selectFilesButton = document.getElementById('btn-select-files');
+        const removeSelectionButton = document.getElementById('btn-remove-selection');
+        
+        // Load file upload elements
+        const domainFileList = document.querySelector('.domain-file-list');
+        const uploadFilesButton = document.getElementById('btn-upload-files');
+        const removeUploadButton = document.getElementById('btn-remove-upload');
         
         // Initialize functions
-        initChat(chatArea, userInput, sendButton, userEmail);
-        initAddFiles(selectFilesButton, fileInput, uploadFilesButton, selectedFileList, removeSelectionButton);
-        initUploadFiles(uploadFilesButton, userEmail, domainFileList, removeUploadButton, selectedFileList);
+        initChat(chatBox, userInput, sendButton, userEmail);
+        initselectFiles(selectFilesButton, fileInput, uploadFilesButton, selectedFileList, removeSelectionButton);
         initRemoveSelection(selectedFileList, uploadFilesButton, removeSelectionButton);
+        initUploadFiles(uploadFilesButton, userEmail, domainFileList, removeUploadButton, selectedFileList);
         initRemoveUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail);
 
         // Update the initial widgets when first loaded
         updateDomainList(userData, domainFileList, removeUploadButton);
-        window.addMessageToChat(`Welcome ${userData[0].user_name}, how are you today?`, 'ragchat');
+        
 
     } catch (error) {
         console.error('Error initializing app:', error);

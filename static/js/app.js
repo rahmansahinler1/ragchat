@@ -1,19 +1,28 @@
 // Chatting
-function initChat(chatArea, userInput, sendButton, userEmail) {
+function initChat(chatBox, userInput, sendButton, userEmail) {
     sendButton.addEventListener('click', () => sendMessage(userInput, userEmail));
     userInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             sendMessage(userInput, userEmail);
         }
     });
-    window.chatArea = chatArea;
+    window.chatBox = chatBox;
 }
 
 function addMessageToChat(message, sender) {
     const messageElement = document.createElement('div');
-    messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
-    window.chatArea.appendChild(messageElement);
-    window.chatArea.scrollTop = window.chatArea.scrollHeight;
+    messageElement.classList.add('message');
+    
+    if (sender.toLowerCase() === 'you') {
+        messageElement.classList.add('user-message');
+    } else {
+        messageElement.classList.add('bot-message');
+    }
+    
+    messageElement.textContent = message;
+    
+    window.chatBox.appendChild(messageElement);
+    window.chatBox.scrollTop = window.chatBox.scrollHeight;
 }
 
 async function sendMessage(userInput, userEmail) {
@@ -53,9 +62,9 @@ async function sendMessage(userInput, userEmail) {
 }
 
 // File Operations
-function initAddFiles(selectFilesButton, fileInput, uploadFilesButton, selectedFileList, removeSelectionButton) {
+function initselectFiles(selectFilesButton, fileInput, uploadFilesButton, selectedFileList, removeSelectionButton) {
     selectFilesButton.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', () => addFiles(fileInput, uploadFilesButton, selectedFileList, removeSelectionButton))
+    fileInput.addEventListener('change', () => selectFiles(fileInput, uploadFilesButton, selectedFileList, removeSelectionButton))
 }
 
 function initRemoveSelection(selectedFileList, uploadFilesButton, removeSelectionButton) {
@@ -71,7 +80,7 @@ function initRemoveUpload(removeUploadButton, uploadFilesButton, domainFileList,
 }
 
 
-async function addFiles(fileInput, uploadFilesButton, selectedFileList, removeSelectionButton) {
+async function selectFiles(fileInput, uploadFilesButton, selectedFileList, removeSelectionButton) {
     const files = fileInput.files;
     const formData = new FormData();
     
@@ -97,9 +106,19 @@ async function addFiles(fileInput, uploadFilesButton, selectedFileList, removeSe
         const data = await response.json();
         if (data && data.file_names) {
             data.file_names.forEach(fileName => {
-                const li = document.createElement('li');
-                li.textContent = fileName;
-                selectedFileList.appendChild(li);
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'file-checkbox';
+
+                const label = document.createElement('label');
+                label.textContent = fileName;
+
+                fileItem.appendChild(checkbox);
+                fileItem.appendChild(label);
+                selectedFileList.appendChild(fileItem);
             });
         }
 
@@ -175,8 +194,6 @@ async function uploadFiles(uploadFilesButton, userEmail, domainFileList, removeU
     } catch (error) {
         console.error('Error uploading files:', error);
         window.addMessageToChat('Error while uploading files: ' + error.message, 'ragchat');
-    } finally {
-        uploadFilesButton.disabled = false;
     }
 }
 
@@ -242,25 +259,47 @@ async function fetchUserData(userEmail) {
 }
 
 function updateDomainList(userData, domainFileList, removeUploadButton) {
-    const userName = userData[0].user_name
-    const domainFiles = userData[1]
+    const domainFiles = userData[1];
 
-    if (domainFiles) {
+    if (domainFiles && domainFiles.length > 0) {
         domainFileList.innerHTML = '';
         domainFiles.forEach(file => {
-            const li = document.createElement('li');
-            li.textContent = `${file.file_domain}: ${file.file_name}.${file.file_type}`;
-            domainFileList.appendChild(li);
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'file-checkbox';
+
+            const label = document.createElement('label');
+            label.textContent = `${file.file_name}.${file.file_type}`;
+
+            fileItem.appendChild(checkbox);
+            fileItem.appendChild(label);
+            domainFileList.appendChild(fileItem);
         });
         removeUploadButton.disabled = false;
     } else {
-        domainFileList.innerHTML = '';
+        domainFileList.innerHTML = '<p>There is nothing in here...</p>';
+        removeUploadButton.disabled = true;
+    }
+}
+
+function initializeWidgets(userData, domainFileList, selectedFileList) {
+    const userName = userData[0].user_name;
+
+    if (userName) {
+        domainFileList.innerHTML = '<p>Select your domain</p>';
+        selectedFileList.innerHTML = '<p>No files yet</p>';
+        window.addMessageToChat(`Welcome ${userData[0].user_name}, how are you today?`, 'ragchat');
+    } else {
+        domainFileList.innerHTML = '<p>I cannot find you!!</p>';
     }
 }
 
 window.initChat = initChat;
 window.addMessageToChat = addMessageToChat;
-window.initAddFiles = initAddFiles;
+window.initselectFiles = initselectFiles;
 window.initUploadFiles = initUploadFiles;
 window.removeFileSelection = removeFileSelection;
 window.fetchUserData = fetchUserData;

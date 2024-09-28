@@ -3,200 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../static/css/styles.css">
+    <script src="/static/js/app-initializer.js" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <title>ragchat</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Roboto', Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            background-color: #f5f5f5;
-        }
-        .header {
-            background-color: #ffffff;
-            padding: 20px;
-            display: flex;
-            align-items: flex-start;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .logo {
-            width: 90px;
-            height: 95px;
-            margin-right: 20px;
-        }
-        .header-text {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            height: 95px;
-        }
-        .header-text h1 {
-            font-size: 36px;
-            margin: 0 0 10px 0;
-            font-weight: 700;
-            line-height: 1;
-        }
-        .header-text p {
-            font-size: 18px;
-            margin: 0;
-            font-weight: 400;
-        }
-        .main-content {
-            flex-grow: 1;
-            display: flex;
-            padding: 20px;
-            height: calc(100vh - 135px); /* Subtracting header height */
-        }
-        .side-panel {
-            width: 250px;
-            margin-right: 20px;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-        .manage-domains, .domain-files, .selected-files {
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .manage-domains h2, .domain-files h2, .selected-files h2 {
-            margin-top: 0;
-            margin-bottom: 15px;
-        }
-        .domain-files, .selected-files {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-        .chat-container {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        .chat-area {
-            flex-grow: 1;
-            border: 1px solid #e0e0e0;
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 20px;
-            overflow-y: auto;
-            background-color: #ffffff;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
-        }
-        .input-area {
-            display: flex;
-            align-items: center;
-        }
-        #userInput {
-            flex-grow: 1;
-            padding: 8px 12px;
-            font-size: 14px;
-            border: 1px solid #e0e0e0;
-            border-radius: 5px 0 0 5px;
-        }
-        button {
-            padding: 8px 15px;
-            font-size: 14px;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            margin-left: 5px;
-        }
-        button:hover {
-            opacity: 0.9;
-        }
-        #sendButton {
-            background-color: #4CAF50;
-        }
-        .manage-domains-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            margin-top: auto; /* Push buttons to the bottom */
-            padding: 10px;
-            background-color: #ffffff;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .manage-domains-buttons button {
-            flex: 1 0 45%; /* This will make buttons take up about half the width, allowing for some margin */
-            margin: 5px;
-        }
-        #selectFilesButton, #uploadFilesButton {
-            background-color: #4CAF50;
-        }
-        #removeSelectionButton, #removeUploadButton {
-            background-color: #f44336;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        #domainText {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-        #domainFileList, #selectedFileList {
-            list-style-type: none;
-            padding: 0;
-        }
-        #domainFileList li, #selectedFileList li {
-            padding: 5px 0;
-        }
-    </style>
 </head>
 <body>
-    <div class="header">
-        <img src="/static/images/ragchat_logo.png" alt="ragchat logo" class="logo">
-        <div class="header-text">
-            <h1>ragchat</h1>
-            <p>What do you want to know?</p>
+    <div class="sidebar">
+        <div id="sidebar-seperator"></div>
+        <h2 class="text-center">Domain</h2>
+        <hr id="domain-hr">
+        <div class="d-flex mb-2">
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">1</p></button>
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">2</p></button>
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">3</p></button>
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">4</p></button>
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">5</p></button>
+        </div>
+
+        <div class="domain-info">
+            <p><b>Domain: </b><span id="domain-title">Analysis Report</span></p>
+        </div>
+        <hr id="domain-info-hr">
+        
+        <div class="section-domain-files">
+            <div class="domain-file-list mb-4">
+                <!-- Domain file list will be populated here dynamically -->
+            </div>
+        </div>
+        <button class="btn btn-secondary w-100 mb-3" id="btn-remove-upload" disabled>Remove</button>
+        
+        <h4 id="text-selected-files">Selected Files</h4>
+        <hr id="second-hr">
+        <div class="section-selected-files">
+            <div class="selected-file-list mb-3">
+                <!-- Selected file list will be populated here dynamically -->
+            </div>
+        </div>
+        <div class="d-flex justify-content-center mb-3" id="button-container">
+            <button class="btn btn-secondary mx-2" id="btn-remove-selection" disabled>Remove</button>
+            <button class="btn btn-secondary mx-2" id="btn-upload-files" disabled>Upload</button>
+        </div>
+
+        <div class="selection-section">
+            <i class="fa fa-cloud-upload-alt"></i>
+            <p>Drag and Drop here <br>or</p>
+            <button class="btn btn-light" id="btn-select-files">Select File</button>
+            <br>
+            <b><p>PDF, DOCX, TXT &lt; 5MB</p></b>
+        </div>
+
+        <div class="mt-2 text-center" id="info-message">
+            <i class="fa fa-info-circle"></i>
+            <small>You Can Also Drag & Drop on Domains to Upload Files</small>
         </div>
     </div>
-    <div class="main-content">
-        <div class="side-panel">
-            <div class="manage-domains">
-                <h2>Manage Domains</h2>
-                <div id="domainText">Domain1</div>
-            </div>
-            <div class="domain-files">
-                <h2>Domain Files</h2>
-                <ul id="domainFileList">
-                    <!-- Domain file list will be populated dynamically -->
-                </ul>
-            </div>
-            <div class="selected-files">
-                <h2>Selected Files</h2>
-                <ul id="selectedFileList">
-                    <!-- Selected file list will be populated dynamically -->
-                </ul>
-            </div>
-            <div class="manage-domains-buttons">
-                <button id="selectFilesButton">Select</button>
-                <button id="removeSelectionButton" disabled>Remove</button>
-                <button id="uploadFilesButton" disabled>Upload</button>
-                <button id="removeUploadButton" disabled>Remove</button>
-            </div>
-        </div>
-        <div class="chat-container">
-            <div class="chat-area" id="chatArea">
+
+    <div class="container-fluid vh-100">
+        <div class="row h-100">
+            <!-- Chat Section -->
+            <div class="col chat-section d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center p-3">
+                        <div class="colored-div-chat">
+                            <h2 class = "text-center">ragchat</h2>
+                        </div>
+                </div>
+                <div class="chat-box flex-grow-1">
                 <!-- Chat messages will be displayed here -->
+                </div>
+    
+                <!-- Input Box & Send Button -->
+                <div class="d-flex p-3" id="bottom-send-tools">
+                    <input type="text" class="form-control me-2" placeholder="Send Message..." id="user-input">
+                    <button class="btn-send-message">Send</button>
+                </div>
             </div>
-            <div class="input-area">
-                <input type="text" id="userInput" placeholder="Type your message...">
-                <button id="sendButton">Send</button>
+            
+            <div class="col-lg-4 col-md-3 col-sm-2 resource-section bg-white p-3"> <!-- Smaller resources section -->
+                <div id="vertical-line"></div>
+                <div class="colored-div-resources">
+                    <h2 class="text-center">Resources</h2> <!-- Centered title -->
+                </div>
+                <!-- Resources will be displayed here -->
             </div>
+            
         </div>
     </div>
-    <input type="file" id="fileInput" accept=".pdf,.docx,.txt" style="display: none;" multiple>
-    <script src="/static/js/app-initializer.js"></script>
+    <input type="file" id="file-input" accept=".pdf,.docx,.txt" style="display: none;" multiple>
 </body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
 </html>
