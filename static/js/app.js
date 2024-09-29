@@ -1,14 +1,50 @@
-// Chatting
-function initChat(chatBox, userInput, sendButton, userEmail) {
-    sendButton.addEventListener('click', () => sendMessage(userInput, userEmail));
+// Initialize functions
+function initselectFiles(selectFilesButton, fileInput, uploadFilesButton, selectedFileList, removeSelectionButton) {
+    selectFilesButton.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => selectFiles(fileInput, uploadFilesButton, selectedFileList, removeSelectionButton))
+}
+
+function initRemoveSelection(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton) {
+    removeSelectionButton.addEventListener('click', () => removeFileSelection(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton));
+}
+
+function initUploadFiles(uploadFilesButton, userEmail, domainFileList, removeUploadButton, selectedFileList) {
+    uploadFilesButton.addEventListener('click', () => uploadFiles(uploadFilesButton, userEmail, domainFileList, removeUploadButton, selectedFileList));
+}
+
+function initRemoveUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail, selectedFileList, removeSelectionButton) {
+    removeUploadButton.addEventListener('click', () => removeFileUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail, selectedFileList, removeSelectionButton));
+}
+
+function initChat(chatBox, userInput, sendButton, userData) {
+    sendButton.addEventListener('click', () => sendMessage(userInput, userData));
     userInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
-            sendMessage(userInput, userEmail);
+            sendMessage(userInput, userData);
         }
     });
     window.chatBox = chatBox;
 }
 
+function initDomainSelection(domainButtons, domainTitle, userData) {
+    domainButtons.forEach((button, index) => {
+        button.addEventListener('click', () => selectDomain(button, index, domainButtons, domainTitle, userData));
+    });
+}
+
+function initializeWidgets(userData, domainFileList, selectedFileList) {
+    const userName = userData.user_info["user_name"];
+
+    if (userName) {
+        domainFileList.innerHTML = '<p>Select your domain</p>';
+        selectedFileList.innerHTML = '<p>No files yet</p>';
+        window.addMessageToChat(`Welcome ${userName}, how are you today?`, 'ragchat');
+    } else {
+        domainFileList.innerHTML = '<p>I cannot find you!!</p>';
+    }
+}
+
+// Helper functions
 function addMessageToChat(message, sender) {
     const messageElement = document.createElement('div');
     messageElement.classList.add('message');
@@ -25,7 +61,54 @@ function addMessageToChat(message, sender) {
     window.chatBox.scrollTop = window.chatBox.scrollHeight;
 }
 
-async function sendMessage(userInput, userEmail) {
+function updateButtonStates(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton) {
+    const selectedFiles = selectedFileList.querySelectorAll('.file-item');
+    const uploadedFiles = domainFileList.querySelectorAll('.file-item');
+
+    if (selectedFiles.length === 0) {
+        uploadFilesButton.disabled = true;
+        removeSelectionButton.disabled = true;
+    } else {
+        uploadFilesButton.disabled = false;
+        removeSelectionButton.disabled = false;
+    }
+
+    if (uploadedFiles.length === 0) {
+        removeUploadButton.disabled = true;
+    } else {
+        removeUploadButton.disabled = false;
+    }
+}
+
+function updateDomainList(userData, domainFileList, removeUploadButton) {
+    const domainFiles = userData.file_info;
+
+    if (domainFiles && domainFiles.length > 0) {
+        domainFileList.innerHTML = '';
+        domainFiles.forEach(file => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'file-checkbox';
+
+            const label = document.createElement('label');
+            label.textContent = `${file.file_name}`;
+
+            fileItem.appendChild(checkbox);
+            fileItem.appendChild(label);
+            domainFileList.appendChild(fileItem);
+        });
+        removeUploadButton.disabled = false;
+    } else {
+        domainFileList.innerHTML = '<p>There is nothing in here...</p>';
+        removeUploadButton.disabled = true;
+    }
+}
+
+// Request functions
+async function sendMessage(userInput, userData) {
     const message = userInput.value.trim();
 
     if (!message) {
@@ -40,7 +123,7 @@ async function sendMessage(userInput, userEmail) {
                 method: 'POST',
                 body: JSON.stringify({ 
                     user_query: message,
-                    user_email: userEmail
+                    user_email: userData.user_id
                 }),
                 headers: {
                     'Content-Type': 'application/json'
@@ -60,25 +143,6 @@ async function sendMessage(userInput, userEmail) {
         window.addMessageToChat('No message!', 'ragchat')
     }
 }
-
-// File Operations
-function initselectFiles(selectFilesButton, fileInput, uploadFilesButton, selectedFileList, removeSelectionButton) {
-    selectFilesButton.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', () => selectFiles(fileInput, uploadFilesButton, selectedFileList, removeSelectionButton))
-}
-
-function initRemoveSelection(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton) {
-    removeSelectionButton.addEventListener('click', () => removeFileSelection(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton));
-}
-
-function initUploadFiles(uploadFilesButton, userEmail, domainFileList, removeUploadButton, selectedFileList) {
-    uploadFilesButton.addEventListener('click', () => uploadFiles(uploadFilesButton, userEmail, domainFileList, removeUploadButton, selectedFileList));
-}
-
-function initRemoveUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail, selectedFileList, removeSelectionButton) {
-    removeUploadButton.addEventListener('click', () => removeFileUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail, selectedFileList, removeSelectionButton));
-}
-
 
 async function selectFiles(fileInput, uploadFilesButton, selectedFileList, removeSelectionButton) {
     const files = fileInput.files;
@@ -174,25 +238,6 @@ async function removeFileSelection(selectedFileList, uploadFilesButton, removeSe
     }
 }
 
-function updateButtonStates(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton) {
-    const selectedFiles = selectedFileList.querySelectorAll('.file-item');
-    const uploadedFiles = domainFileList.querySelectorAll('.file-item');
-
-    if (selectedFiles.length === 0) {
-        uploadFilesButton.disabled = true;
-        removeSelectionButton.disabled = true;
-    } else {
-        uploadFilesButton.disabled = false;
-        removeSelectionButton.disabled = false;
-    }
-
-    if (uploadedFiles.length === 0) {
-        removeUploadButton.disabled = true;
-    } else {
-        removeUploadButton.disabled = false;
-    }
-}
-
 async function uploadFiles(uploadFilesButton, userEmail, domainFileList, removeUploadButton, selectedFileList) {
     try {
         uploadFilesButton.disabled = true;
@@ -212,7 +257,7 @@ async function uploadFiles(uploadFilesButton, userEmail, domainFileList, removeU
         const data = await response.json();
         if (data.success) {
             window.addMessageToChat(`Files uploaded successfully`, 'ragchat');
-            const userData = await fetchUserData(userEmail);
+            const userData = await fetchUserInfo(userEmail);
             updateDomainList(userData, domainFileList, removeUploadButton)
             selectedFileList.innerHTML = '';
         } else {
@@ -271,7 +316,7 @@ async function removeFileUpload(removeUploadButton, uploadFilesButton, domainFil
 
             updateButtonStates(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton);
 
-            const userData = await fetchUserData(userEmail);
+            const userData = await fetchUserInfo(userEmail);
             updateDomainList(userData, domainFileList, removeUploadButton)
 
         } else {
@@ -283,7 +328,27 @@ async function removeFileUpload(removeUploadButton, uploadFilesButton, domainFil
     }
 }
 
-async function fetchUserData(userEmail) {
+async function selectDomain(clickedButton, index, domainButtons, domainTitle, userData) {
+    try {
+        domainButtons.forEach(btn => btn.classList.remove('active'));
+        clickedButton.classList.add('active');
+
+        const currentDomain = index + 1;
+        const fileInfo = await fetchFileInfo(userData, currentDomain);
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch file info');
+        }
+
+        updateDomainList(fileInfo, domainTitle);
+
+    } catch (error) {
+        console.error('Error fetching domain info:', error);
+        window.addMessageToChat(`Error switching to domain ${index + 1}: ${error.message}`, 'ragchat');
+    }
+}
+
+async function fetchUserInfo(userEmail) {
     try {
         const response = await fetch('/api/v1/db/get_user_info', {
             method: 'POST',
@@ -308,48 +373,38 @@ async function fetchUserData(userEmail) {
     }
 }
 
-function updateDomainList(userData, domainFileList, removeUploadButton) {
-    const domainFiles = userData.file_info;
-
-    if (domainFiles && domainFiles.length > 0) {
-        domainFileList.innerHTML = '';
-        domainFiles.forEach(file => {
-            const fileItem = document.createElement('div');
-            fileItem.className = 'file-item';
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'file-checkbox';
-
-            const label = document.createElement('label');
-            label.textContent = `${file.file_name}`;
-
-            fileItem.appendChild(checkbox);
-            fileItem.appendChild(label);
-            domainFileList.appendChild(fileItem);
+async function fetchFileInfo(userData, currentDomain) {
+    try {
+        const response = await fetch('/api/v1/db/get_file_info', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                user_id: userData.user_info.user_id, 
+                selected_domain_number: currentDomain 
+            }),
         });
-        removeUploadButton.disabled = false;
-    } else {
-        domainFileList.innerHTML = '<p>There is nothing in here...</p>';
-        removeUploadButton.disabled = true;
+        if (!response.ok) {
+            throw new Error('Failed to fetch initial user data');
+        }
+        data = await response.json();
+        if (!data) {
+            window.addMessageToChat('User could not be found!', 'ragchat');
+            return;
+        }
+        return data
+
+    } catch (error) {
+        console.error('Error fetching initial user data:', error);
+        return null;
     }
 }
 
-function initializeWidgets(userData, domainFileList, selectedFileList) {
-    const userName = userData.user_info["user_name"];
-
-    if (userName) {
-        domainFileList.innerHTML = '<p>Select your domain</p>';
-        selectedFileList.innerHTML = '<p>No files yet</p>';
-        window.addMessageToChat(`Welcome ${userName}, how are you today?`, 'ragchat');
-    } else {
-        domainFileList.innerHTML = '<p>I cannot find you!!</p>';
-    }
-}
 
 window.initChat = initChat;
 window.addMessageToChat = addMessageToChat;
 window.initselectFiles = initselectFiles;
 window.initUploadFiles = initUploadFiles;
 window.removeFileSelection = removeFileSelection;
-window.fetchUserData = fetchUserData;
+window.fetchUserInfo = fetchUserInfo;

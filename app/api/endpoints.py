@@ -24,9 +24,13 @@ class UploadAction(BaseModel):
 class UserEmailRequest(BaseModel):
     user_email: str
 
-class QueryWithEmail(BaseModel):
+class UserQueryRequest(BaseModel):
     user_query: str
-    user_email: str
+    user_id: str
+
+class FileInfoRequest(BaseModel):
+    user_id: str
+    selected_domain_number: int
 
 class FileRemovalRequest(BaseModel):
     filesToRemove: List[str]
@@ -37,14 +41,12 @@ class FileDeletionRequest(BaseModel):
 
     
 @router.post("/qa/generate_answer")
-async def generate_answer(request: QueryWithEmail):
+async def generate_answer(request: UserQueryRequest):
     try:
+        # TODO dynamic index generation with selected domain information
         if not globals.index:
             with Database() as db:
-                user_info = db.get_user_info(request.user_email)
-                if not user_info:
-                    raise HTTPException(status_code=404, detail="User not found")
-                file_infos = db.get_file_info(user_info['user_id'])
+                file_infos = db.get_file_info(request.user_id)
                 file_ids = [file_info["file_id"] for file_info in file_infos]
                 file_content = db.get_file_content(file_ids)
                 embeddings = np.vstack([np.frombuffer(row[3], dtype=np.float64).reshape(1, -1) for row in file_content if row[3] is not None])
@@ -66,11 +68,22 @@ async def get_user_info(request: UserEmailRequest):
     try:
         with Database() as db:
             user_info = db.get_user_info(request.user_email)
-            file_info = db.get_file_info(user_info['user_id'])
         
         response = {
             "user_info": user_info,
-            "file_info": file_info
+        }
+        return JSONResponse(content=response)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/db/get_file_info")
+async def get_user_info(request: FileInfoRequest):
+    try:
+        with Database() as db:
+            file_info = db.get_file_info(request.user_id, request.selected_domain_number)
+        
+        response = {
+            "file_info": file_info,
         }
         return JSONResponse(content=response)
     except Exception as e:
@@ -87,12 +100,11 @@ async def select_files(
             bytes = await file.read()
             file_modified_date = datetime.fromtimestamp(int(last_modified_date) / 1000).strftime('%Y-%m-%d')
             file_info = {
-                "file_id": str(uuid.uuid4()),
                 "user_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-                "file_domain": "domain1",
+                "file_id": str(uuid.uuid4()),
                 "file_name": file.filename,
                 "file_modified_date": file_modified_date,
-                "file_bytes": bytes
+                "file_bytes": bytes,
             }
             file_names.append(file.filename)
             globals.file_selections.append(file_info)
@@ -131,11 +143,12 @@ async def upload_files(action: UploadAction):
     try:
         for file_selection in globals.file_selections:
             file_info = {}
-            file_info["file_id"] = file_selection["file_id"]
             file_info["user_id"] = file_selection["user_id"]
-            file_info["file_domain"] = file_selection["file_domain"]
+            file_info["file_id"] = file_selection["file_id"]
             file_info["file_name"] = file_selection["file_name"]
             file_info["file_modified_date"] = file_selection["file_modified_date"]
+            file_info["domain_name"] = "Cyber Security Homologe"
+            file_info["domain_number"] = 2
 
             file_sentences = processor.rf.read_file(file_bytes=file_selection["file_bytes"], file_name=file_info["file_name"])
             file_embeddings = processor.ef.create_embeddings_from_sentences(file_sentences=file_sentences)

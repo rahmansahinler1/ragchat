@@ -11,10 +11,11 @@ CREATE TABLE IF NOT EXISTS user_info (
 CREATE TABLE IF NOT EXISTS file_info (
     file_id UUID PRIMARY KEY,
     user_id UUID NOT NULL,
-    file_domain VARCHAR(100) NOT NULL,
     file_name VARCHAR(255) NOT NULL,
     file_modified_date DATE,
     file_upload_date DATE DEFAULT CURRENT_DATE,
+    domain_name VARCHAR(100) NOT NULL,
+    domain_number INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user_info(user_id)
 );
 

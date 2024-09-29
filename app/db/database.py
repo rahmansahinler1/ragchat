@@ -2,8 +2,6 @@ import psycopg2
 from psycopg2 import extras
 from psycopg2 import DatabaseError
 from pathlib import Path
-from typing import List
-import uuid
 
 from .config import GenerateConfig
 
@@ -32,9 +30,6 @@ class Database:
                 self.conn.rollback()
             self.conn.close()
     
-    def execute(self, query, params=None):
-        self.cursor.execute(query, params)
-    
     def initialize_tables(self):
         sql_path = Path(__file__).resolve().parent / "sql" / "table_initialize.sql"
         with sql_path.open('r') as file:
@@ -59,28 +54,33 @@ class Database:
 
     def get_user_info(self, user_email: str):
         query = """
-        SELECT DISTINCT user_id, user_name
+        SELECT DISTINCT user_id, user_name, user_surname, user_type, user_created_at
         FROM user_info
         WHERE user_email = %s
         """
         try:
-            self.cursor.execute(query, (user_email, ))
+            self.cursor.execute(query, (
+                user_email,
+            ))
             data = self.cursor.fetchone()
-            return {"user_id": data[0], "user_name": data[1],} if data else None
+            return {"user_id": data[0], "user_name": data[1], "user_surname": data[2], "user_type": data[3], "user_created_at": str(data[4])} if data else None
         except DatabaseError as e:
             self.conn.rollback()
             raise e
 
-    def get_file_info(self, user_id: str):
+    def get_file_info(self, user_id: str, selected_domain_number: int):
         query = """
-        SELECT DISTINCT file_domain, file_name, file_id
+        SELECT DISTINCT file_name, file_id, domain_name
         FROM file_info
-        WHERE user_id = %s
+        WHERE user_id = %s AND domain_number = %s
         """
         try:
-            self.cursor.execute(query, (user_id, ))
+            self.cursor.execute(query, (
+                user_id,
+                selected_domain_number,
+            ))
             data = self.cursor.fetchall()
-            return [{"file_domain": row[0], "file_name": row[1], "file_id": row[2]} for row in data] if data else None
+            return [{"file_name": row[0], "file_id": row[1], "domain_name": row[2]} for row in data] if data else None
         except DatabaseError as e:
             self.conn.rollback()
             raise e
@@ -101,16 +101,17 @@ class Database:
 
     def insert_file_info(self, file_info):
         query = """
-        INSERT INTO file_info (file_id, user_id, file_domain, file_name, file_modified_date)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO file_info (user_id, file_id, file_name, file_modified_date, domain_name, domain_number)
+        VALUES (%s, %s, %s, %s, %s, %s)
         """
         try:
-            self.execute(query, (
-                file_info["file_id"],
+            self.cursor.execute(query, (
                 file_info["user_id"],
-                file_info["file_domain"][:100],
-                file_info["file_name"][:255],
-                file_info["file_modified_date"],
+                file_info["file_id"],
+                file_info["file_name"][:100],
+                file_info["file_modified_date"][:20],
+                file_info["domain_name"][:50],
+                file_info["domain_number"],
             ))
         except DatabaseError as e:
             self.conn.rollback()

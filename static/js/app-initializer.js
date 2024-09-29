@@ -17,7 +17,7 @@ async function initialize() {
         const userEmail = "rahmansahinler1@gmail.com";
 
         // Fetch initial user data
-        const userData = await window.fetchUserData(userEmail);
+        const userData = await window.fetchUserInfo(userEmail);
         if (!userData) {
             throw new Error('Failed to load user data');
         }
@@ -37,17 +37,18 @@ async function initialize() {
         const domainFileList = document.querySelector('.domain-file-list');
         const uploadFilesButton = document.getElementById('btn-upload-files');
         const removeUploadButton = document.getElementById('btn-remove-upload');
+
+        // Load domain selection elements
+        const domainTitle = document.getElementById('domain-title');
+        const domainButtons = Array.from(document.querySelectorAll('#btn-domain-number'));
         
         // Initialize functions
-        initChat(chatBox, userInput, sendButton, userEmail);
+        initChat(chatBox, userInput, sendButton, userData);
         initselectFiles(selectFilesButton, fileInput, uploadFilesButton, selectedFileList, removeSelectionButton);
         initRemoveSelection(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton);
         initUploadFiles(uploadFilesButton, userEmail, domainFileList, removeUploadButton, selectedFileList);
         initRemoveUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail, selectedFileList, removeSelectionButton);
-
-        // Update the initial widgets when first loaded
-        updateDomainList(userData, domainFileList, removeUploadButton);
-        
+        initDomainSelection(domainButtons, domainTitle, userData);
 
     } catch (error) {
         console.error('Error initializing app:', error);
