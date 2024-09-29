@@ -86,3 +86,6 @@ document.addEventListener('DOMContentLoaded', function() {
               passwordInput.type = "password";
             }
           }
+          function scrollDown() {
+            window.scrollBy(0, window.innerHeight);
+        }
