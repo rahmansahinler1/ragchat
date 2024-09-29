@@ -2,6 +2,8 @@ import psycopg2
 from psycopg2 import extras
 from psycopg2 import DatabaseError
 from pathlib import Path
+from typing import List
+import uuid
 
 from .config import GenerateConfig
 
@@ -71,14 +73,14 @@ class Database:
 
     def get_file_info(self, user_id: str):
         query = """
-        SELECT DISTINCT file_domain, file_name, file_type, file_id
+        SELECT DISTINCT file_domain, file_name, file_id
         FROM file_info
         WHERE user_id = %s
         """
         try:
             self.cursor.execute(query, (user_id, ))
             data = self.cursor.fetchall()
-            return [{"file_domain": row[0], "file_name": row[1], "file_type": row[2], "file_id": row[3]} for row in data] if data else None
+            return [{"file_domain": row[0], "file_name": row[1], "file_id": row[2]} for row in data] if data else None
         except DatabaseError as e:
             self.conn.rollback()
             raise e
@@ -90,7 +92,7 @@ class Database:
         WHERE file_id IN %s
         """
         try:
-            self.cursor.execute(query, (tuple(file_ids),))
+            self.cursor.execute(query, (tuple(file_ids, ), ))
             data = self.cursor.fetchall()
             return data
         except DatabaseError as e:
@@ -99,8 +101,8 @@ class Database:
 
     def insert_file_info(self, file_info):
         query = """
-        INSERT INTO file_info (file_id, user_id, file_domain, file_name, file_type, file_modified_date)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO file_info (file_id, user_id, file_domain, file_name, file_modified_date)
+        VALUES (%s, %s, %s, %s, %s)
         """
         try:
             self.execute(query, (
@@ -108,7 +110,6 @@ class Database:
                 file_info["user_id"],
                 file_info["file_domain"][:100],
                 file_info["file_name"][:255],
-                file_info["file_type"][:50],
                 file_info["file_modified_date"],
             ))
         except DatabaseError as e:
@@ -131,23 +132,23 @@ class Database:
             self.conn.rollback()
             raise e
     
-    def clear_file_info(self, user_id: str):
+    def clear_file_info(self, user_id: str, file_ids: list):
         query = """
         DELETE FROM file_info
-        WHERE user_id = %s
+        WHERE user_id = %s AND file_id IN %s
         """
         try:
-            self.cursor.execute(query, (user_id,))
+            self.cursor.execute(query, (user_id, tuple(file_ids, )))
             return self.cursor.rowcount
         except DatabaseError as e:
             self.conn.rollback()
             raise e
     
-    def clear_file_content(self, user_id: str):
+    def clear_file_content(self, user_id: str, files_to_remove: list):
         get_file_ids_query = """
         SELECT DISTINCT file_id
         FROM file_info
-        WHERE user_id = %s
+        WHERE user_id = %s AND file_name IN %s
         """
 
         clear_content_query = """
@@ -155,13 +156,13 @@ class Database:
         WHERE file_id IN %s
         """
         try:
-            self.cursor.execute(get_file_ids_query, (user_id,))
+            self.cursor.execute(get_file_ids_query, (user_id, tuple(files_to_remove, )))
             file_ids = [row[0] for row in self.cursor.fetchall()]
 
             if file_ids:
-                self.cursor.execute(clear_content_query, (tuple(file_ids),))
+                self.cursor.execute(clear_content_query, (tuple(file_ids), ))
                 total_cleared = self.cursor.rowcount
-                return total_cleared
+                return total_cleared, file_ids
             else:
                 return 0
         except DatabaseError as e:

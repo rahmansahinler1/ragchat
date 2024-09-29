@@ -11,9 +11,10 @@ class ReadingFunctions:
             disable=[ "tagger", "attribute_ruler", "lemmatizer", "ner", "textcat", "custom"]
         )
 
-    def read_file(self, file_bytes, file_type):
+    def read_file(self, file_bytes, file_name):
         sentences = []
         try:
+            file_type = file_name.split(".")[-1]
             if file_type == 'pdf':
                 pdf_file = io.BytesIO(file_bytes)
                 pdf_reader = PdfReader(pdf_file)

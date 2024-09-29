@@ -28,6 +28,13 @@ class QueryWithEmail(BaseModel):
     user_query: str
     user_email: str
 
+class FileRemovalRequest(BaseModel):
+    filesToRemove: List[str]
+
+class FileDeletionRequest(BaseModel):
+    user_email: str
+    files_to_remove: List[str]
+
     
 @router.post("/qa/generate_answer")
 async def generate_answer(request: QueryWithEmail):
@@ -37,7 +44,6 @@ async def generate_answer(request: QueryWithEmail):
                 user_info = db.get_user_info(request.user_email)
                 if not user_info:
                     raise HTTPException(status_code=404, detail="User not found")
-                # Create index
                 file_infos = db.get_file_info(user_info['user_id'])
                 file_ids = [file_info["file_id"] for file_info in file_infos]
                 file_content = db.get_file_content(file_ids)
@@ -50,9 +56,7 @@ async def generate_answer(request: QueryWithEmail):
         response = {
             "answer": answer
         }
-        
         return JSONResponse(content=response)
-    
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -64,7 +68,11 @@ async def get_user_info(request: UserEmailRequest):
             user_info = db.get_user_info(request.user_email)
             file_info = db.get_file_info(user_info['user_id'])
         
-        return user_info, file_info
+        response = {
+            "user_info": user_info,
+            "file_info": file_info
+        }
+        return JSONResponse(content=response)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -80,7 +88,7 @@ async def select_files(
             file_modified_date = datetime.fromtimestamp(int(last_modified_date) / 1000).strftime('%Y-%m-%d')
             file_info = {
                 "file_id": str(uuid.uuid4()),
-                "user_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+                "user_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
                 "file_domain": "domain1",
                 "file_name": file.filename,
                 "file_modified_date": file_modified_date,
@@ -93,18 +101,24 @@ async def select_files(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/io/remove_file_selections")
-async def remove_file_selections():
+async def remove_file_selections(request: FileRemovalRequest):
     try:
-        globals.file_selections.clear()
+        files_to_remove = set(request.filesToRemove)
+        files_removed = []
+
+        globals.file_selections = [
+            file_info for file_info in globals.file_selections
+            if file_info["file_name"] not in files_to_remove
+        ]
+        files_removed = len(files_to_remove) - len(globals.file_selections)
+
         return {
-        "success": True,
-        "message": "Files deleted successfully"
+            "success": True,
+            "message": f"{files_removed} file(s) deleted successfully",
+            "removed_count": files_removed
         }
     except Exception as e:
-        return {
-            "success": False,
-            "message": str(e)
-        }
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/io/upload_files")
 async def upload_files(action: UploadAction):
@@ -120,11 +134,10 @@ async def upload_files(action: UploadAction):
             file_info["file_id"] = file_selection["file_id"]
             file_info["user_id"] = file_selection["user_id"]
             file_info["file_domain"] = file_selection["file_domain"]
-            file_info["file_name"] = file_selection["file_name"].split(".")[0]
-            file_info["file_type"] = file_selection["file_name"].split(".")[-1]
+            file_info["file_name"] = file_selection["file_name"]
             file_info["file_modified_date"] = file_selection["file_modified_date"]
 
-            file_sentences = processor.rf.read_file(file_bytes=file_selection["file_bytes"], file_type=file_info["file_type"])
+            file_sentences = processor.rf.read_file(file_bytes=file_selection["file_bytes"], file_name=file_info["file_name"])
             file_embeddings = processor.ef.create_embeddings_from_sentences(file_sentences=file_sentences)
 
             with Database() as db:
@@ -147,12 +160,12 @@ async def upload_files(action: UploadAction):
         }
 
 @router.post("/io/remove_file_upload")
-async def remove_file_upload(request: UserEmailRequest):
+async def remove_file_upload(request: FileDeletionRequest):
     try:
         with Database() as db:
             user_info = db.get_user_info(request.user_email)
-            deleted_content = db.clear_file_content(user_id=user_info["user_id"])
-            deleted_files = db.clear_file_info(user_id=user_info["user_id"])
+            deleted_content, file_ids = db.clear_file_content(user_id=user_info["user_id"], files_to_remove=request.files_to_remove)
+            deleted_files = db.clear_file_info(user_id=user_info["user_id"], file_ids=file_ids)
             db.conn.commit()
         
         return {

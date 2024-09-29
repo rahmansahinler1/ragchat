@@ -41,9 +41,9 @@ async function initialize() {
         // Initialize functions
         initChat(chatBox, userInput, sendButton, userEmail);
         initselectFiles(selectFilesButton, fileInput, uploadFilesButton, selectedFileList, removeSelectionButton);
-        initRemoveSelection(selectedFileList, uploadFilesButton, removeSelectionButton);
+        initRemoveSelection(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton);
         initUploadFiles(uploadFilesButton, userEmail, domainFileList, removeUploadButton, selectedFileList);
-        initRemoveUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail);
+        initRemoveUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail, selectedFileList, removeSelectionButton);
 
         // Update the initial widgets when first loaded
         updateDomainList(userData, domainFileList, removeUploadButton);

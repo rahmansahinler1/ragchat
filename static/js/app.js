@@ -67,16 +67,16 @@ function initselectFiles(selectFilesButton, fileInput, uploadFilesButton, select
     fileInput.addEventListener('change', () => selectFiles(fileInput, uploadFilesButton, selectedFileList, removeSelectionButton))
 }
 
-function initRemoveSelection(selectedFileList, uploadFilesButton, removeSelectionButton) {
-    removeSelectionButton.addEventListener('click', () => removeFileSelection(selectedFileList, uploadFilesButton, removeSelectionButton));
+function initRemoveSelection(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton) {
+    removeSelectionButton.addEventListener('click', () => removeFileSelection(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton));
 }
 
 function initUploadFiles(uploadFilesButton, userEmail, domainFileList, removeUploadButton, selectedFileList) {
     uploadFilesButton.addEventListener('click', () => uploadFiles(uploadFilesButton, userEmail, domainFileList, removeUploadButton, selectedFileList));
 }
 
-function initRemoveUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail) {
-    removeUploadButton.addEventListener('click', () => removeFileUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail));
+function initRemoveUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail, selectedFileList, removeSelectionButton) {
+    removeUploadButton.addEventListener('click', () => removeFileUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail, selectedFileList, removeSelectionButton));
 }
 
 
@@ -134,13 +134,21 @@ async function selectFiles(fileInput, uploadFilesButton, selectedFileList, remov
     fileInput.value = '';
 }
 
-async function removeFileSelection(selectedFileList, uploadFilesButton, removeSelectionButton) {
+async function removeFileSelection(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton) {
     try {
+        const checkedBoxes = selectedFileList.querySelectorAll('input[type="checkbox"]:checked');
+        if (checkedBoxes.length === 0) {
+            window.addMessageToChat('No files selected for removal', 'ragchat');
+            return;
+        }
+        const filesToRemove = Array.from(checkedBoxes).map(checkbox => checkbox.nextElementSibling.textContent);
+
         const response = await fetch('api/v1/io/remove_file_selections', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-            }
+            },
+            body: JSON.stringify({ filesToRemove })
         });
 
         if (!response.ok) {
@@ -148,12 +156,14 @@ async function removeFileSelection(selectedFileList, uploadFilesButton, removeSe
         }
 
         const data = await response.json();
-
         if (data.success) {
-            selectedFileList.innerHTML = '';
-            uploadFilesButton.disabled = true;
-            removeSelectionButton.disabled = true;
-
+            checkedBoxes.forEach(checkbox => {
+                const fileItem = checkbox.closest('.file-item');
+                if (fileItem) {
+                    fileItem.remove();
+                }
+            });
+            updateButtonStates(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton);
             window.addMessageToChat(`Selected files deleted`, 'ragchat');
         } else {
             throw new Error(data.message || 'Failed to remove files');
@@ -161,6 +171,25 @@ async function removeFileSelection(selectedFileList, uploadFilesButton, removeSe
     } catch (error) {
         console.error('Error removing files:', error);
         window.addMessageToChat('Error while removing files: ' + error.message, 'ragchat');
+    }
+}
+
+function updateButtonStates(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton) {
+    const selectedFiles = selectedFileList.querySelectorAll('.file-item');
+    const uploadedFiles = domainFileList.querySelectorAll('.file-item');
+
+    if (selectedFiles.length === 0) {
+        uploadFilesButton.disabled = true;
+        removeSelectionButton.disabled = true;
+    } else {
+        uploadFilesButton.disabled = false;
+        removeSelectionButton.disabled = false;
+    }
+
+    if (uploadedFiles.length === 0) {
+        removeUploadButton.disabled = true;
+    } else {
+        removeUploadButton.disabled = false;
     }
 }
 
@@ -181,7 +210,6 @@ async function uploadFiles(uploadFilesButton, userEmail, domainFileList, removeU
         }
         
         const data = await response.json();
-        
         if (data.success) {
             window.addMessageToChat(`Files uploaded successfully`, 'ragchat');
             const userData = await fetchUserData(userEmail);
@@ -197,13 +225,23 @@ async function uploadFiles(uploadFilesButton, userEmail, domainFileList, removeU
     }
 }
 
-async function removeFileUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail) {
+async function removeFileUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail, selectedFileList, removeSelectionButton) {
     try {
         removeUploadButton.disabled = true;
+        const checkedBoxes = domainFileList.querySelectorAll('input[type="checkbox"]:checked');
+        if (checkedBoxes.length === 0) {
+            window.addMessageToChat('No file selected for deletion', 'ragchat');
+            removeUploadButton.disabled = false;
+            return;
+        }
+        const filesToRemove = Array.from(checkedBoxes).map(checkbox => checkbox.nextElementSibling.textContent);
 
         const response = await fetch('api/v1/io/remove_file_upload', {
             method: 'POST',
-            body: JSON.stringify({ user_email: userEmail }),
+            body: JSON.stringify({ 
+                user_email: userEmail,
+                files_to_remove: filesToRemove
+             }),
             headers: {
                 'Content-Type': 'application/json',
             }
@@ -218,14 +256,20 @@ async function removeFileUpload(removeUploadButton, uploadFilesButton, domainFil
         if (data.success) {
             const deletedContent = data.message.deleted_content;
             const deletedFiles = data.message.deleted_files;
-
+            
+            checkedBoxes.forEach(checkbox => {
+                const fileItem = checkbox.closest('.file-item');
+                if (fileItem) {
+                    fileItem.remove();
+                }
+            });
+            
             window.addMessageToChat(
-                `Uploaded files removed successfully. ${deletedContent} file sentences and ${deletedFiles} files were deleted.`,
+                `Selected files deleted successfully. ${deletedContent} file sentences and ${deletedFiles} files were deleted.`,
                 'ragchat'
             );
 
-            uploadFilesButton.disabled = false;
-            removeUploadButton.disabled = false;
+            updateButtonStates(selectedFileList, uploadFilesButton, removeSelectionButton, domainFileList, removeUploadButton);
 
             const userData = await fetchUserData(userEmail);
             updateDomainList(userData, domainFileList, removeUploadButton)
@@ -251,7 +295,13 @@ async function fetchUserData(userEmail) {
         if (!response.ok) {
             throw new Error('Failed to fetch initial user data');
         }
-        return await response.json();
+        data = await response.json();
+        if (!data) {
+            window.addMessageToChat('User could not be found!', 'ragchat');
+            return;
+        }
+        return data
+
     } catch (error) {
         console.error('Error fetching initial user data:', error);
         return null;
@@ -259,7 +309,7 @@ async function fetchUserData(userEmail) {
 }
 
 function updateDomainList(userData, domainFileList, removeUploadButton) {
-    const domainFiles = userData[1];
+    const domainFiles = userData.file_info;
 
     if (domainFiles && domainFiles.length > 0) {
         domainFileList.innerHTML = '';
@@ -272,7 +322,7 @@ function updateDomainList(userData, domainFileList, removeUploadButton) {
             checkbox.className = 'file-checkbox';
 
             const label = document.createElement('label');
-            label.textContent = `${file.file_name}.${file.file_type}`;
+            label.textContent = `${file.file_name}`;
 
             fileItem.appendChild(checkbox);
             fileItem.appendChild(label);
@@ -286,12 +336,12 @@ function updateDomainList(userData, domainFileList, removeUploadButton) {
 }
 
 function initializeWidgets(userData, domainFileList, selectedFileList) {
-    const userName = userData[0].user_name;
+    const userName = userData.user_info["user_name"];
 
     if (userName) {
         domainFileList.innerHTML = '<p>Select your domain</p>';
         selectedFileList.innerHTML = '<p>No files yet</p>';
-        window.addMessageToChat(`Welcome ${userData[0].user_name}, how are you today?`, 'ragchat');
+        window.addMessageToChat(`Welcome ${userName}, how are you today?`, 'ragchat');
     } else {
         domainFileList.innerHTML = '<p>I cannot find you!!</p>';
     }

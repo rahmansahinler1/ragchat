@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS file_info (
     user_id UUID NOT NULL,
     file_domain VARCHAR(100) NOT NULL,
     file_name VARCHAR(255) NOT NULL,
-    file_type VARCHAR(50),
     file_modified_date DATE,
     file_upload_date DATE DEFAULT CURRENT_DATE,
     FOREIGN KEY (user_id) REFERENCES user_info(user_id)
