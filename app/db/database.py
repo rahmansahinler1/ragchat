@@ -68,10 +68,27 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def get_file_info(self, user_id: str, selected_domain_number: int):
-        query = """
-        SELECT DISTINCT file_name, file_id, domain_name
+    def get_file_info(self, user_id: str, domain_id: str):
+        query_get_file_info = """
+        SELECT DISTINCT file_id, file_name, file_modified_date, file_upload_date
         FROM file_info
+        WHERE user_id = %s AND domain_id = %s
+        """
+        try:
+            self.cursor.execute(query_get_file_info, (
+                user_id,
+                domain_id,
+            ))
+            data = self.cursor.fetchall()
+            return [{"file_id": row[0], "file_name": row[1], "file_modified_date": row[2], "file_upload_date": row[3]} for row in data] if data else None
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+    
+    def get_domain_info(self, user_id: str, selected_domain_number: int):
+        query = """
+        SELECT DISTINCT domain_id, domain_name
+        FROM domain_info
         WHERE user_id = %s AND domain_number = %s
         """
         try:
@@ -79,46 +96,47 @@ class Database:
                 user_id,
                 selected_domain_number,
             ))
-            data = self.cursor.fetchall()
-            return [{"file_name": row[0], "file_id": row[1], "domain_name": row[2]} for row in data] if data else None
+            data = self.cursor.fetchone()
+            return {"domain_id": data[0], "domain_name": data[1]} if data else None
         except DatabaseError as e:
             self.conn.rollback()
             raise e
     
     def get_file_content(self, file_ids: list):
-        query = """
+        query_get_file_content = """
         SELECT sentence, sentence_order, page_number, embedding
         FROM file_content
         WHERE file_id IN %s
         """
         try:
-            self.cursor.execute(query, (tuple(file_ids, ), ))
+            self.cursor.execute(query_get_file_content, (
+                tuple(file_ids, ), 
+            ))
             data = self.cursor.fetchall()
             return data
         except DatabaseError as e:
             self.conn.rollback()
             raise e
 
-    def insert_file_info(self, file_info):
-        query = """
-        INSERT INTO file_info (user_id, file_id, file_name, file_modified_date, domain_name, domain_number)
-        VALUES (%s, %s, %s, %s, %s, %s)
+    def insert_file_info(self, file_info, domain_id):
+        query_insert_file_info = """
+        INSERT INTO file_info (user_id, file_id, domain_id, file_name, file_modified_date)
+        VALUES (%s, %s, %s, %s, %s)
         """
         try:
-            self.cursor.execute(query, (
+            self.cursor.execute(query_insert_file_info, (
                 file_info["user_id"],
                 file_info["file_id"],
+                domain_id,
                 file_info["file_name"][:100],
                 file_info["file_modified_date"][:20],
-                file_info["domain_name"][:50],
-                file_info["domain_number"],
             ))
         except DatabaseError as e:
             self.conn.rollback()
             raise e
 
     def insert_file_content(self, file_id, file_sentences, file_embeddings):
-        query = """
+        query_insert_file_content = """
         INSERT INTO file_content (file_id, page_number, sentence, sentence_order, embedding)
         VALUES %s
         """
@@ -128,7 +146,7 @@ class Database:
                 (file_id, page_number + 1, sentence, sentence_order + 1, psycopg2.Binary(embedding.tobytes()) if embedding is not None else None)
                 for sentence_order, (sentence, embedding) in enumerate(zip(page_sentences, page_embeddings))
                 ]
-                extras.execute_values(self.cursor, query, inserted_data)
+                extras.execute_values(self.cursor, query_insert_file_content, inserted_data)
         except DatabaseError as e:
             self.conn.rollback()
             raise e
