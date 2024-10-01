@@ -1,10 +1,19 @@
 body {
+  
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
     margin: 0;
     font-family: 'Dai Banna SIL', sans-serif;
+    background: hsla(0, 0%, 14%, 1);
+
+    background: radial-gradient(circle, hsla(0, 0%, 14%, 1) 0%, hsla(0, 4%, 11%, 1) 0%, hsla(0, 3%, 8%, 1) 0%, hsla(0, 0%, 9%, 1) 30%, hsla(0, 0%, 0%, 1) 100%);
+
+    background: -moz-radial-gradient(circle, hsla(0, 0%, 14%, 1) 0%, hsla(0, 4%, 11%, 1) 0%, hsla(0, 3%, 8%, 1) 0%, hsla(0, 0%, 9%, 1) 30%, hsla(0, 0%, 0%, 1) 100%);
+
+    background: -webkit-radial-gradient(circle, hsla(0, 0%, 14%, 1) 0%, hsla(0, 4%, 11%, 1) 0%, hsla(0, 3%, 8%, 1) 0%, hsla(0, 0%, 9%, 1) 30%, hsla(0, 0%, 0%, 1) 100%);
+    
   }
   .dai-banna-sil-medium {
     font-family: "Dai Banna SIL", serif;
@@ -16,8 +25,9 @@ body {
     height: 764px;
     padding: 2rem;
     border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    background-color: white;
+    box-shadow: 0 4px 20px rgb(255, 255, 255);
+    background-color: #212121;
+    border: 2px solid white;
   }
   .logo {
     position: absolute;
@@ -29,43 +39,50 @@ body {
 
 .logo-text {
     font-size: 2rem; /* Adjust to your desired font size */
-    color: #000; /* Or any desired color */
+    color: white; /* Or any desired color */
 }
   .return-link {
     font-size: 0.9rem;
-    color: #00b3b3;
+    color: #007AEA;
     text-decoration: none;
     
   }
   .login-redirect {
     font-size: 1.3rem;
     margin-left: 10%;
+    color: white;
   }
   .confirm-btn {
-    background-color: #29D8E3;
-
+    background-color: #007AEA;
     font-size: 1.2rem;
   }
   .login-text {
     font-size: 1.3rem;
     text-decoration: none;
-    color: #009999;
+    color: #007AEA;
+  }
+  .login-text:hover {
+    color: #045eb3;
+    text-decoration: none;
   }
   .return-link:hover {
-    color: #009999;
+    color: #045eb3;
     text-decoration: none;
   }
 
   .signup-title {
     font-size: 4rem;
     margin-left: 10%;
+    color: white;
   }
 
   .form-text-small {
     font-size: 0.9rem;
+    color: white;
   }
   .form-label {
     font-size: 1.2rem;
+    color: white;
   }
   .user-info-form {
     margin-left: 10%;
@@ -81,14 +98,14 @@ body {
     top: 18%;
   }
   .signup-container{
-    background-color: #29D8E3;
+    background-color: #007AEA;
     width: 35%;
     border: 1px solid white;
     border-radius: 20px;
     margin: auto;
   }
   .signup-container:hover {
-    background-color: #009999;
+    background-color: #045eb3;
   }
 
   .form-check-label {
@@ -98,4 +115,31 @@ body {
     content:" *";
     color: red;
   }
-  
+  .form-control {
+    background-color: #3a3a3a;
+    color: white;
+  }
+  .form-control:focus {
+    background-color: #3a3a3a;
+    color: white;
+    border: 1px solid white;
+  }
+  .btn-outline-secondary i, span{
+    color: white;
+  }
+  .btn-outline-secondary {
+    background-color: #3a3a3a;
+    border: 1px solid white;
+  }
+  .btn-outline-secondary:focus {
+    background-color: #212121;
+    border: 1px solid white;
+  }
+  .btn-outline-secondary:hover {
+    background-color: #212121;
+    border: 1px solid white;
+  }
+  .input-group-text {
+    background-color: #3a3a3a;
+    color: white;
+  }

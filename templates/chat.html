@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../static/css/chat.css">
+    <script src="/static/js/main.js" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Ragchat</title>
+</head>
+<body>
+    <div class="sidebar">
+        <div id="sidebar-seperator"></div>
+        <h2 class="text-center">Domain</h2>
+        <hr id="domain-hr">
+        <div class="d-flex mb-2">
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">1</p></button>
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">2</p></button>
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">3</p></button>
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">4</p></button>
+            <button class="btn btn-circle" id="btn-domain-number"><p id="domain-number">5</p></button>
+        </div>
+
+        <div class="domain-info">
+            <p><b>Domain: </b><span id="domain-title">Analysis Report</span></p>
+        </div>
+        <hr id="domain-info-hr">
+        <div class="file-list mb-4">
+            <p class="empty-message">Please attach a document</p>
+            <div class="file-item">
+                <input type="checkbox" class="file-checkbox"> <label>statistics.docx</label>
+            </div>
+            <div class="file-item">
+                <input type="checkbox" class="file-checkbox"> <label>statistics2.docx</label>
+            </div>
+            <div class="file-item">
+              <input type="checkbox" class="file-checkbox"> <label>statistics.docx</label>
+          </div>
+          <div class="file-item">
+              <input type="checkbox" class="file-checkbox"> <label>statistics2.docx</label>
+          </div>
+          <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics2.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics2.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics2.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics.docx</label>
+        </div>
+        <div class="file-item">
+            <input type="checkbox" class="file-checkbox"> <label>statistics2.docx</label>
+        </div>
+        
+    </div>
+
+        <button class="btn btn-secondary w-100 mb-3" id="domain-remove" disabled>Remove</button>
+        <h4 id="text-chosen-files">Chosen Files</h4>
+        <hr id="second-hr">
+
+        <div class="section-chosen-files">
+            <p class="empty-message">Please attach a document</p>
+            <div class="chosen-files-list mb-3">
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics4.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>research.pdf</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics2.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics2.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics2.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics.docx</label>
+                </div>
+                <div class="file-item">
+                    <input type="checkbox" class="file-checkbox2"> <label>statistics2.docx</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center mb-3" id="button-container">
+            <button class="btn btn-secondary mx-2" id="btn-remove" disabled>Remove</button>
+            <button class="btn btn-secondary mx-2" id="btn-add">Add</button>
+        </div>
+
+        <div class="upload-section">
+            <i class="fa fa-cloud-upload-alt"></i>
+            <p>Drag and Drop here <br>or</p>
+            <button type="file" class="btn btn-light" id="btn-select-file">Select File</button>
+            <br>
+            <b><p>PDF, DOCX, TXT &lt; 5MB</p></b>
+        </div>
+
+        <div class="mt-2 text-center" id="info-message">
+            <i class="fa fa-info-circle"></i>
+            <small>You Can Also Drag & Drop on Domains to Upload Files</small>
+        </div>
+    </div>
+
+    <div class="container-fluid vh-100">
+        <div class="row h-100">
+            <!-- Chat Section -->
+            <div class="col chat-section d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center p-3">
+                        <div class="colored-div-chat">
+                            <h2 class = "text-center">RAGChat</h2>
+                        
+                    </div>
+                </div>
+                <div class="chat-box flex-grow-1">
+                    <div class="message user-message">What is RAGChat?</div>
+                    <div class="message bot-message">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Dolores fugit quidem esse, est, hic voluptas deleniti eveniet nostrum non vel similique officia porro quisquam, dolor ipsam ducimus impedit! Necessitatibus ipsam, dolorem optio eaque debitis dolore magnam quasi sint esse dolor laboriosam, praesentium nobis? Atque corporis earum laboriosam reprehenderit itaque inventore sint iste ducimus non officiis molestias explicabo assumenda consequuntur aliquid fuga, magni placeat ipsum sequi? Esse adipisci exercitationem voluptatibus quis rerum distinctio a, dolorum repudiandae, vel facilis ullam minus fugit aperiam, accusantium ipsum! Inventore, numquam aliquid? Dicta, ad. Tempore animi id aut officiis nostrum laboriosam, excepturi blanditiis eveniet maiores pariatur!</div>
+                    <div class="message user-message">What RAGChat is used for?</div>
+                    <div class="message bot-message">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Dolores fugit quidem esse, est, hic voluptas deleniti eveniet nostrum non vel similique officia porro quisquam, dolor ipsam ducimus impedit! Necessitatibus ipsam, dolorem optio eaque debitis dolore magnam quasi sint esse dolor laboriosam, praesentium nobis? Atque corporis earum laboriosam reprehenderit itaque inventore sint iste ducimus non officiis molestias explicabo assumenda consequuntur aliquid fuga, magni placeat ipsum sequi?</div>
+                </div>
+    
+                <!-- Input Box & Send Button -->
+                <div class="d-flex p-3" id="bottom-send-tools">
+                    <input type="text" class="form-control me-2" placeholder="Send Message..." id="send-message-box">
+                    <button class="btn-send">Send</button>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-3 col-sm-2 resource-section bg-white p-3"> <!-- Smaller resources section -->
+                <div id="vertical-line"></div>
+                <div class="colored-div-resources">
+                    <h2 class="text-center">Resources</h2> <!-- Centered title -->
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+                <div class="resource-item">
+                    <h6><strong>Resource From:</strong> <span class="document-title">research.pdf</span></h6>
+                    <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>Lorem ipsum dolor sit, amet consectetur adipisicing elit. Quam quaerat perspiciatis veniam voluptas tenetur. At est odio, voluptas excepturi porro, temporibus accusamus quia labore alias eos adipisci explicabo reprehenderit, nemo accusantium quaerat similique. Modi, alias? Ducimus ipsam dolores impedit nulla facilis aliquam inventore deleniti hic odit nisi architecto, veritatis ullam!</p>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous"></script>
+</html>
+
+
