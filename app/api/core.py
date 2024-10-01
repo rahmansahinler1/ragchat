@@ -201,9 +201,10 @@ class FileProcessor:
             self,
             user_query: str,
             sentences: List[str],
+            index,
     ):
         query_vector = self.ef.create_embedding_from_query(query=user_query)
-        _, I = globals.index.search(query_vector, 5)
+        _, I = index.search(query_vector, 5)
         widen_sentences = self.widen_sentences(window_size=1, convergence_vector=I[0], sentences=sentences)
         context = f"""Context1: {widen_sentences[0]}
         Context2: {widen_sentences[1]}

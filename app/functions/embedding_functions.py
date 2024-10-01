@@ -10,16 +10,16 @@ class EmbeddingFunctions:
         self.client = OpenAI()
 
     def create_embeddings_from_sentences(
-            self,
-            file_sentences: List[List[str]],
-        ):
+        self,
+        file_sentences: List[List[str]],
+    ) -> List[np.ndarray]:
         file_embeddings = []
         for page_sentences in file_sentences:
-            if len(page_sentences):
+            if page_sentences:
                 page_embeddings = self.client.embeddings.create(model="text-embedding-ada-002", input=page_sentences)
-                file_embeddings.append(np.array([x.embedding for x in page_embeddings.data], float))
+                file_embeddings.append(np.array([x.embedding for x in page_embeddings.data], dtype=np.float32))
             else:
-                file_embeddings.append([None])
+                file_embeddings.append(np.array([]))
         return file_embeddings
 
     def create_embedding_from_query(self, query):

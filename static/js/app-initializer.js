@@ -26,6 +26,7 @@ async function initialize() {
             uploadFilesButton: document.getElementById('btn-upload-files'),
             removeSelectionButton: document.getElementById('btn-remove-selection'),
             domainFileList: document.querySelector('.domain-file-list'),
+            domainTitle: document.getElementById('domain-title'),
             removeUploadButton: document.getElementById('btn-remove-upload'),
             userData: userData,
             currentDomain: currentDomain,
@@ -37,6 +38,7 @@ async function initialize() {
             chatBox: document.querySelector('.chat-box')
         });
         clearFileSelections(userData);
+        window.addMessageToChat(`Welcome ${userData.user_name} ${userData.user_surname}`, 'ragchat');
 
     } catch (error) {
         console.error('Error initializing app:', error);

@@ -4,6 +4,7 @@ function initWidgets({
     uploadFilesButton,
     removeSelectionButton,
     domainFileList,
+    domainTitle,
     removeUploadButton,
     userData,
     currentDomain,
@@ -24,9 +25,9 @@ function initWidgets({
         button.addEventListener('click', () => selectDomain(button, index, domainButtons, userData));
     });
     // Uplaod files
-    uploadFilesButton.addEventListener('click', () => uploadFiles(uploadFilesButton, selectedFileList, userData));
+    uploadFilesButton.addEventListener('click', () => uploadFiles(uploadFilesButton, userData));
     // Remove upload
-    removeUploadButton.addEventListener('click', () => removeFileUpload(removeUploadButton, uploadFilesButton, domainFileList, selectedFileList, removeSelectionButton));
+    removeUploadButton.addEventListener('click', () => removeFileUpload(removeUploadButton, userData));
     // Chatting
     sendButton.addEventListener('click', () => sendMessage(userInput, userData));
     userInput.addEventListener('keypress', function(e) {
@@ -34,13 +35,13 @@ function initWidgets({
             sendMessage(userInput, userData);
         }
     });
-
     // Globalize necessary widgets
     Object.assign(window, {
         removeSelectionButton,
         selectedFileList,
         uploadFilesButton,
         domainFileList,
+        domainTitle,
         removeUploadButton,
         chatBox,
         currentDomain
@@ -59,7 +60,6 @@ function addMessageToChat(message, sender) {
     }
     
     messageElement.textContent = message;
-    
     window.chatBox.appendChild(messageElement);
     window.chatBox.scrollTop = window.chatBox.scrollHeight;
 }
@@ -84,9 +84,9 @@ function updateButtonStates() {
 }
 
 function updateDomainList(domainInfo) {
- if (domainInfo.files.length > 0) {
-        window.domainFileList.innerHTML = '';
-        domainInfo.files.forEach(file => {
+    if (domainInfo.file_names && domainInfo.file_names.length > 0) {
+        domainFileList.innerHTML = '';
+        domainInfo.file_names.forEach(fileName => {
             const fileItem = document.createElement('div');
             fileItem.className = 'file-item';
 
@@ -95,15 +95,19 @@ function updateDomainList(domainInfo) {
             checkbox.className = 'file-checkbox';
 
             const label = document.createElement('label');
-            label.textContent = `${file.file_name}`;
+            label.textContent = fileName;
 
             fileItem.appendChild(checkbox);
             fileItem.appendChild(label);
             window.domainFileList.appendChild(fileItem);
         });
     } else {
-        domainFileList.innerHTML = '<p>There is nothing in here...</p>';
-        removeUploadButton.disabled = true;
+        window.domainFileList.innerHTML = '<p>No files in this domain.</p>';
+    }
+    if (domainInfo.domain_name) {
+        window.domainTitle.textContent = domainInfo.domain_name;
+    } else {
+        window.domainTitle.textContent = '<p>No specifed domain name</p>';
     }
 }
 
@@ -119,24 +123,23 @@ async function sendMessage(userInput, userData) {
     if (message) {
         window.addMessageToChat(message, 'you');
         try {
-            const response = await fetch('/api/v1/qa/generate_answer', {
+            const userID = userData.user_id;
+            const url = `api/v1/qa/generate_answer?userID=${encodeURIComponent(userID)}`;
+
+            const response = await fetch(url, {
                 method: 'POST',
-                body: JSON.stringify({ 
-                    user_query: message,
-                    user_email: userData.user_id
-                }),
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_message: message })
             });
             if (!response.ok) {
                 throw new Error('Failed to generate response!');
             }
             const data = await response.json();
             window.addMessageToChat(data.answer, 'ragchat');
+
         } catch (error) {
-            console.error('Error!', error);
-            window.addMessageToChat('Error!', 'ragchat')
+            console.error('Error generating message!', error);
+            window.addMessageToChat('Error generating message!', 'ragchat')
         }
     } else {
         console.error('Error!', error);
@@ -158,7 +161,7 @@ async function selectFiles(fileInput, userData) {
     }
 
     try {
-        const userID = userData.user_info.user_id;
+        const userID = userData.user_id;
         const url = `api/v1/io/select_files?userID=${encodeURIComponent(userID)}`;
         const response = await fetch(url, {
             method: 'POST',
@@ -203,17 +206,13 @@ async function removeFileSelection(selectedFileList, userData) {
             return;
         }
         const filesToRemove = Array.from(checkedBoxes).map(checkbox => checkbox.nextElementSibling.textContent);
-        const userID = userData.user_info.user_id;
+        const userID = userData.user_id;
         const url = `api/v1/io/remove_file_selections?userID=${encodeURIComponent(userID)}`;
 
         const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                filesToRemove
-            })
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ files_to_remove: filesToRemove })
         });
 
         if (!response.ok) {
@@ -241,7 +240,7 @@ async function removeFileSelection(selectedFileList, userData) {
 
 async function clearFileSelections(userData) {
     try {
-        const response = await fetch(`api/v1/io/clear_file_selections?userID=${encodeURIComponent(userData.user_info.user_id)}`, {
+        const response = await fetch(`api/v1/io/clear_file_selections?userID=${encodeURIComponent(userData.user_id)}`, {
             method: 'POST',
         });
         
@@ -262,8 +261,8 @@ async function selectDomain(clickedButton, index, domainButtons, userData) {
         clickedButton.classList.add('active');
 
         const currentDomain = index + 1;
-        const userID = userData.user_info.user_id;
-        const url = `api/v1/qa/select_domain?userID=${encodeURIComponent(userID)}`;
+        const userID = userData.user_id;
+        const url = `/api/v1/qa/select_domain?userID=${encodeURIComponent(userID)}`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -275,18 +274,14 @@ async function selectDomain(clickedButton, index, domainButtons, userData) {
             })
         });
 
-        const data = await response.json();
-        if (data.success) {
-            updateDomainList(data);
-            updateButtonStates();
-            window.addMessageToChat(`Selected files deleted`, 'ragchat');
-        } else {
-            throw new Error(data.message || 'Failed to remove files');
-        }
-
         if (!response.ok) {
-            throw new Error('Failed to fetch file info');
+            throw new Error('Failed to fetch domain info');
         }
+        const data = await response.json();
+
+        updateDomainList(data);
+        updateButtonStates();
+        window.addMessageToChat(`Successfully switched to domain ${currentDomain}`, 'ragchat');
 
     } catch (error) {
         console.error('Error fetching domain info:', error);
@@ -294,39 +289,40 @@ async function selectDomain(clickedButton, index, domainButtons, userData) {
     }
 }
 
-async function uploadFiles(uploadFilesButton, selectedFileList, userData) {
+async function uploadFiles(uploadFilesButton, userData) {
     try {
         uploadFilesButton.disabled = true;
-        const currentDomain = 1;
-
-        const userID = userData.user_info.user_id;
+        const userID = userData.user_id;
         const url = `api/v1/io/upload_files?userID=${encodeURIComponent(userID)}`;
 
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                currentDomain
-            })
+            }
         });
 
-        const data = await response.json();
-        if (data.success) {
-            updateDomainList(data.domain_info)
-            selectedFileList.innerHTML = 'Uploaded! This place is empty now...';
-        } else {
-            throw new Error(data.message || 'Upload failed');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const data = await response.json();
+        if (data.domain_name) {
+            updateDomainList(data);
+            updateButtonStates();
+            window.addMessageToChat(`Successfully uploaded files to domain ${data.domain_name}`, 'ragchat');
+            window.selectedFileList.innerHTML = '';
+        }
+        else {
+            window.addMessageToChat(`${data.message}`, 'ragchat');
+        }
     } catch (error) {
         console.error('Error uploading files:', error);
         window.addMessageToChat('Error while uploading files: ' + error.message, 'ragchat');
     }
 }
 
-async function removeFileUpload(removeUploadButton, uploadFilesButton, domainFileList, userEmail, selectedFileList, removeSelectionButton) {
+async function removeFileUpload(removeUploadButton, userData) {
     try {
         removeUploadButton.disabled = true;
         const checkedBoxes = domainFileList.querySelectorAll('input[type="checkbox"]:checked');
@@ -336,16 +332,13 @@ async function removeFileUpload(removeUploadButton, uploadFilesButton, domainFil
             return;
         }
         const filesToRemove = Array.from(checkedBoxes).map(checkbox => checkbox.nextElementSibling.textContent);
+        const userID = userData.user_id;
+        const url = `api/v1/io/remove_file_upload?userID=${encodeURIComponent(userID)}`;
 
-        const response = await fetch('api/v1/io/remove_file_upload', {
+        const response = await fetch(url, {
             method: 'POST',
-            body: JSON.stringify({ 
-                user_email: userEmail,
-                files_to_remove: filesToRemove
-             }),
-            headers: {
-                'Content-Type': 'application/json',
-            }
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ files_to_remove: filesToRemove })
         });
 
         if (!response.ok) {
@@ -353,30 +346,13 @@ async function removeFileUpload(removeUploadButton, uploadFilesButton, domainFil
         }
 
         const data = await response.json();
-
-        if (data.success) {
-            const deletedContent = data.message.deleted_content;
-            const deletedFiles = data.message.deleted_files;
-            
-            checkedBoxes.forEach(checkbox => {
-                const fileItem = checkbox.closest('.file-item');
-                if (fileItem) {
-                    fileItem.remove();
-                }
-            });
-            
-            window.addMessageToChat(
-                `Selected files deleted successfully. ${deletedContent} file sentences and ${deletedFiles} files were deleted.`,
-                'ragchat'
-            );
-
+        if (data.domain_name) {
+            updateDomainList(data);
             updateButtonStates();
-
-            const userData = await fetchUserInfo(userEmail);
-            updateDomainList(userData, domainFileList, removeUploadButton)
-
-        } else {
-            throw new Error(data.message || 'Failed to remove files');
+            window.addMessageToChat(`${data.message}`,'ragchat');
+        }
+        else {
+            window.addMessageToChat(`${data.message}`, 'ragchat');
         }
     } catch (error) {
         console.error('Error removing files:', error);
@@ -408,35 +384,6 @@ async function fetchUserInfo(userEmail) {
         return null;
     }
 }
-
-async function fetchFileInfo(userData, currentDomain) {
-    try {
-        const response = await fetch('/api/v1/db/get_file_info', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                user_id: userData.user_info.user_id, 
-                selected_domain_number: currentDomain 
-            }),
-        });
-        if (!response.ok) {
-            throw new Error('Failed to fetch initial user data');
-        }
-        data = await response.json();
-        if (!data) {
-            window.addMessageToChat('User could not be found!', 'ragchat');
-            return;
-        }
-        return data
-
-    } catch (error) {
-        console.error('Error fetching initial user data:', error);
-        return null;
-    }
-}
-
 
 window.initWidgets = initWidgets;
 window.addMessageToChat = addMessageToChat;

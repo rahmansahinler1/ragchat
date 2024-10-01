@@ -1,11 +1,9 @@
 from fastapi import APIRouter, UploadFile, HTTPException, Request, Query, File, Form
 from fastapi.responses import JSONResponse
 from datetime import datetime
-from pydantic import BaseModel
 from typing import List
 import logging
 import uuid
-import numpy as np
 
 from .core import FileProcessor
 from .. import globals
@@ -14,32 +12,21 @@ from ..db.database import Database
 router = APIRouter()
 processor = FileProcessor(db_folder_path="")
 
-class UserEmailRequest(BaseModel):
-    user_email: str
-
-class UserQueryRequest(BaseModel):
-    user_query: str
-    user_id: str
-
-class FileUploadRequest(BaseModel):
-    user_id: str
-    selected_domain_number: int
-
-class FileDeletionRequest(BaseModel):
-    user_email: str
-    files_to_remove: List[str]
-
-
 @router.post("/db/get_user_info")
-async def get_user_info(request: UserEmailRequest):
+async def get_user_info(
+    request: Request
+):
     try:
+        data = await request.json()
+        user_email = data.get('user_email')
         with Database() as db:
-            user_info = db.get_user_info(request.user_email)
-        
-        response = {
-            "user_info": user_info,
-        }
-        return JSONResponse(content=response)
+            user_info = db.get_user_info(user_email)
+        return JSONResponse(content={
+            "user_id": user_info["user_id"],
+            "user_name": user_info["user_name"],
+            "user_surname": user_info["user_surname"],
+            "user_type": user_info["user_type"]
+        }, status_code=200)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -51,36 +38,44 @@ async def select_domain(
     try:
         data = await request.json()
         selected_domain_number = data.get('currentDomain')
+        globals.selected_domain[userID] = selected_domain_number
         with Database() as db:
             domain_info = db.get_domain_info(userID, selected_domain_number)
             file_info = db.get_file_info(userID, domain_info["domain_id"])
-            file_content = db.get_file_content(file_ids=[info["file_id"] for info in file_info])
-            #TODO: WHY IS THIS FUCKING EMBEDING DOES NOT COME IN RIGHT SHAPE?
-            embeddings = np.vstack([np.frombuffer(row[3], dtype=np.float64).reshape(1, -1) for row in file_content if row[3] is not None])
-            globals.sentences[userID] = [row[0] for row in file_content if row[0] is not None]
-            globals.index[userID] = processor.create_index(embeddings=embeddings)
-        
-        return JSONResponse(content={"file_info": file_info}, status_code=200)
+            if file_info:
+                content, embeddings = db.get_file_content(file_ids=[info["file_id"] for info in file_info])
+                globals.sentences[userID] = [row[0] for row in content]
+                globals.index[userID] = processor.create_index(embeddings=embeddings)
+                return JSONResponse(
+                    content={"file_names": [info["file_name"] for info in file_info], "domain_name": domain_info["domain_name"]},
+                    status_code=200,
+                )
+            else:
+                globals.sentences[userID] = None
+                globals.index[userID] = None
+                return JSONResponse(
+                    content={"file_names": None, "domain_name": domain_info["domain_name"]},
+                    status_code=200,
+                )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/qa/generate_answer")
-async def generate_answer(request: UserQueryRequest):
+async def generate_answer(
+    request: Request,
+    userID: str = Query(...),
+):
     try:
-        # TODO dynamic index generation with selected domain information
-        if not globals.index:
-            with Database() as db:
-                file_infos = db.get_file_info(request.user_id)
-                file_ids = [file_info["file_id"] for file_info in file_infos]
-                file_content = db.get_file_content(file_ids)
-                embeddings = np.vstack([np.frombuffer(row[3], dtype=np.float64).reshape(1, -1) for row in file_content if row[3] is not None])
-                globals.sentences = [row[0] for row in file_content if row[0] is not None]
-                globals.index = processor.create_index(embeddings=embeddings)
-                
-        # Search index and return answer
-        answer = processor.search_index(user_query=request.user_query, sentences=globals.sentences)
-        return JSONResponse(content={"answer": answer}, status_code=200)
-    
+        data = await request.json()
+        user_message = data.get('user_message')
+        if userID not in globals.selected_domain.keys():
+            answer = "Please select a domain first"
+        elif globals.index[userID] and globals.sentences[userID]:
+            answer = processor.search_index(user_query=user_message, sentences=globals.sentences[userID], index=globals.index[userID])
+        else:
+            answer = "Selected domain is empty"
+        return JSONResponse(content={"answer": answer}, status_code=200)   
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -119,7 +114,7 @@ async def remove_file_selections(
 ):
     try:
         data = await request.json()
-        files = data.get('filesToRemove', [])
+        files = data.get('files_to_remove', [])
 
         globals.file_selections = [
             file_info for file_info in globals.file_selections
@@ -145,12 +140,12 @@ async def clear_user_selections(userID: str = Query(...)):
 
 @router.post("/io/upload_files")
 async def upload_files(
-    request: Request,
     userID: str = Query(...),
 ):
     if not globals.file_selections:
         raise HTTPException(status_code=400, detail="No file in server to be upload")
     try:
+        selected_domain_number = globals.selected_domain[userID]
         for file_selection in globals.file_selections:
             # Extract valid sentences and create embeddings from the file
             if userID != file_selection["user_id"]:
@@ -159,35 +154,54 @@ async def upload_files(
             file_embeddings = processor.ef.create_embeddings_from_sentences(file_sentences=file_sentences)
             # Udate necessary tables with the file information
             with Database() as db:
-                domain_info = db.get_domain_info(user_id=userID, selected_domain_number=1)
+                domain_info = db.get_domain_info(user_id=userID, selected_domain_number=selected_domain_number)
                 db.insert_file_info(file_info=file_selection, domain_id=domain_info["domain_id"])
                 db.insert_file_content(file_id=file_selection["file_id"], file_sentences=file_sentences, file_embeddings=file_embeddings)
+                file_info = db.get_file_info(user_id=userID, domain_id=domain_info["domain_id"])
                 db.conn.commit()
-        globals.file_selections.clear()
-        return JSONResponse(content={"message": f"Files uploaded successfully to domain {1}"}, status_code=200)
+        # Clear file selections of the user and return
+        globals.file_selections = [file for file in globals.file_selections if file["user_id"] != userID]
+        return JSONResponse(content={
+            "message": f"Files uploaded successfully to domain {selected_domain_number}",
+            "file_names": [info["file_name"] for info in file_info],
+            "domain_name": domain_info["domain_name"]
+        }, status_code=200)
+    except KeyError:
+        return JSONResponse(content={"message": "Please select the domain number first"}, status_code=200)
     except Exception as e:
         db.conn.rollback()
         logging.error(f"Error during file upload: {str(e)}")
         raise HTTPException(content={"message": f"Failed uploading, error: {e}"}, status_code=500)
 
 @router.post("/io/remove_file_upload")
-async def remove_file_upload(request: FileDeletionRequest):
+async def remove_file_upload(
+    request: Request,
+    userID: str = Query(...),
+):
     try:
+        selected_domain_number = globals.selected_domain[userID]
+        data = await request.json()
+        files = data.get('files_to_remove', [])
         with Database() as db:
-            user_info = db.get_user_info(request.user_email)
-            deleted_content, file_ids = db.clear_file_content(user_id=user_info["user_id"], files_to_remove=request.files_to_remove)
-            deleted_files = db.clear_file_info(user_id=user_info["user_id"], file_ids=file_ids)
+            deleted_content, file_ids = db.clear_file_content(user_id=userID, files_to_remove=files)
+            deleted_files = db.clear_file_info(user_id=userID, file_ids=file_ids)
+            domain_info = db.get_domain_info(user_id=userID, selected_domain_number=selected_domain_number)
+            file_info = db.get_file_info(user_id=userID, domain_id=domain_info["domain_id"])
             db.conn.commit()
-        
-        return {
-        "success": True,
-        "message": {
-            "deleted_content": deleted_content,
-            "deleted_files": deleted_files
-        }
-        }
+        if file_info:
+            return JSONResponse(content={
+                "message": f"{deleted_files} files and {deleted_content} sentences deleted",
+                "file_names": [info["file_name"] for info in file_info],
+                "domain_name": domain_info["domain_name"]
+            }, status_code=200)
+        else:
+            return JSONResponse(content={
+                "message": f"{deleted_files} files and {deleted_content} sentences deleted",
+                "domain_name": domain_info["domain_name"]
+            }, status_code=200)
+    except KeyError:
+        return JSONResponse(content={"message": "Please select the domain number first"}, status_code=200)
     except Exception as e:
-        return {
-            "success": False,
-            "message": str(e)
-        }
+        db.conn.rollback()
+        logging.error(f"Error during file deletion: {str(e)}")
+        raise HTTPException(content={"message": f"Failed deleting, error: {e}"}, status_code=500)

@@ -2,8 +2,12 @@ import psycopg2
 from psycopg2 import extras
 from psycopg2 import DatabaseError
 from pathlib import Path
-
+import logging
+import numpy as np
 from .config import GenerateConfig
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class Database:
@@ -51,6 +55,9 @@ class Database:
         except DatabaseError as e:
             self.conn.rollback()
             raise e
+    
+    def _bytes_to_embeddings(self, byte_array):
+        return np.frombuffer(byte_array.tobytes(), dtype=np.float32).reshape(byte_array.shape[0], -1)
 
     def get_user_info(self, user_email: str):
         query = """
@@ -103,20 +110,40 @@ class Database:
             raise e
     
     def get_file_content(self, file_ids: list):
-        query_get_file_content = """
-        SELECT sentence, sentence_order, page_number, embedding
+        query_get_content = """
+        SELECT sentence, sentence_order, page_number
+        FROM file_content
+        WHERE file_id IN %s
+        """
+        query_get_embeddings = """
+        SELECT array_agg(embedding) AS embeddings
         FROM file_content
         WHERE file_id IN %s
         """
         try:
-            self.cursor.execute(query_get_file_content, (
-                tuple(file_ids, ), 
+            # Extract content
+            self.cursor.execute(query_get_content, (
+                tuple(file_ids),
             ))
-            data = self.cursor.fetchall()
-            return data
+            content = self.cursor.fetchall()
+            # Extract embeddings
+            self.cursor.execute(query_get_embeddings, (
+                tuple(file_ids),
+            ))
+            byte_embeddings = self.cursor.fetchone()
+            # Check every extraction
+            if content and byte_embeddings and byte_embeddings[0]:
+                embeddings = self._bytes_to_embeddings(np.array(byte_embeddings[0]))
+                return content, embeddings
+            else:
+                return None
         except DatabaseError as e:
             self.conn.rollback()
-            raise e
+            print(f"Database error occurred: {e}")
+            return None, None
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            return None, None
 
     def insert_file_info(self, file_info, domain_id):
         query_insert_file_info = """
@@ -141,14 +168,42 @@ class Database:
         VALUES %s
         """
         try:
-            for page_number, (page_sentences, page_embeddings) in enumerate(zip(file_sentences, file_embeddings)):                                                                                
+            all_inserted_data = []
+            for page_number, (page_sentences, page_embeddings) in enumerate(zip(file_sentences, file_embeddings)):
+                if not isinstance(page_embeddings, np.ndarray):
+                    logger.warning(f"Page {page_number} embeddings are not a numpy array. Skipping.")
+                    continue
+                if page_embeddings.shape[1] != 1536:
+                    logger.warning(f"Page {page_number} embeddings have unexpected shape: {page_embeddings.shape}. Expected (n, 1536). Skipping.")
+                    continue
+                
                 inserted_data = [
-                (file_id, page_number + 1, sentence, sentence_order + 1, psycopg2.Binary(embedding.tobytes()) if embedding is not None else None)
-                for sentence_order, (sentence, embedding) in enumerate(zip(page_sentences, page_embeddings))
+                    (
+                        file_id, 
+                        page_number + 1, 
+                        sentence, 
+                        sentence_order + 1, 
+                        psycopg2.Binary(embedding.astype(np.float32).tobytes())
+                    )
+                    for sentence_order, (sentence, embedding) in enumerate(zip(page_sentences, page_embeddings))
+                    if sentence is not None and embedding is not None
                 ]
-                extras.execute_values(self.cursor, query_insert_file_content, inserted_data)
+                all_inserted_data.extend(inserted_data)
+            
+            if all_inserted_data:
+                extras.execute_values(self.cursor, query_insert_file_content, all_inserted_data)
+                self.conn.commit()
+                logger.info(f"Inserted {len(all_inserted_data)} rows for file {file_id}")
+            else:
+                logger.warning(f"No data to insert for file {file_id}")
+        
         except DatabaseError as e:
             self.conn.rollback()
+            logger.error(f"Database error while inserting file content: {str(e)}")
+            raise e
+        except Exception as e:
+            self.conn.rollback()
+            logger.error(f"Unexpected error while inserting file content: {str(e)}")
             raise e
     
     def clear_file_info(self, user_id: str, file_ids: list):
