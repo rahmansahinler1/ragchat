@@ -29,28 +29,26 @@
         
         <div class="section-domain-files">
             <div class="domain-file-list mb-4">
-                <!-- Domain file list will be populated here dynamically -->
             </div>
         </div>
-        <button class="btn btn-secondary w-100 mb-3" id="btn-remove-upload" disabled>Remove</button>
+        <button class="btn btn-custom w-100 mb-3" id="btn-remove-upload" disabled>Remove</button>
         
         <h4 id="text-selected-files">Selected Files</h4>
         <hr id="second-hr">
         <div class="section-selected-files">
             <div class="selected-file-list mb-3">
-                <!-- Selected file list will be populated here dynamically -->
+                
             </div>
         </div>
         <div class="d-flex justify-content-center mb-3" id="button-container">
-            <button class="btn btn-secondary mx-2" id="btn-remove-selection" disabled>Remove</button>
-            <button class="btn btn-secondary mx-2" id="btn-upload-files" disabled>Upload</button>
+            <button class="btn mx-2" id="btn-remove-selection" disabled>Remove</button>
+            <button class="btn mx-2" id="btn-upload-files" disabled>Upload</button>
         </div>
-
+        <hr id="third-hr">
         <div class="selection-section">
             <i class="fa fa-cloud-upload-alt"></i>
-            <p>Drag and Drop here <br>or</p>
-            <button class="btn btn-light" id="btn-select-files">Select File</button>
-            <br>
+            <p>Choose files to add files, <br>with:</p>
+            <button class=" btn btn-custom" id="btn-select-files">Select File</button>
             <b><p>PDF, DOCX, TXT &lt; 5MB</p></b>
         </div>
 
@@ -61,18 +59,23 @@
     </div>
 
     <div class="container-fluid vh-100">
-        <div class="row h-100">
+        <div class="row h-100 g-0">
             <!-- Chat Section -->
             <div class="col chat-section d-flex flex-column">
-                <div class="d-flex justify-content-between align-items-center p-3">
+                <div class="d-flex justify-content-between align-items-center">
                         <div class="colored-div-chat">
-                            <h2 class = "text-center">ragchat</h2>
+                            <h2>ragchat</h2>
+                            <div class="profile-icon-div">
+                                <i class="fa-regular fa-circle-user" id ="profile-icon"></i>
+                            </div>
                         </div>
                 </div>
                 <div class="chat-box flex-grow-1">
-                <!-- Chat messages will be displayed here -->
+                    <div class="message bot-message">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Dolores fugit quidem esse, est, hic voluptas deleniti eveniet nostrum non vel similique officia porro quisquam, dolor ipsam ducimus impedit! Necessitatibus ipsam, dolorem optio eaque debitis dolore magnam quasi sint esse dolor laboriosam, praesentium nobis? Atque corporis earum laboriosam reprehenderit itaque inventore sint iste ducimus non officiis molestias explicabo assumenda consequuntur aliquid fuga, magni placeat ipsum sequi? Esse adipisci exercitationem voluptatibus quis rerum distinctio a, dolorum repudiandae, vel facilis ullam minus fugit aperiam, accusantium ipsum! Inventore, numquam aliquid? Dicta, ad. Tempore animi id aut officiis nostrum laboriosam, excepturi blanditiis eveniet maiores pariatur!</div>
+                    <div class="message bot-message">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Dolores fugit quidem esse, est, hic voluptas deleniti eveniet nostrum non vel similique officia porro quisquam, dolor ipsam ducimus impedit! Necessitatibus ipsam, dolorem optio eaque debitis dolore magnam quasi sint esse dolor laboriosam, praesentium nobis? Atque corporis earum laboriosam reprehenderit itaque inventore sint iste ducimus non officiis molestias explicabo assumenda consequuntur aliquid fuga, magni placeat ipsum sequi?</div>
+                    
                 </div>
-    
+                
                 <!-- Input Box & Send Button -->
                 <div class="d-flex p-3" id="bottom-send-tools">
                     <input type="text" class="form-control me-2" placeholder="Send Message..." id="user-input">
@@ -80,12 +83,17 @@
                 </div>
             </div>
             
-            <div class="col-lg-4 col-md-3 col-sm-2 resource-section bg-white p-3"> <!-- Smaller resources section -->
-                <div id="vertical-line"></div>
+            <div class="col-lg-4 col-md-3 col-sm-2 resource-section "> <!-- Smaller resources section -->
+                <hr class = "chat-resource-section-divider">
                 <div class="colored-div-resources">
                     <h2 class="text-center">Resources</h2> <!-- Centered title -->
                 </div>
-                <!-- Resources will be displayed here -->
+                <div class="resource-list">
+                    <div class="resource-item">
+                        <h6><strong id ="resource-from-text">Resource From:</strong> <span class="document-title">Blank.pdf</span></h6>
+                        <p class="description"><span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>In order to get a source, you need to import your document and then ask ragchat questions about your document. Then ragchat will show you here the pages and text that it has taken as a source.</p>
+                    </div>
+                
             </div>
             
         </div>

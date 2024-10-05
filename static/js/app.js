@@ -102,7 +102,7 @@ function updateDomainList(domainInfo) {
             window.domainFileList.appendChild(fileItem);
         });
     } else {
-        window.domainFileList.innerHTML = '<p>No files in this domain.</p>';
+        window.domainFileList.innerHTML = '<p class = "empty-message">No files in this domain.</p>';
     }
     if (domainInfo.domain_name) {
         window.domainTitle.textContent = domainInfo.domain_name;
@@ -384,7 +384,6 @@ async function fetchUserInfo(userEmail) {
         return null;
     }
 }
-
 window.initWidgets = initWidgets;
 window.addMessageToChat = addMessageToChat;
 window.fetchUserInfo = fetchUserInfo;
