@@ -92,6 +92,22 @@ class Database:
             self.conn.rollback()
             raise e
     
+    def get_file_name(self, file_id: str):
+        query_get_file_name = """
+        SELECT file_name
+        FROM file_info
+        WHERE file_id = %s
+        """
+        try:
+            self.cursor.execute(query_get_file_name, (
+                file_id,
+            ))
+            data = self.cursor.fetchone()
+            return data[0]
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+    
     def get_domain_info(self, user_id: str, selected_domain_number: int):
         query = """
         SELECT DISTINCT domain_id, domain_name
@@ -111,7 +127,7 @@ class Database:
     
     def get_file_content(self, file_ids: list):
         query_get_content = """
-        SELECT sentence, sentence_order, page_number
+        SELECT sentence, sentence_order, page_number, file_id
         FROM file_content
         WHERE file_id IN %s
         """
@@ -192,7 +208,6 @@ class Database:
             
             if all_inserted_data:
                 extras.execute_values(self.cursor, query_insert_file_content, all_inserted_data)
-                self.conn.commit()
                 logger.info(f"Inserted {len(all_inserted_data)} rows for file {file_id}")
             else:
                 logger.warning(f"No data to insert for file {file_id}")

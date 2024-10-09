@@ -10,7 +10,7 @@ from .. import globals
 from ..db.database import Database
 
 router = APIRouter()
-processor = FileProcessor(db_folder_path="")
+processor = FileProcessor()
 
 @router.post("/db/get_user_info")
 async def get_user_info(
@@ -44,17 +44,23 @@ async def select_domain(
             file_info = db.get_file_info(userID, domain_info["domain_id"])
             if file_info:
                 content, embeddings = db.get_file_content(file_ids=[info["file_id"] for info in file_info])
-                globals.sentences[userID] = [row[0] for row in content]
+                globals.domain_content[userID] = content
                 globals.index[userID] = processor.create_index(embeddings=embeddings)
                 return JSONResponse(
-                    content={"file_names": [info["file_name"] for info in file_info], "domain_name": domain_info["domain_name"]},
+                    content={
+                        "file_names": [info["file_name"] for info in file_info],
+                        "domain_name": domain_info["domain_name"]
+                    },
                     status_code=200,
                 )
             else:
-                globals.sentences[userID] = None
+                globals.domain_content[userID] = []
                 globals.index[userID] = None
                 return JSONResponse(
-                    content={"file_names": None, "domain_name": domain_info["domain_name"]},
+                    content={
+                        "file_names": None,
+                        "domain_name": domain_info["domain_name"]
+                    },
                     status_code=200,
                 )
     except Exception as e:
@@ -69,13 +75,22 @@ async def generate_answer(
         data = await request.json()
         user_message = data.get('user_message')
         if userID not in globals.selected_domain.keys():
-            answer = "Please select a domain first"
-        elif globals.index[userID] and globals.sentences[userID]:
-            answer = processor.search_index(user_query=user_message, sentences=globals.sentences[userID], index=globals.index[userID])
+            sentences, answer, resources = None, "Please select a domain first", None
+        elif globals.index[userID] and globals.domain_content[userID]:
+            sentences, answer, resources = processor.search_index(user_query=user_message, content=globals.domain_content[userID], index=globals.index[userID])
+            with Database() as db:
+                resources["file_names"] = [db.get_file_name(file_id=id) for id in resources["file_ids"]]
+                resources["file_ids"].pop()
         else:
-            answer = "Selected domain is empty"
-        return JSONResponse(content={"answer": answer}, status_code=200)   
-
+            answer = None, "Selected domain is empty", None
+        return JSONResponse(
+                    content={
+                        "sentences": sentences,
+                        "answer": answer,
+                        "resources": resources
+                    },
+                    status_code=200,
+                )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -156,6 +171,7 @@ async def upload_files(
             with Database() as db:
                 domain_info = db.get_domain_info(user_id=userID, selected_domain_number=selected_domain_number)
                 db.insert_file_info(file_info=file_selection, domain_id=domain_info["domain_id"])
+                # TODO: R155 file content insertion error
                 db.insert_file_content(file_id=file_selection["file_id"], file_sentences=file_sentences, file_embeddings=file_embeddings)
                 file_info = db.get_file_info(user_id=userID, domain_id=domain_info["domain_id"])
                 db.conn.commit()
