@@ -64,7 +64,7 @@ function addMessageToChat(message, sender) {
     messageElement.textContent = message;
     window.chatBox.appendChild(messageElement);
     window.chatBox.scrollTop = window.chatBox.scrollHeight;
-}   
+}
 
 function populateResources(resources, sentences) {
     window.resourceSection.innerHTML = '<div class="colored-div-resources"><h2 class="text-center">Resources</h2></div>';
@@ -145,7 +145,7 @@ function updateDomainList(domainInfo) {
             window.domainFileList.appendChild(fileItem);
         });
     } else {
-        window.domainFileList.innerHTML = '<p>No files in this domain.</p>';
+        window.domainFileList.innerHTML = '<p class = "empty-message">No files in this domain.</p>';
     }
     if (domainInfo.domain_name) {
         window.domainTitle.textContent = domainInfo.domain_name;
