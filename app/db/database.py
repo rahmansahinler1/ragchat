@@ -75,7 +75,7 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def get_file_info(self, user_id: str, domain_id: str):
+    def get_file_info_with_domain(self, user_id: str, domain_id: str):
         query_get_file_info = """
         SELECT DISTINCT file_id, file_name, file_modified_date, file_upload_date
         FROM file_info
@@ -92,7 +92,7 @@ class Database:
             self.conn.rollback()
             raise e
     
-    def get_file_name(self, file_id: str):
+    def get_file_name_with_id(self, file_id: str):
         query_get_file_name = """
         SELECT file_name
         FROM file_info

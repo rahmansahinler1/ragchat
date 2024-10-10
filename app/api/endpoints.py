@@ -41,7 +41,7 @@ async def select_domain(
         globals.selected_domain[userID] = selected_domain_number
         with Database() as db:
             domain_info = db.get_domain_info(userID, selected_domain_number)
-            file_info = db.get_file_info(userID, domain_info["domain_id"])
+            file_info = db.get_file_info_with_domain(userID, domain_info["domain_id"])
             if file_info:
                 content, embeddings = db.get_file_content(file_ids=[info["file_id"] for info in file_info])
                 globals.domain_content[userID] = content
@@ -77,12 +77,13 @@ async def generate_answer(
         if userID not in globals.selected_domain.keys():
             sentences, answer, resources = None, "Please select a domain first", None
         elif globals.index[userID] and globals.domain_content[userID]:
-            sentences, answer, resources = processor.search_index(user_query=user_message, content=globals.domain_content[userID], index=globals.index[userID])
+            sentences, answer, resources = processor.search_index(user_query=user_message, domain_content=globals.domain_content[userID], index=globals.index[userID])
             with Database() as db:
-                resources["file_names"] = [db.get_file_name(file_id=id) for id in resources["file_ids"]]
-                resources["file_ids"].pop()
+                resources["file_names"] = [db.get_file_name_with_id(file_id=file_id) for file_id in resources["file_ids"]]
+                del resources["file_ids"]
         else:
-            answer = None, "Selected domain is empty", None
+            sentences, answer, resources = None, "Selected domain is empty", None
+
         return JSONResponse(
                     content={
                         "sentences": sentences,
@@ -173,7 +174,7 @@ async def upload_files(
                 db.insert_file_info(file_info=file_selection, domain_id=domain_info["domain_id"])
                 # TODO: R155 file content insertion error
                 db.insert_file_content(file_id=file_selection["file_id"], file_sentences=file_sentences, file_embeddings=file_embeddings)
-                file_info = db.get_file_info(user_id=userID, domain_id=domain_info["domain_id"])
+                file_info = db.get_file_info_with_domain(user_id=userID, domain_id=domain_info["domain_id"])
                 db.conn.commit()
         # Clear file selections of the user and return
         globals.file_selections = [file for file in globals.file_selections if file["user_id"] != userID]
@@ -202,7 +203,7 @@ async def remove_file_upload(
             deleted_content, file_ids = db.clear_file_content(user_id=userID, files_to_remove=files)
             deleted_files = db.clear_file_info(user_id=userID, file_ids=file_ids)
             domain_info = db.get_domain_info(user_id=userID, selected_domain_number=selected_domain_number)
-            file_info = db.get_file_info(user_id=userID, domain_id=domain_info["domain_id"])
+            file_info = db.get_file_info_with_domain(user_id=userID, domain_id=domain_info["domain_id"])
             db.conn.commit()
         if file_info:
             return JSONResponse(content={

@@ -35,7 +35,8 @@ async function initialize() {
             domainButtons: Array.from(document.querySelectorAll('#btn-domain-number')),
             sendButton: document.querySelector('.btn-send-message'),
             userInput: document.getElementById('user-input'),
-            chatBox: document.querySelector('.chat-box')
+            chatBox: document.querySelector('.chat-box'),
+            resourceSection: document.querySelector('.resource-section')
         });
         clearFileSelections(userData);
         window.addMessageToChat(`Welcome ${userData.user_name} ${userData.user_surname}`, 'ragchat');
