@@ -172,7 +172,6 @@ async def upload_files(
             with Database() as db:
                 domain_info = db.get_domain_info(user_id=userID, selected_domain_number=selected_domain_number)
                 db.insert_file_info(file_info=file_selection, domain_id=domain_info["domain_id"])
-                # TODO: R155 file content insertion error
                 db.insert_file_content(file_id=file_selection["file_id"], file_sentences=file_sentences, file_embeddings=file_embeddings)
                 file_info = db.get_file_info_with_domain(user_id=userID, domain_id=domain_info["domain_id"])
                 db.conn.commit()

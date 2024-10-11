@@ -2,17 +2,12 @@ from typing import Dict, List
 from pathlib import Path
 from datetime import datetime
 import numpy as np
-
-import faiss
 import json
-import re
-import textwrap
 
 from ..functions.reading_functions import ReadingFunctions
 from ..functions.embedding_functions import EmbeddingFunctions
 from ..functions.indexing_functions import IndexingFunctions
 from ..functions.chatbot_functions import ChatbotFunctions
-from .. import globals
 
 
 class FileDetector:

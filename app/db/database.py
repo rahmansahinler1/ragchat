@@ -189,6 +189,11 @@ class Database:
                 if not isinstance(page_embeddings, np.ndarray):
                     logger.warning(f"Page {page_number} embeddings are not a numpy array. Skipping.")
                     continue
+
+                if not page_embeddings.size or not len(page_sentences):
+                    logger.warning(f"Page {page_number} embeddings or sentences are empty. Skipping")
+                    continue
+
                 if page_embeddings.shape[1] != 1536:
                     logger.warning(f"Page {page_number} embeddings have unexpected shape: {page_embeddings.shape}. Expected (n, 1536). Skipping.")
                     continue
