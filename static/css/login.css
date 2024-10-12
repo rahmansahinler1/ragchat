@@ -1,0 +1,152 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: 'Dai Banna SIL', sans-serif;
+    background: hsla(0, 0%, 14%, 1);
+  
+    background: radial-gradient(circle, hsla(0, 0%, 14%, 1) 0%, hsla(0, 4%, 11%, 1) 0%, hsla(0, 3%, 8%, 1) 0%, hsla(0, 0%, 9%, 1) 30%, hsla(0, 0%, 0%, 1) 100%);
+  
+    background: -moz-radial-gradient(circle, hsla(0, 0%, 14%, 1) 0%, hsla(0, 4%, 11%, 1) 0%, hsla(0, 3%, 8%, 1) 0%, hsla(0, 0%, 9%, 1) 30%, hsla(0, 0%, 0%, 1) 100%);
+  
+    background: -webkit-radial-gradient(circle, hsla(0, 0%, 14%, 1) 0%, hsla(0, 4%, 11%, 1) 0%, hsla(0, 3%, 8%, 1) 0%, hsla(0, 0%, 9%, 1) 30%, hsla(0, 0%, 0%, 1) 100%);
+  }
+  
+  .dai-banna-sil-medium {
+    font-family: "Dai Banna SIL", serif;
+    font-weight: 500;
+    font-style: normal;
+  }
+  
+  .login-card {
+    width: 567px;
+    height: 500px;
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgb(255, 255, 255);
+    background-color: #212121;
+    border: 2px solid white;
+  }
+  
+  .logo {
+    position: absolute;
+    top: 4%;
+    /* Adjust as needed */
+    left: 5%;
+    /* Adjust as needed */
+    display: flex;
+    align-items: center;
+  }
+  
+  .logo-text {
+    font-size: 2rem;
+    /* Adjust to your desired font size */
+    color: white;
+    /* Or any desired color */
+  }
+  
+  .return-link {
+    font-size: 0.9rem;
+    color: #007AEA;
+    text-decoration: none;
+  
+  }
+  
+  .signup-redirect {
+    font-size: 1.3rem;
+    margin-left: 10%;
+    color: white;
+  }
+  
+  .confirm-btn {
+    background-color: #007AEA;
+  
+    font-size: 1.2rem;
+  }
+  
+  .signup-text {
+    font-size: 1.3rem;
+    text-decoration: none;
+    color: #007AEA;
+  }
+  
+  .signup-text:hover {
+    color: #045eb3;
+  }
+  
+  .return-link:hover {
+    color: #045eb3;
+    text-decoration: none;
+  }
+  
+  .login-title {
+    font-size: 4rem;
+    margin-left: 10%;
+    color: white;
+  }
+  
+  .form-text-small {
+    font-size: 0.9rem;
+  }
+  
+  .form-label {
+    font-size: 1.2rem;
+    color: white;
+  }
+  
+  .user-info-form {
+    margin-left: 10%;
+    margin-right: 10%;
+  }
+  
+  .btn-login p {
+    border: none;
+    font-size: 1.6rem;
+    color: white;
+    text-align: center;
+    line-height: 100%;
+    position: relative;
+    top: 18%;
+  }
+  
+  .login-container {
+    background-color: #007AEA;
+    width: 35%;
+    border: 1px solid white;
+    border-radius: 20px;
+    margin: auto;
+  }
+  
+  .login-container:hover {
+    background-color: #045eb3;
+  }
+  
+  .form-check-label {
+    font-size: 0.9rem;
+  }
+  
+  #email,#password{
+    background-color: #3a3a3a;
+    border: 1px solid white;
+    color: white;
+  }
+  #email:focus,#password:focus {
+    background-color: #3a3a3a;
+    color: white;
+    border: 1px solid white;
+  }
+  .btn-outline-secondary i, span {
+    color: white;
+  }
+  
+  .required:after {
+    content:" *";
+    color: red;
+  }
+  input-group-text {
+    background-color: #f90505 !important;
+    color: white;
+  }
+  
