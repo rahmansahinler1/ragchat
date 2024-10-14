@@ -1,5 +1,5 @@
 file_selections = []
 file_selection_identifiers = []
-sentences = {}
+domain_content = {}
 index = {}
 selected_domain = {}

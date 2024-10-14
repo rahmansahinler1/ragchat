@@ -75,7 +75,7 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def get_file_info(self, user_id: str, domain_id: str):
+    def get_file_info_with_domain(self, user_id: str, domain_id: str):
         query_get_file_info = """
         SELECT DISTINCT file_id, file_name, file_modified_date, file_upload_date
         FROM file_info
@@ -88,6 +88,22 @@ class Database:
             ))
             data = self.cursor.fetchall()
             return [{"file_id": row[0], "file_name": row[1], "file_modified_date": row[2], "file_upload_date": row[3]} for row in data] if data else None
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+    
+    def get_file_name_with_id(self, file_id: str):
+        query_get_file_name = """
+        SELECT file_name
+        FROM file_info
+        WHERE file_id = %s
+        """
+        try:
+            self.cursor.execute(query_get_file_name, (
+                file_id,
+            ))
+            data = self.cursor.fetchone()
+            return data[0]
         except DatabaseError as e:
             self.conn.rollback()
             raise e
@@ -111,7 +127,7 @@ class Database:
     
     def get_file_content(self, file_ids: list):
         query_get_content = """
-        SELECT sentence, sentence_order, page_number
+        SELECT sentence, sentence_order, page_number, file_id
         FROM file_content
         WHERE file_id IN %s
         """
@@ -173,6 +189,11 @@ class Database:
                 if not isinstance(page_embeddings, np.ndarray):
                     logger.warning(f"Page {page_number} embeddings are not a numpy array. Skipping.")
                     continue
+
+                if not page_embeddings.size or not len(page_sentences):
+                    logger.warning(f"Page {page_number} embeddings or sentences are empty. Skipping")
+                    continue
+
                 if page_embeddings.shape[1] != 1536:
                     logger.warning(f"Page {page_number} embeddings have unexpected shape: {page_embeddings.shape}. Expected (n, 1536). Skipping.")
                     continue
@@ -192,7 +213,6 @@ class Database:
             
             if all_inserted_data:
                 extras.execute_values(self.cursor, query_insert_file_content, all_inserted_data)
-                self.conn.commit()
                 logger.info(f"Inserted {len(all_inserted_data)} rows for file {file_id}")
             else:
                 logger.warning(f"No data to insert for file {file_id}")

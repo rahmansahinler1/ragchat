@@ -2,17 +2,12 @@ from typing import Dict, List
 from pathlib import Path
 from datetime import datetime
 import numpy as np
-
-import faiss
 import json
-import re
-import textwrap
 
 from ..functions.reading_functions import ReadingFunctions
 from ..functions.embedding_functions import EmbeddingFunctions
 from ..functions.indexing_functions import IndexingFunctions
 from ..functions.chatbot_functions import ChatbotFunctions
-from .. import globals
 
 
 class FileDetector:
@@ -74,23 +69,13 @@ class FileDetector:
 class FileProcessor:
     def __init__(
             self,
-            db_folder_path: Path,
             change_dict: Dict = {}
     ):
         self.ef = EmbeddingFunctions()
         self.rf = ReadingFunctions()
         self.indf = IndexingFunctions()
         self.cf = ChatbotFunctions()
-        self.db_folder_path = db_folder_path
         self.change_dict = change_dict
-    
-    def update_memory(
-            self,
-            updated_memory: List[Dict[str, str]],
-            memory_json_path:Path
-        ):
-        with open(memory_json_path, "w") as file:
-            updated_memory = json.dump(updated_memory, file, indent=4)
     
     def create_index(
             self,
@@ -100,174 +85,49 @@ class FileProcessor:
         if index_type == "flat":
             index = self.indf.create_flat_index(embeddings=embeddings)
         return index
-
-    def index_insert(
-        self,
-        changes: List[Dict[str, str]],
-        ):
-        # Add insertion changes to memory
-        for change in changes:
-            self.file_change_to_memory(change=change)
-        
-        # Index insertion
-        for key, value in self.change_dict.items():
-            # Open corresponding index if already created, if not initialize one
-            index_path = self.db_folder_path / "indexes" / (key + ".pickle")
-            try:
-                index_object = self.indf.load_index(index_path)
-                index_object["file_path"].extend(path for path in value["file_path"])
-                index_object["file_sentence_amount"].extend(sentence_amount for sentence_amount in value["file_sentence_amount"])
-                index_object["sentences"].extend(sentence for sentence in value["sentences"])
-                index_object["embeddings"] = np.vstack((index_object["embeddings"], value["embeddings"]))
-                
-                self.indf.save_index(
-                    index_object=index_object,
-                    save_path=index_path
-                )
-            except FileNotFoundError:
-                self.indf.save_index(index_object=value, save_path=index_path)
-        
-        self.clean_processor()
-    
-    def index_update(
-        self,
-        changes: List[Dict[str, str]],
-        ):
-        # Add update changes to memory
-        for change in changes:
-            self.file_change_to_memory(change=change)
-        
-        # Index update
-        for key, value in self.change_dict.items():
-            index_path = self.db_folder_path / "indexes" / (key + ".pickle")
-            try:
-                index_object = self.indf.load_index(index_path)
-                # Take changed file indexes
-                file_path_indexes = []
-                for file_path in value["file_path"]:
-                    file_path_indexes.append(index_object["file_path"].index(file_path))            
-                # Update corresponding index and sentences with matching change and index object according to sentence amounts
-                cumulative_index = 0
-                diff = 0
-                for i, file_index in enumerate(file_path_indexes):
-                    # Data assignments
-                    change_index_start = sum(sum(page_sentence_amount) for page_sentence_amount in index_object["file_sentence_amount"][:file_index]) + diff
-                    change_index_finish = change_index_start + sum(index_object["file_sentence_amount"][file_index]) + diff
-                    index_object["sentences"][change_index_start:change_index_finish] = value["sentences"][cumulative_index: sum(value["file_sentence_amount"][i])]
-                    index_object["embeddings"][change_index_start:change_index_finish] = value["embeddings"][cumulative_index: sum(value["file_sentence_amount"][i])]
-                    # Index differences for next iteration
-                    diff = len(value["sentences"][cumulative_index: sum(value["file_sentence_amount"][i])]) - len(index_object["sentences"][change_index_start:change_index_finish])
-                    cumulative_index = sum(value["file_sentence_amount"][i])
-                # Update sentence amounts list
-                for i, file_index in enumerate(file_path_indexes):
-                    index_object["file_sentence_amount"][file_index] = value["file_sentence_amount"][i]            
-                # Save index object
-                self.indf.save_index(
-                    index_object=index_object,
-                    save_path=index_path
-                )
-            except FileNotFoundError as e:
-                raise FileExistsError(f"Index file could not be found for update!: {e}")
-        
-        self.clean_processor()
-    
-    def index_delete(
-        self,
-        changes: List[Dict[str, str]],
-        ):
-        # Delete corresponding parts from memory
-        for change in changes:
-            pattern = r'domain\d+'
-            match = re.search(pattern, change["file_path"])
-            if match:
-                domain = match[0]
-                index_path = self.db_folder_path / "indexes" / (domain + ".pickle")
-                try:
-                    index_object = self.indf.load_index(index_path)
-                    file_path_index = index_object["file_path"].index(change["file_path"])
-
-                    # Delete corresponding parts from the index object
-                    change_index_start = sum(sum(page_sentence_amount) for page_sentence_amount in index_object["file_sentence_amount"][:file_path_index])
-                    change_index_finish = change_index_start + sum(index_object["file_sentence_amount"][file_path_index])
-                    del index_object["sentences"][change_index_start:change_index_finish]
-                    index_object["embeddings"] = np.delete(index_object["embeddings"], np.arange(change_index_start, change_index_finish), axis=0)
-                    index_object["file_path"].pop(file_path_index)
-                    index_object["file_sentence_amount"].pop(file_path_index)
-
-                except FileNotFoundError as e:
-                    raise FileExistsError(f"Index file could not be found for update!: {e}")
     
     def search_index(
             self,
             user_query: str,
-            sentences: List[str],
+            domain_content: List[tuple],
             index,
     ):
         query_vector = self.ef.create_embedding_from_query(query=user_query)
-        _, I = index.search(query_vector, 5)
-        widen_sentences = self.widen_sentences(window_size=1, convergence_vector=I[0], sentences=sentences)
+        D, I = index.search(query_vector, 5)
+        widen_sentences = self._wide_sentences(window_size=1, convergence_vector=I[0], domain_content=domain_content)
         context = f"""Context1: {widen_sentences[0]}
         Context2: {widen_sentences[1]}
         Context3: {widen_sentences[2]}
         Context4: {widen_sentences[3]}
         Context5: {widen_sentences[4]}
         """
-        # TODO: add resource extraction based on database search
+        resources = self._extract_resources(convergence_vector=I[0], domain_content=domain_content)
         response = self.cf.response_generation(query=user_query, context=context)
-        return response
-    def file_change_to_memory(self, change: Dict):
-        # Create embeddings
-        file_data = self.rf.read_file(file_path=change["file_path"])
-        file_embeddings = self.ef.create_vector_embeddings_from_sentences(sentences=file_data["sentences"])
+        return widen_sentences, response, resources
 
-        # Detect changed domain
-        pattern = r'domain'
-        match = re.search(pattern, change["file_path"])
-        if match:
-            domain = match[0]
-            if domain in self.change_dict.keys():
-                self.change_dict[domain]["file_path"].append(change["file_path"])
-                self.change_dict[domain]["file_sentence_amount"].append(file_data["page_sentence_amount"])
-                self.change_dict[domain]["sentences"].extend(file_data["sentences"])
-                self.change_dict[domain]["embeddings"] = np.vstack((self.change_dict[domain]["embeddings"], file_embeddings))
-            else:
-                self.change_dict[domain] = {
-                    "file_path": [change["file_path"]],
-                    "file_sentence_amount": [file_data["page_sentence_amount"]],
-                    "sentences": file_data["sentences"],
-                    "embeddings": file_embeddings
-                }
-
-    def extract_embeddings_from_index(self, index):
-        num_vectors = index.ntotal
-        dimension = index.d
-        all_vectors = np.empty((num_vectors, dimension), dtype=np.float32)
-        return index.reconstruct_n(0, num_vectors, all_vectors)
-
-    def widen_sentences(self, window_size: int, convergence_vector, sentences: List[str]):  
+    def _wide_sentences(
+            self,
+            window_size: int,
+            convergence_vector: np.ndarray,
+            domain_content: List[tuple]
+    ):  
         widen_sentences = []
         for index in convergence_vector:
             start = max(0, index - window_size)
-            end = min(len(sentences) - 1, index + window_size)
-            widen_sentences.append(f"{sentences[start]} {sentences[index]} {sentences[end]}")
+            end = min(len(domain_content) - 1, index + window_size)
+            widen_sentences.append(f"{domain_content[start][0]} {domain_content[index][0]} {domain_content[end][0]}")
         return widen_sentences
-
-    def extract_resources(self, file_paths, file_sentence_amount, convergence_vector):
-        resources = []
+    
+    def _extract_resources(
+            self,
+            convergence_vector: np.ndarray,
+            domain_content: List[tuple]
+    ):
+        resources = {
+            "file_ids": [],
+            "page_numbers": []
+        }
         for index in convergence_vector:
-            cumulative_file_sentence_sum = 0
-            for i, sentence_amount in enumerate(file_sentence_amount):
-                cumulative_file_sentence_sum += sum(sentence_amount)
-                if cumulative_file_sentence_sum > index:
-                    cumulative_page_sentence_sum = 0
-                    for j, page_sentence_amount in enumerate(sentence_amount):
-                        cumulative_page_sentence_sum += page_sentence_amount
-                        if sum(sum(page_sentence_amount) for page_sentence_amount in file_sentence_amount[:i]) + cumulative_page_sentence_sum  > index:
-                            resource = {"file_name": file_paths[i], "page": j + 1}
-                            if resource not in resources:
-                                resources.append(resource)
-                            break
+            resources["file_ids"].append(domain_content[index][3])
+            resources["page_numbers"].append(domain_content[index][2])
         return resources
-
-    def clean_processor(self):
-        self.change_dict = {}

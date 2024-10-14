@@ -13,7 +13,8 @@ function initWidgets({
     domainButtons,
     sendButton,
     userInput,
-    chatBox
+    chatBox,
+    resourceSection
 }) {
     // File selection
     selectFilesButton.addEventListener('click', () => fileInput.click());
@@ -44,7 +45,8 @@ function initWidgets({
         domainTitle,
         removeUploadButton,
         chatBox,
-        currentDomain
+        currentDomain,
+        resourceSection
     });
 }
 
@@ -62,6 +64,47 @@ function addMessageToChat(message, sender) {
     messageElement.textContent = message;
     window.chatBox.appendChild(messageElement);
     window.chatBox.scrollTop = window.chatBox.scrollHeight;
+}
+
+function populateResources(resources, sentences) {
+    window.resourceSection.innerHTML = '<div class="colored-div-resources"><h2 class="text-center">Resources</h2></div>';
+
+    if (!resources || !sentences || resources.file_names.length === 0) {
+        const noResourcesMsg = document.createElement('p');
+        noResourcesMsg.textContent = 'No resources available for this query.';
+        noResourcesMsg.className = 'text-center mt-3';
+        window.resourceSection.appendChild(noResourcesMsg);
+        return;
+    }
+
+    for (let i = 0; i < resources.file_names.length; i++) {
+        const resourceItem = document.createElement('div');
+        resourceItem.className = 'resource-item';
+
+        const fileName = document.createElement('h6');
+        fileName.textContent = resources.file_names[i].length > 30 ? 
+            resources.file_names[i].substr(0, 29) + '…' : 
+            resources.file_names[i];
+        fileName.title = resources.file_names[i]; // Full name on hover
+
+        const pageNumber = document.createElement('p');
+        pageNumber.className = 'document-title';
+        pageNumber.textContent = `Page ${resources.page_numbers[i]}`;
+
+        const sentence = document.createElement('p');
+        sentence.className = 'description';
+        const truncatedSentence = sentences[i].length > 100 ? 
+            sentences[i].substr(0, 99) + '…' : 
+            sentences[i];
+        sentence.innerHTML = `<span class="bullet">►</span> ${truncatedSentence}`;
+        sentence.title = sentences[i]; // Full sentence on hover
+
+        resourceItem.appendChild(fileName);
+        resourceItem.appendChild(pageNumber);
+        resourceItem.appendChild(sentence);
+
+        window.resourceSection.appendChild(resourceItem);
+    }
 }
 
 function updateButtonStates() {
@@ -102,7 +145,7 @@ function updateDomainList(domainInfo) {
             window.domainFileList.appendChild(fileItem);
         });
     } else {
-        window.domainFileList.innerHTML = '<p>No files in this domain.</p>';
+        window.domainFileList.innerHTML = '<p class = "empty-message">No files in this domain.</p>';
     }
     if (domainInfo.domain_name) {
         window.domainTitle.textContent = domainInfo.domain_name;
@@ -136,6 +179,10 @@ async function sendMessage(userInput, userData) {
             }
             const data = await response.json();
             window.addMessageToChat(data.answer, 'ragchat');
+
+            if (data.resources && data.sentences) {
+                populateResources(data.resources, data.sentences)
+            }
 
         } catch (error) {
             console.error('Error generating message!', error);

@@ -10,7 +10,7 @@ from .. import globals
 from ..db.database import Database
 
 router = APIRouter()
-processor = FileProcessor(db_folder_path="")
+processor = FileProcessor()
 
 @router.post("/db/get_user_info")
 async def get_user_info(
@@ -41,20 +41,26 @@ async def select_domain(
         globals.selected_domain[userID] = selected_domain_number
         with Database() as db:
             domain_info = db.get_domain_info(userID, selected_domain_number)
-            file_info = db.get_file_info(userID, domain_info["domain_id"])
+            file_info = db.get_file_info_with_domain(userID, domain_info["domain_id"])
             if file_info:
                 content, embeddings = db.get_file_content(file_ids=[info["file_id"] for info in file_info])
-                globals.sentences[userID] = [row[0] for row in content]
+                globals.domain_content[userID] = content
                 globals.index[userID] = processor.create_index(embeddings=embeddings)
                 return JSONResponse(
-                    content={"file_names": [info["file_name"] for info in file_info], "domain_name": domain_info["domain_name"]},
+                    content={
+                        "file_names": [info["file_name"] for info in file_info],
+                        "domain_name": domain_info["domain_name"]
+                    },
                     status_code=200,
                 )
             else:
-                globals.sentences[userID] = None
+                globals.domain_content[userID] = []
                 globals.index[userID] = None
                 return JSONResponse(
-                    content={"file_names": None, "domain_name": domain_info["domain_name"]},
+                    content={
+                        "file_names": None,
+                        "domain_name": domain_info["domain_name"]
+                    },
                     status_code=200,
                 )
     except Exception as e:
@@ -69,13 +75,23 @@ async def generate_answer(
         data = await request.json()
         user_message = data.get('user_message')
         if userID not in globals.selected_domain.keys():
-            answer = "Please select a domain first"
-        elif globals.index[userID] and globals.sentences[userID]:
-            answer = processor.search_index(user_query=user_message, sentences=globals.sentences[userID], index=globals.index[userID])
+            sentences, answer, resources = None, "Please select a domain first", None
+        elif globals.index[userID] and globals.domain_content[userID]:
+            sentences, answer, resources = processor.search_index(user_query=user_message, domain_content=globals.domain_content[userID], index=globals.index[userID])
+            with Database() as db:
+                resources["file_names"] = [db.get_file_name_with_id(file_id=file_id) for file_id in resources["file_ids"]]
+                del resources["file_ids"]
         else:
-            answer = "Selected domain is empty"
-        return JSONResponse(content={"answer": answer}, status_code=200)   
+            sentences, answer, resources = None, "Selected domain is empty", None
 
+        return JSONResponse(
+                    content={
+                        "sentences": sentences,
+                        "answer": answer,
+                        "resources": resources
+                    },
+                    status_code=200,
+                )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -157,7 +173,7 @@ async def upload_files(
                 domain_info = db.get_domain_info(user_id=userID, selected_domain_number=selected_domain_number)
                 db.insert_file_info(file_info=file_selection, domain_id=domain_info["domain_id"])
                 db.insert_file_content(file_id=file_selection["file_id"], file_sentences=file_sentences, file_embeddings=file_embeddings)
-                file_info = db.get_file_info(user_id=userID, domain_id=domain_info["domain_id"])
+                file_info = db.get_file_info_with_domain(user_id=userID, domain_id=domain_info["domain_id"])
                 db.conn.commit()
         # Clear file selections of the user and return
         globals.file_selections = [file for file in globals.file_selections if file["user_id"] != userID]
@@ -186,7 +202,7 @@ async def remove_file_upload(
             deleted_content, file_ids = db.clear_file_content(user_id=userID, files_to_remove=files)
             deleted_files = db.clear_file_info(user_id=userID, file_ids=file_ids)
             domain_info = db.get_domain_info(user_id=userID, selected_domain_number=selected_domain_number)
-            file_info = db.get_file_info(user_id=userID, domain_id=domain_info["domain_id"])
+            file_info = db.get_file_info_with_domain(user_id=userID, domain_id=domain_info["domain_id"])
             db.conn.commit()
         if file_info:
             return JSONResponse(content={
