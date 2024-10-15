@@ -103,10 +103,7 @@ function populateResources(resources, sentences) {
 
             const description = document.createElement('p');
             description.className = 'description';
-            const truncatedSentence = resource.sentence.length > 200 ? 
-                resource.sentence.substr(0, 197) + '...' : 
-                resource.sentence;
-            description.innerHTML = `<span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>${truncatedSentence}`;
+            description.innerHTML = `<span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>${resource.sentence}`;
             description.title = resource.sentence;
 
             resourceItem.appendChild(header);
