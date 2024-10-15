@@ -82,7 +82,6 @@ function populateResources(resources, sentences) {
 
     const groupedResources = {};
 
-    // Group resources by filename
     for (let i = 0; i < resources.file_names.length; i++) {
         const fileName = resources.file_names[i];
         if (!groupedResources[fileName]) {
@@ -108,12 +107,11 @@ function populateResources(resources, sentences) {
                 resource.sentence.substr(0, 197) + '...' : 
                 resource.sentence;
             description.innerHTML = `<span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>${truncatedSentence}`;
-            description.title = resource.sentence; // Full sentence on hover
+            description.title = resource.sentence;
 
             resourceItem.appendChild(header);
             resourceItem.appendChild(description);
 
-            // Add a bit of space between resources from the same file, except for the last one
             if (index < groupedResources[fileName].length - 1) {
                 const spacer = document.createElement('div');
                 spacer.style.height = '10px';
