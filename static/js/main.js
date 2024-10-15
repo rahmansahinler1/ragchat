@@ -1,92 +1,91 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const checkboxes = document.querySelectorAll('.file-checkbox');
-    const checkboxes2 = document.querySelectorAll('.file-checkbox2');
-    const removeButton = document.getElementById('domain-remove');
-    const removeButton2 = document.getElementById('btn-remove');
-
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
-            removeButton.disabled = !anyChecked;
-        });
-    });
-    checkboxes2.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const anyChecked = Array.from(checkboxes2).some(cb => cb.checked);
-            removeButton2.disabled = !anyChecked;
-        });
-    });
-
-    removeButton.addEventListener('click', function() {
-        checkboxes.forEach(checkbox => {
-            if (checkbox.checked) {
-                checkbox.closest('.file-item').remove();
-            }
-        });
-        removeButton.disabled = true;
-    });
-    removeButton2.addEventListener('click', function() {
-        checkboxes2.forEach(checkbox => {
-            if (checkbox.checked) {
-                checkbox.closest('.file-item').remove();
-            }
-        });
-        removeButton2.disabled = true;
-    });
-});
-document.addEventListener('DOMContentLoaded', function() {
-    const fileLists = document.querySelectorAll('.file-list, .chosen-files-list');
-    const emptyMessages = document.querySelectorAll('.empty-message');
-
-    function updateEmptyMessages() {
-        fileLists.forEach((fileList, index) => {
-            const emptyMessage = emptyMessages[index];
-            if (fileList.children.length === 0) {
-                emptyMessage.style.display = 'block';
-            } else {
-                emptyMessage.style.display = 'none';
-            }
+    // Login form submission
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            login();
         });
     }
 
-    updateEmptyMessages();
+    // Signup form submission
+    const signupForm = document.getElementById('signup-form');
+    if (signupForm) {
+        signupForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            signup();
+        });
+    }
 
-    fileLists.forEach(fileList => {
-        const observer = new MutationObserver(updateEmptyMessages);
-        observer.observe(fileList, { childList: true });
-    })});
-    document.addEventListener('DOMContentLoaded', function() {
-        const fileLists = document.querySelectorAll('.file-list, .chosen-files-list');
-        const emptyMessages = document.querySelectorAll('.empty-message');
-    
-        function updateEmptyMessages() {
-            fileLists.forEach((fileList, index) => {
-                const emptyMessage = emptyMessages[index];
-                const fileItems = fileList.querySelectorAll('.file-item');
-                if (fileItems.length === 0) {
-                    emptyMessage.style.display = 'block';
-                } else {
-                    emptyMessage.style.display = 'none';
-                }
-            });
+    // Login button click on homepage
+    const loginButton = document.querySelector('.login-btn');
+    if (loginButton) {
+        loginButton.addEventListener('click', function(event) {
+            event.preventDefault();
+            window.location.href = '/login';
+        });
+    }
+
+    // Signup button click on homepage
+    const signupButton = document.querySelector('.sign-up-btn');
+    if (signupButton) {
+        signupButton.addEventListener('click', function(event) {
+            event.preventDefault();
+            window.location.href = '/signup';
+        });
+    }
+});
+
+async function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        const response = await fetch('/api/v1/auth/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('token', data.access_token);
+            window.location.href = '/app';
+        } else {
+            alert('Login failed. Please check your credentials.');
         }
-    
-        updateEmptyMessages();
-    
-        fileLists.forEach(fileList => {
-            const observer = new MutationObserver(updateEmptyMessages);
-            observer.observe(fileList, { childList: true });
-        })});
-    
-        function togglePassword() {
-            const passwordInput = document.getElementById("password");
-            if (passwordInput.type === "password") {
-              passwordInput.type = "text";
-              
-            } else {
-              passwordInput.type = "password";
-            }
-          }
-          function scrollDown() {
-            window.scrollBy(0, window.innerHeight);
+    } catch (error) {
+        console.error('Login error:', error);
+        alert('An error occurred during login.');
+    }
+}
+
+async function signup() {
+    const name = document.getElementById('name').value;
+    const surname = document.getElementById('surname').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        const response = await fetch('/api/v1/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, surname, email, password }),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('token', data.access_token);
+            window.location.href = '/app';
+        } else {
+            alert('Signup failed. Please try again.');
         }
+    } catch (error) {
+        console.error('Signup error:', error);
+        alert('An error occurred during signup.');
+    }
+}
