@@ -33,37 +33,13 @@ async function handleLogin(email, password) {
 
         if (response.ok) {
             localStorage.setItem('sessionId', data.session_id);
-            window.location.href = '/app';
+            window.location.href = `/app/${data.session_id}`;
         } else {
             displayError(data.message || 'Login failed. Please check your credentials.');
         }
     } catch (error) {
         console.error('Login error:', error);
         displayError('An error occurred during login.');
-    }
-}
-
-async function startChatSession() {
-    try {
-        const sessionId = localStorage.getItem('sessionId');
-        const response = await fetch('/api/v1/chat/start', {
-            method: 'POST',
-            headers: {
-                'Authorization': sessionId,
-                'Content-Type': 'application/json',
-            },
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            localStorage.setItem('chatSessionId', data.chat_session_id);
-            window.location.href = `/app/${data.chat_session_id}`;  // Redirect to the chat with the new session ID
-        } else {
-            displayError('Failed to start chat session.');
-        }
-    } catch (error) {
-        console.error('Error starting chat session:', error);
-        displayError('An error occurred while starting the chat session.');
     }
 }
 

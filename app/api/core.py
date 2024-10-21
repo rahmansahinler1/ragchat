@@ -28,9 +28,6 @@ class Authenticator:
         salt = bcrypt.gensalt()
         return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
-    def create_session_id(self) -> str:
-        return str(uuid.uuid4())
-
 class Processor:
     def __init__(
             self,

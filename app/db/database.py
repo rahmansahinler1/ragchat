@@ -61,7 +61,7 @@ class Database:
 
     def get_user_info(self, user_email: str):
         query = """
-        SELECT DISTINCT user_id, user_name, user_surname, user_type, user_created_at
+        SELECT DISTINCT user_id, user_name, user_surname, user_password, user_type, user_created_at
         FROM user_info
         WHERE user_email = %s
         """
@@ -73,7 +73,7 @@ class Database:
                 )
             )
             data = self.cursor.fetchone()
-            return {"user_id": data[0], "user_name": data[1], "user_surname": data[2], "user_type": data[3], "user_created_at": str(data[4])} if data else None
+            return {"user_id": data[0], "user_name": data[1], "user_surname": data[2], "user_password":data[3], "user_type": data[4], "user_created_at": str(data[5])} if data else None
         except DatabaseError as e:
             self.conn.rollback()
             raise e
@@ -175,6 +175,21 @@ class Database:
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             return None, None
+    
+    def get_session_info(self, session_id: str):
+        query_get_session = """
+        SELECT user_id, created_at
+        FROM session_info
+        WHERE session_id = %s
+        """
+        self.cursor.execute(
+                query_get_session,
+                (
+                    session_id,
+                )
+        )
+        data = self.cursor.fetchone()
+        return {"user_id": data[0], "created_at": data[1]} if data else None       
 
     def insert_file_info(self, file_info, domain_id):
         query_insert_file_info = """
@@ -246,7 +261,7 @@ class Database:
     
     def insert_session(self, user_id: str, session_id: str):
         query = """
-        INSERT INTO user_sessions (user_id, session_id, created_at)
+        INSERT INTO session_info (user_id, session_id, created_at)
         VALUES (%s, %s, NOW())
         """
         try:
@@ -257,7 +272,6 @@ class Database:
                     session_id
                 )
             )
-            self.conn.commit()
         except Exception as e:
             self.conn.rollback()
             raise e
