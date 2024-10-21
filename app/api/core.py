@@ -1,6 +1,4 @@
 from typing import Dict, List
-from pathlib import Path
-from datetime import datetime
 import numpy as np
 import json
 
@@ -10,72 +8,20 @@ from ..functions.indexing_functions import IndexingFunctions
 from ..functions.chatbot_functions import ChatbotFunctions
 
 
-class FileDetector:
+class Authenticator:
     def __init__(
             self,
-            domain_folder_path: Path,
-            memory_file_path: Path
-        ):
-        self.domain_folder_path = domain_folder_path
-        self.memory_file_path = memory_file_path
-    
-    def check_changes(self):
-        changes = {
-            "insert": [],
-            "delete": [],
-            "update": []
-        }
-        # Load memory db information
-        with open(self.memory_file_path, "r") as file:
-            memory_data = json.load(file)
-        
-        # Load current db information
-        current_file_data = []
-        for file in self.domain_folder_path.rglob("*"):
-            file_data = {}
-            file_name = file.parts[-1]
-            domain = file.parts[-2]
-            
-            if file_name.split(".")[-1] not in ["pdf", "docx", "txt", "rtf"]:
-                continue
-            
-            date_modified = datetime.fromtimestamp(file.stat().st_mtime)
-            date_modified_structured = f"{date_modified.month}/{date_modified.day}/{date_modified.year} {date_modified.hour}:{date_modified.minute}"
-            file_data["file_path"] = f"db/domains/{domain}/{file_name}"
-            file_data["date_modified"] = date_modified_structured
-            current_file_data.append(file_data)
+    ):
+        pass
 
-        # Check for insertion and updates
-        memory_file_paths = [item["file_path"] for item in memory_data]
-        for data in current_file_data:
-            if data in memory_data:
-                continue
-            elif data["file_path"] in memory_file_paths:
-                changes["update"].append({"file_path": data["file_path"], "date_modified": data["date_modified"]})
-                memory_index = memory_file_paths.index(data["file_path"])
-                memory_data[memory_index]["date_modified"] = data["date_modified"]
-            else:
-                changes["insert"].append({"file_path": data["file_path"], "date_modified": data["date_modified"]})
-                memory_data.append(data)
-        
-        # Check for deletion
-        for i, data in enumerate(memory_data):
-            if data not in current_file_data:
-                changes["delete"].append({"file_path": data["file_path"], "date_modified": data["date_modified"]})
-                memory_data.pop(i)
-
-        return changes, memory_data
-
-class FileProcessor:
+class Processor:
     def __init__(
             self,
-            change_dict: Dict = {}
     ):
         self.ef = EmbeddingFunctions()
         self.rf = ReadingFunctions()
         self.indf = IndexingFunctions()
         self.cf = ChatbotFunctions()
-        self.change_dict = change_dict
     
     def create_index(
             self,

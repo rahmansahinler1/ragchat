@@ -5,12 +5,14 @@ from typing import List
 import logging
 import uuid
 
-from .core import FileProcessor
+from .core import Processor
+from .core import Authenticator
 from .. import globals
 from ..db.database import Database
 
 router = APIRouter()
-processor = FileProcessor()
+processor = Processor()
+authenticator = Authenticator()
 
 @router.post("/db/get_user_info")
 async def get_user_info(
@@ -21,14 +23,20 @@ async def get_user_info(
         user_email = data.get('user_email')
         with Database() as db:
             user_info = db.get_user_info(user_email)
-        return JSONResponse(content={
+        return JSONResponse(
+            content={
             "user_id": user_info["user_id"],
             "user_name": user_info["user_name"],
             "user_surname": user_info["user_surname"],
             "user_type": user_info["user_type"]
-        }, status_code=200)
+            },
+            status_code=200
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 @router.post("/qa/select_domain")
 async def select_domain(
@@ -40,29 +48,27 @@ async def select_domain(
         selected_domain_number = data.get('currentDomain')
         globals.selected_domain[userID] = selected_domain_number
         with Database() as db:
+            file_names, domain_name = None, None
             domain_info = db.get_domain_info(userID, selected_domain_number)
             file_info = db.get_file_info_with_domain(userID, domain_info["domain_id"])
             if file_info:
                 content, embeddings = db.get_file_content(file_ids=[info["file_id"] for info in file_info])
                 globals.domain_content[userID] = content
                 globals.index[userID] = processor.create_index(embeddings=embeddings)
-                return JSONResponse(
-                    content={
-                        "file_names": [info["file_name"] for info in file_info],
-                        "domain_name": domain_info["domain_name"]
-                    },
-                    status_code=200,
-                )
+                file_names = [info["file_name"] for info in file_info]
+                domain_name = domain_info["domain_name"]
             else:
                 globals.domain_content[userID] = []
                 globals.index[userID] = None
-                return JSONResponse(
+                domain_name = domain_info["domain_name"]
+
+            return JSONResponse(
                     content={
-                        "file_names": None,
-                        "domain_name": domain_info["domain_name"]
+                        "file_names": file_names,
+                        "domain_name": domain_name
                     },
                     status_code=200,
-                )
+            )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -83,15 +89,14 @@ async def generate_answer(
                 del resources["file_ids"]
         else:
             sentences, answer, resources = None, "Selected domain is empty", None
-
         return JSONResponse(
-                    content={
-                        "sentences": sentences,
-                        "answer": answer,
-                        "resources": resources
-                    },
-                    status_code=200,
-                )
+            content={
+                "sentences": sentences,
+                "answer": answer,
+                "resources": resources
+            },
+            status_code=200,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -118,10 +123,17 @@ async def select_files(
                 globals.file_selection_identifiers.append(selection_identifier)
                 globals.file_selections.append(file_info)
                 added_files.append(file.filename)
-
-        return JSONResponse(content={"file_names": added_files}, status_code=200)
+        return JSONResponse(
+            content={
+                "file_names": added_files
+            },
+            status_code=200
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 @router.post("/io/remove_file_selections")
 async def remove_file_selections(
@@ -131,7 +143,6 @@ async def remove_file_selections(
     try:
         data = await request.json()
         files = data.get('files_to_remove', [])
-
         globals.file_selections = [
             file_info for file_info in globals.file_selections
             if not (file_info["user_id"] == userID and file_info["file_name"] in files)
@@ -140,19 +151,33 @@ async def remove_file_selections(
             identifier for identifier in globals.file_selection_identifiers
             if not (identifier[0] == userID and identifier[1] in files)
         ]
-        return JSONResponse(content={"message": "Selected files removed successfully", "success": True}, status_code=200)
+        return JSONResponse(
+            content={
+                "message": "Selected files removed successfully",
+                "success": True
+            },
+            status_code=200
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/io/clear_file_selections")
-async def clear_user_selections(userID: str = Query(...)):
+async def clear_user_selections(
+    userID: str = Query(...)
+):
     try:
         globals.file_selections = [selection for selection in globals.file_selections if selection["user_id"] != userID]
         globals.file_selection_identifiers = [identifier for identifier in globals.file_selection_identifiers if identifier[0] != userID]
         
-        return JSONResponse(content='', status_code=200)
+        return JSONResponse(
+            content='',
+            status_code=200
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 @router.post("/io/upload_files")
 async def upload_files(
@@ -177,11 +202,14 @@ async def upload_files(
                 db.conn.commit()
         # Clear file selections of the user and return
         globals.file_selections = [file for file in globals.file_selections if file["user_id"] != userID]
-        return JSONResponse(content={
+        return JSONResponse(
+            content={
             "message": f"Files uploaded successfully to domain {selected_domain_number}",
             "file_names": [info["file_name"] for info in file_info],
             "domain_name": domain_info["domain_name"]
-        }, status_code=200)
+            },
+            status_code=200
+        )
     except KeyError:
         return JSONResponse(content={"message": "Please select the domain number first"}, status_code=200)
     except Exception as e:
@@ -221,3 +249,28 @@ async def remove_file_upload(
         db.conn.rollback()
         logging.error(f"Error during file deletion: {str(e)}")
         raise HTTPException(content={"message": f"Failed deleting, error: {e}"}, status_code=500)
+
+@router.post("/auth/login")
+async def login(
+    request: Request,
+):
+    try:
+        data = await request.json()
+        user_email = data.get('user_email')
+        user_password = data.get('user_password')
+
+        with Database() as db:
+            user_info = db.get_user_info(user_email=user_email)
+            if not user_info or not verify_password(login_data.password, user['user_password']):
+                return LoginResponse(message="Invalid email or password")
+            else:
+                db.create_session(user['user_id'], session_id)
+    except Exception as e:
+        db.conn.rollback()
+        logging.error(f"Error during login: {str(e)}")
+        raise HTTPException(
+            content={
+                "message": f"Failed deleting, error: {e}"
+            },
+            status_code=500
+        )
