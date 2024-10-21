@@ -36,7 +36,7 @@ class Database:
     
     def initialize_tables(self):
         sql_path = Path(__file__).resolve().parent / "sql" / "table_initialize.sql"
-        with sql_path.open('r') as file:
+        with sql_path.open("r") as file:
             query = file.read()
         try:
             self.cursor.execute(query)
@@ -47,7 +47,7 @@ class Database:
     
     def reset_database(self):
         sql_path = Path(__file__).resolve().parent / "sql" / "database_reset.sql"
-        with sql_path.open('r') as file:
+        with sql_path.open("r") as file:
             query = file.read()
         try:
             self.cursor.execute(query)

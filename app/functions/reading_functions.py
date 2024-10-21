@@ -15,7 +15,7 @@ class ReadingFunctions:
         sentences = []
         try:
             file_type = file_name.split(".")[-1]
-            if file_type == 'pdf':
+            if file_type == "pdf":
                 pdf_file = io.BytesIO(file_bytes)
                 pdf_reader = PdfReader(pdf_file)
                 for _, page in enumerate(pdf_reader.pages):
@@ -28,6 +28,6 @@ class ReadingFunctions:
 
     def _process_text(self, text):
         docs = self.nlp(text)
-        sentences = [sent.text.replace('\n', ' ').strip() for sent in docs.sents]
+        sentences = [sent.text.replace("\n", " ").strip() for sent in docs.sents]
         return [sentence for sentence in sentences if len(sentence) > 15]
         

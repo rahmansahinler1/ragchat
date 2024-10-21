@@ -20,7 +20,7 @@ async def get_user_info(
 ):
     try:
         data = await request.json()
-        user_email = data.get('user_email')
+        user_email = data.get("user_email")
         with Database() as db:
             user_info = db.get_user_info(user_email)
         return JSONResponse(
@@ -45,7 +45,7 @@ async def select_domain(
 ):
     try:
         data = await request.json()
-        selected_domain_number = data.get('currentDomain')
+        selected_domain_number = data.get("currentDomain")
         globals.selected_domain[userID] = selected_domain_number
         with Database() as db:
             file_names, domain_name = None, None
@@ -79,7 +79,7 @@ async def generate_answer(
 ):
     try:
         data = await request.json()
-        user_message = data.get('user_message')
+        user_message = data.get("user_message")
         if userID not in globals.selected_domain.keys():
             sentences, answer, resources = None, "Please select a domain first", None
         elif globals.index[userID] and globals.domain_content[userID]:
@@ -112,7 +112,7 @@ async def select_files(
             selection_identifier = [userID, file.filename]
             if selection_identifier not in globals.file_selection_identifiers:
                 bytes = await file.read()
-                file_modified_date = datetime.fromtimestamp(int(last_modified_date) / 1000).strftime('%Y-%m-%d')
+                file_modified_date = datetime.fromtimestamp(int(last_modified_date) / 1000).strftime("%Y-%m-%d")
                 file_info = {
                     "user_id": userID,
                     "file_id": str(uuid.uuid4()),
@@ -142,7 +142,7 @@ async def remove_file_selections(
 ):
     try:
         data = await request.json()
-        files = data.get('files_to_remove', [])
+        files = data.get("files_to_remove", [])
         globals.file_selections = [
             file_info for file_info in globals.file_selections
             if not (file_info["user_id"] == userID and file_info["file_name"] in files)
@@ -170,7 +170,7 @@ async def clear_user_selections(
         globals.file_selection_identifiers = [identifier for identifier in globals.file_selection_identifiers if identifier[0] != userID]
         
         return JSONResponse(
-            content='',
+            content="",
             status_code=200
         )
     except Exception as e:
@@ -225,7 +225,7 @@ async def remove_file_upload(
     try:
         selected_domain_number = globals.selected_domain[userID]
         data = await request.json()
-        files = data.get('files_to_remove', [])
+        files = data.get("files_to_remove", [])
         with Database() as db:
             deleted_content, file_ids = db.clear_file_content(user_id=userID, files_to_remove=files)
             deleted_files = db.clear_file_info(user_id=userID, file_ids=file_ids)
@@ -239,10 +239,13 @@ async def remove_file_upload(
                 "domain_name": domain_info["domain_name"]
             }, status_code=200)
         else:
-            return JSONResponse(content={
+            return JSONResponse(
+                content={
                 "message": f"{deleted_files} files and {deleted_content} sentences deleted",
                 "domain_name": domain_info["domain_name"]
-            }, status_code=200)
+                },
+                status_code=200
+            )
     except KeyError:
         return JSONResponse(content={"message": "Please select the domain number first"}, status_code=200)
     except Exception as e:
@@ -256,15 +259,29 @@ async def login(
 ):
     try:
         data = await request.json()
-        user_email = data.get('user_email')
-        user_password = data.get('user_password')
+        user_email = data.get("user_email")
+        user_password = data.get("user_password")
+        message = None
+        status_code = 500
+        session_id = None
 
         with Database() as db:
             user_info = db.get_user_info(user_email=user_email)
-            if not user_info or not verify_password(login_data.password, user['user_password']):
-                return LoginResponse(message="Invalid email or password")
+            if not user_info or not authenticator.verify_password(plain_password=user_password, hashed_password=user_info["user_password"]):
+                message = "Invalid email or password"
+                status_code = 200
             else:
-                db.create_session(user['user_id'], session_id)
+                db.create_session(user_info["user_id"], session_id=str(uuid.uuid4()))
+                message = "Login sucessfull"
+                status_code = 200
+    
+        return JSONResponse(
+                    content={
+                    "message": f"{deleted_files} files and {deleted_content} sentences deleted",
+                    "domain_name": domain_info["domain_name"]
+                    },
+                    status_code=200
+                )
     except Exception as e:
         db.conn.rollback()
         logging.error(f"Error during login: {str(e)}")
