@@ -10,10 +10,7 @@ function loadScript(url) {
 
 async function initialize() {
     try {
-        // Load homepage.js
         await loadScript('/static/js/homepage.js');
-
-        // Initialize homepage widgets and event listeners
         initHomepageWidgets({
             loginButton: document.querySelector('.login-btn'),
             signUpButton: document.querySelector('.sign-up-btn'),

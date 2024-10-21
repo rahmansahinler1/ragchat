@@ -10,16 +10,17 @@ function loadScript(url) {
 
 async function initialize() {
     try {
-        await loadScript('/static/js/login.js');
+        await loadScript('/static/js/signup.js');
+
         initLoginWidgets({
-            loginForm: document.getElementById('login-form'),
+            signupForm: document.getElementById('login-form'),
             emailInput: document.getElementById('email'),
             passwordInput: document.getElementById('password'),
             loginButton: document.getElementById('login-button'),
             togglePasswordButton: document.getElementById('toggle-password')
         });
     } catch (error) {
-        console.error('Error initializing login page:', error);
+        console.error('Error initializing signup page:', error);
     }
 }
 

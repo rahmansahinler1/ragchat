@@ -9,10 +9,8 @@ function initLoginWidgets({
         event.preventDefault();
         handleLogin(emailInput.value, passwordInput.value);
     });
-    // Real-time checkings for email and password
     emailInput.addEventListener('input', validateEmail);
     passwordInput.addEventListener('input', validatePassword);
-    // Password toggle
     togglePasswordButton.addEventListener('click', () => togglePassword(passwordInput, togglePasswordButton));
 }
 
@@ -52,8 +50,7 @@ function validatePassword() {
 }
 
 function displayError(message) {
-    // Implement error display logic
-    alert(message); // For now, we'll use a simple alert. You can replace this with a more user-friendly UI later.
+    alert(message);
 }
 
 function togglePassword(passwordInput, toggleButton) {
@@ -73,5 +70,4 @@ function togglePassword(passwordInput, toggleButton) {
     }
 }
 
-// Make initLoginWidgets accessible globally
 window.initLoginWidgets = initLoginWidgets;
