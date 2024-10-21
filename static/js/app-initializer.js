@@ -21,7 +21,7 @@ async function initialize() {
             throw new Error('Failed to load user data');
         }
         // Initialize functions
-        initWidgets({
+        initAppWidgets({
             selectedFileList: document.querySelector('.selected-file-list'),
             uploadFilesButton: document.getElementById('btn-upload-files'),
             removeSelectionButton: document.getElementById('btn-remove-selection'),

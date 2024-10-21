@@ -25,4 +25,4 @@ async def signup_page(request: Request):
 
 @app.get("/app", response_class=HTMLResponse)
 async def app_page(request: Request):
-    return templates.TemplateResponse("ragchat.html", {"request": request})
+    return templates.TemplateResponse("app.html", {"request": request})

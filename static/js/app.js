@@ -1,5 +1,5 @@
 // Initialize functions and globalize necessary widgets
-function initWidgets({
+function initAppWidgets({
     selectedFileList,
     uploadFilesButton,
     removeSelectionButton,
@@ -459,6 +459,6 @@ themeSwitch.addEventListener('click', () => {
     }
 });
 
-window.initWidgets = initWidgets;
+window.initAppWidgets = initAppWidgets;
 window.addMessageToChat = addMessageToChat;
 window.fetchUserInfo = fetchUserInfo;
