@@ -66,9 +66,12 @@ class Database:
         WHERE user_email = %s
         """
         try:
-            self.cursor.execute(query, (
+            self.cursor.execute(
+                query,
+                (
                 user_email,
-            ))
+                )
+            )
             data = self.cursor.fetchone()
             return {"user_id": data[0], "user_name": data[1], "user_surname": data[2], "user_type": data[3], "user_created_at": str(data[4])} if data else None
         except DatabaseError as e:
@@ -82,10 +85,13 @@ class Database:
         WHERE user_id = %s AND domain_id = %s
         """
         try:
-            self.cursor.execute(query_get_file_info, (
+            self.cursor.execute(
+                query_get_file_info,
+                (
                 user_id,
                 domain_id,
-            ))
+                )
+            )
             data = self.cursor.fetchall()
             return [{"file_id": row[0], "file_name": row[1], "file_modified_date": row[2], "file_upload_date": row[3]} for row in data] if data else None
         except DatabaseError as e:
@@ -99,9 +105,12 @@ class Database:
         WHERE file_id = %s
         """
         try:
-            self.cursor.execute(query_get_file_name, (
+            self.cursor.execute(
+                query_get_file_name,
+                (
                 file_id,
-            ))
+                )
+            )
             data = self.cursor.fetchone()
             return data[0]
         except DatabaseError as e:
@@ -115,10 +124,13 @@ class Database:
         WHERE user_id = %s AND domain_number = %s
         """
         try:
-            self.cursor.execute(query, (
+            self.cursor.execute(
+                query,
+                (
                 user_id,
                 selected_domain_number,
-            ))
+                )
+            )
             data = self.cursor.fetchone()
             return {"domain_id": data[0], "domain_name": data[1]} if data else None
         except DatabaseError as e:
@@ -137,17 +149,20 @@ class Database:
         WHERE file_id IN %s
         """
         try:
-            # Extract content
-            self.cursor.execute(query_get_content, (
-                tuple(file_ids),
-            ))
+            self.cursor.execute(
+                query_get_content,
+                (
+                    tuple(file_ids),
+                )
+            )
             content = self.cursor.fetchall()
-            # Extract embeddings
-            self.cursor.execute(query_get_embeddings, (
-                tuple(file_ids),
-            ))
+            self.cursor.execute(
+                query_get_embeddings,
+                (
+                    tuple(file_ids),
+                )
+            )
             byte_embeddings = self.cursor.fetchone()
-            # Check every extraction
             if content and byte_embeddings and byte_embeddings[0]:
                 embeddings = self._bytes_to_embeddings(np.array(byte_embeddings[0]))
                 return content, embeddings
@@ -167,13 +182,16 @@ class Database:
         VALUES (%s, %s, %s, %s, %s)
         """
         try:
-            self.cursor.execute(query_insert_file_info, (
-                file_info["user_id"],
-                file_info["file_id"],
-                domain_id,
-                file_info["file_name"][:100],
-                file_info["file_modified_date"][:20],
-            ))
+            self.cursor.execute(
+                query_insert_file_info,
+                (
+                    file_info["user_id"],
+                    file_info["file_id"],
+                    domain_id,
+                    file_info["file_name"][:100],
+                    file_info["file_modified_date"][:20],
+                )
+            )
         except DatabaseError as e:
             self.conn.rollback()
             raise e
@@ -224,6 +242,24 @@ class Database:
         except Exception as e:
             self.conn.rollback()
             logger.error(f"Unexpected error while inserting file content: {str(e)}")
+            raise e
+    
+    def insert_session(self, user_id: str, session_id: str):
+        query = """
+        INSERT INTO user_sessions (user_id, session_id, created_at)
+        VALUES (%s, %s, NOW())
+        """
+        try:
+            self.cursor.execute(
+                query,
+                (
+                    user_id,
+                    session_id
+                )
+            )
+            self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
             raise e
     
     def clear_file_info(self, user_id: str, file_ids: list):

@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS user_info (
     user_password VARCHAR(255) NOT NULL,
     user_email VARCHAR(100) UNIQUE,
     user_type VARCHAR(20),
+    is_active BOOLEAN DEFAULT FALSE,
     user_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -35,4 +36,13 @@ CREATE TABLE IF NOT EXISTS file_content (
     sentence_order INTEGER,
     embedding BYTEA,
     FOREIGN KEY (file_id) REFERENCES file_info(file_id)
+);
+
+CREATE TABLE IF NOT EXISTS session_info (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL,
+    session_id UUID NOT NULL,
+    chat_session_id UUID NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user_info(user_id)
 );

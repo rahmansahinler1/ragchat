@@ -18,24 +18,52 @@ function initLoginWidgets({
 
 async function handleLogin(email, password) {
     try {
-        const response = await fetch('/api/v1/auth/token', {
+        const response = await fetch('/api/v1/auth/login', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
             },
-            body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
+            body: JSON.stringify({ 
+                user_email: email, 
+                user_password: password 
+            }),
         });
 
+        const data = await response.json();
+
         if (response.ok) {
-            const data = await response.json();
-            localStorage.setItem('token', data.access_token);
+            localStorage.setItem('sessionId', data.session_id);
             window.location.href = '/app';
         } else {
-            displayError('Login failed. Please check your credentials.');
+            displayError(data.message || 'Login failed. Please check your credentials.');
         }
     } catch (error) {
         console.error('Login error:', error);
         displayError('An error occurred during login.');
+    }
+}
+
+async function startChatSession() {
+    try {
+        const sessionId = localStorage.getItem('sessionId');
+        const response = await fetch('/api/v1/chat/start', {
+            method: 'POST',
+            headers: {
+                'Authorization': sessionId,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem('chatSessionId', data.chat_session_id);
+            window.location.href = `/app/${data.chat_session_id}`;  // Redirect to the chat with the new session ID
+        } else {
+            displayError('Failed to start chat session.');
+        }
+    } catch (error) {
+        console.error('Error starting chat session:', error);
+        displayError('An error occurred while starting the chat session.');
     }
 }
 

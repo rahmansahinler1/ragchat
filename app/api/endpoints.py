@@ -264,23 +264,21 @@ async def login(
         message = None
         status_code = 500
         session_id = None
-
         with Database() as db:
             user_info = db.get_user_info(user_email=user_email)
             if not user_info or not authenticator.verify_password(plain_password=user_password, hashed_password=user_info["user_password"]):
                 message = "Invalid email or password"
-                status_code = 200
+                status_code = 401
             else:
                 db.create_session(user_info["user_id"], session_id=str(uuid.uuid4()))
                 message = "Login sucessfull"
                 status_code = 200
-    
         return JSONResponse(
                     content={
-                    "message": f"{deleted_files} files and {deleted_content} sentences deleted",
-                    "domain_name": domain_info["domain_name"]
+                    "message": message,
+                    "session_id": session_id
                     },
-                    status_code=200
+                    status_code=status_code
                 )
     except Exception as e:
         db.conn.rollback()
@@ -291,3 +289,30 @@ async def login(
             },
             status_code=500
         )
+
+@router.post("/chat/start")
+async def start_chat_session(
+    request: Request
+):
+    try:
+        # Extract session_id from request headers or cookies
+        session_id = request.headers.get("Authorization")  # Assuming you're sending the session ID in the Authorization header
+        
+        with Database() as db:
+            user_info = db.get_user_by_session(session_id)
+            if not user_info:
+                return JSONResponse(content={"message": "Invalid session"}, status_code=401)
+            
+            chat_session_id = authenticator.create_chat_session_id()
+            db.create_chat_session(user_info["user_id"], session_id, chat_session_id)
+            
+            return JSONResponse(
+                content={
+                    "message": "Chat session started",
+                    "chat_session_id": chat_session_id
+                },
+                status_code=200
+            )
+    except Exception as e:
+        logging.error(f"Error starting chat session: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to start chat session: {str(e)}")
