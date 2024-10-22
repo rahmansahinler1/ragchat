@@ -1,4 +1,3 @@
-from docx import Document
 from PyPDF2 import PdfReader
 import spacy
 import io

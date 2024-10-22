@@ -2,8 +2,8 @@ from fastapi import FastAPI, Request, Cookie
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from app.api import endpoints
 
+from .api import endpoints
 from .db.database import Database
 
 

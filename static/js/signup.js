@@ -11,10 +11,15 @@ function initSignupWidgets({
         event.preventDefault();
         handleSignup(nameInput.value, surnameInput.value, emailInput.value, passwordInput.value, signupButton, signupForm);
     });
+
     nameInput.addEventListener('input', validateNameSurname);
+
     surnameInput.addEventListener('input', validateNameSurname);
+
     emailInput.addEventListener('input', validateEmail);
+
     passwordInput.addEventListener('input', validatePassword);
+    
     togglePasswordButton.addEventListener('click', () => togglePassword(passwordInput, togglePasswordButton));
 }
 

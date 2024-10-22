@@ -1,8 +1,6 @@
-from typing import Dict, List
+from typing import List
 import numpy as np
-import json
 import bcrypt
-import uuid
 
 from ..functions.reading_functions import ReadingFunctions
 from ..functions.embedding_functions import EmbeddingFunctions

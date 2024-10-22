@@ -9,8 +9,11 @@ function initLoginWidgets({
         event.preventDefault();
         handleLogin(emailInput.value, passwordInput.value, loginButton, loginForm);
     });
+
     emailInput.addEventListener('input', validateEmail);
+
     passwordInput.addEventListener('input', validatePassword);
+    
     togglePasswordButton.addEventListener('click', () => togglePassword(passwordInput, togglePasswordButton));
 }
 
@@ -39,6 +42,7 @@ async function handleLogin(email, password, loginButton, loginForm) {
         } else {
             displayError(data.message, loginButton, loginForm);
         }
+
     } catch (error) {
         console.error('Login error:', error);
         displayError('An error occurred during login.');

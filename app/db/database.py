@@ -1,9 +1,10 @@
-import psycopg2
 from psycopg2 import extras
 from psycopg2 import DatabaseError
 from pathlib import Path
+import psycopg2
 import logging
 import numpy as np
+
 from .config import GenerateConfig
 
 logging.basicConfig(level=logging.INFO)
@@ -60,14 +61,14 @@ class Database:
         return np.frombuffer(byte_array.tobytes(), dtype=np.float32).reshape(byte_array.shape[0], -1)
 
     def get_user_info_w_email(self, user_email: str):
-        query = """
+        query_get_user_info = """
         SELECT DISTINCT user_id, user_name, user_surname, user_password, user_type, is_active, user_created_at
         FROM user_info
         WHERE user_email = %s
         """
         try:
             self.cursor.execute(
-                query,
+                query_get_user_info,
                 (
                 user_email,
                 )
@@ -79,14 +80,14 @@ class Database:
             raise e
     
     def get_user_info_w_id(self, user_id: str):
-        query = """
+        query_get_user_info = """
         SELECT DISTINCT user_name, user_surname, user_email, user_type, user_created_at
         FROM user_info
         WHERE user_id = %s
         """
         try:
             self.cursor.execute(
-                query,
+                query_get_user_info,
                 (
                 user_id,
                 )
@@ -210,7 +211,7 @@ class Database:
         data = self.cursor.fetchone()
         return {"user_id": data[0], "created_at": data[1]} if data else None
 
-    def insert_user_info(self, user_id, user_name, user_surname, user_password, user_email, user_type, is_active):
+    def insert_user_info(self, user_id: str, user_name: str, user_surname: str, user_password: str, user_email: str, user_type:str , is_active: bool):
         query_insert_user_info = """
         INSERT INTO user_info (user_id, user_name, user_surname, user_password, user_email, user_type, is_active)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -232,7 +233,7 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def insert_domain_info(self, user_id, domain_id, domain_name, domain_number):
+    def insert_domain_info(self, user_id: str, domain_id: str, domain_name: str, domain_number: int):
         query_insert_domain_info = """
         INSERT INTO domain_info (user_id, domain_id, domain_name, domain_number)
         VALUES (%s, %s, %s, %s)
@@ -251,7 +252,7 @@ class Database:
             self.conn.rollback()
             raise e      
 
-    def insert_file_info(self, file_info, domain_id):
+    def insert_file_info(self, file_info: dict, domain_id: str):
         query_insert_file_info = """
         INSERT INTO file_info (user_id, file_id, domain_id, file_name, file_modified_date)
         VALUES (%s, %s, %s, %s, %s)
@@ -271,7 +272,7 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def insert_file_content(self, file_id, file_sentences, file_embeddings):
+    def insert_file_content(self, file_id: str, file_sentences: list, file_embeddings: np.ndarray):
         query_insert_file_content = """
         INSERT INTO file_content (file_id, page_number, sentence, sentence_order, embedding)
         VALUES %s
@@ -282,15 +283,12 @@ class Database:
                 if not isinstance(page_embeddings, np.ndarray):
                     logger.warning(f"Page {page_number} embeddings are not a numpy array. Skipping.")
                     continue
-
                 if not page_embeddings.size or not len(page_sentences):
                     logger.warning(f"Page {page_number} embeddings or sentences are empty. Skipping")
                     continue
-
                 if page_embeddings.shape[1] != 1536:
                     logger.warning(f"Page {page_number} embeddings have unexpected shape: {page_embeddings.shape}. Expected (n, 1536). Skipping.")
                     continue
-                
                 inserted_data = [
                     (
                         file_id, 
@@ -303,13 +301,11 @@ class Database:
                     if sentence is not None and embedding is not None
                 ]
                 all_inserted_data.extend(inserted_data)
-            
             if all_inserted_data:
                 extras.execute_values(self.cursor, query_insert_file_content, all_inserted_data)
                 logger.info(f"Inserted {len(all_inserted_data)} rows for file {file_id}")
             else:
                 logger.warning(f"No data to insert for file {file_id}")
-        
         except DatabaseError as e:
             self.conn.rollback()
             logger.error(f"Database error while inserting file content: {str(e)}")
@@ -354,7 +350,6 @@ class Database:
         FROM file_info
         WHERE user_id = %s AND file_name IN %s
         """
-
         clear_content_query = """
         DELETE FROM file_content
         WHERE file_id IN %s
@@ -362,7 +357,6 @@ class Database:
         try:
             self.cursor.execute(get_file_ids_query, (user_id, tuple(files_to_remove, )))
             file_ids = [row[0] for row in self.cursor.fetchall()]
-
             if file_ids:
                 self.cursor.execute(clear_content_query, (tuple(file_ids), ))
                 total_cleared = self.cursor.rowcount

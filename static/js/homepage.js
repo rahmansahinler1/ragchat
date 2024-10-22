@@ -4,21 +4,20 @@ function initHomepageWidgets({
     continueButton,
     socialIcons
 }) {
-    // Login button interaction
     loginButton.addEventListener('click', (event) => {
         event.preventDefault();
         navigateToLogin();
     });
-    // Sign Up button interaction
+
     signUpButton.addEventListener('click', (event) => {
         event.preventDefault();
         signUp();
     });
-    // Continue button interaction
+
     continueButton.addEventListener('click', () => {
         scrollToNextSection();
     });
-    // Social icons interactions
+
     socialIcons.forEach(icon => {
         icon.addEventListener('click', (event) => {
             event.preventDefault();
@@ -26,9 +25,10 @@ function initHomepageWidgets({
             openSocialMedia(platform);
         });
     });
-    // Scroll event for animations or other effects
+
     window.addEventListener('scroll', handleScroll);
 }
+
 function navigateToLogin() {
     window.location.href = '/login';
 }

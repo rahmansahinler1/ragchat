@@ -11,13 +11,13 @@ function loadScript(url) {
 async function initialize() {
     try {
         await loadScript('/static/js/homepage.js');
+
         initHomepageWidgets({
             loginButton: document.querySelector('.login-btn'),
             signUpButton: document.querySelector('.sign-up-btn'),
             continueButton: document.querySelector('.continue'),
             socialIcons: document.querySelectorAll('.social-icons a')
         });
-
     } catch (error) {
         console.error('Error initializing homepage:', error);
     }

@@ -36,38 +36,35 @@ class ChatbotFunctions:
 
             Kullanıcı Sorgusu: {query}
             """)
-        else:
-            return textwrap.dedent(f"""
-            You are an AI assistant specialized in extracting specific information from provided text.
-            Your task is to analyze the given context windows and extract relevant data based on the user's query.
+        
+        return textwrap.dedent(f"""
+        You are an AI assistant specialized in extracting specific information from provided text.
+        Your task is to analyze the given context windows and extract relevant data based on the user's query.
 
-            Instructions:
-            1. You will be provided with 5 context windows, each containing 3 sentences.
-            2. Carefully read all context windows.
-            3. Analyze the user's query to understand what specific information they are looking for.
-            4. Search for and extract the relevant information from the context windows.
-            5. If the requested information is not present in any of the context windows, state that clearly.
-            6. Present the extracted information in a clear and concise manner.
-            7. If appropriate, provide brief context or explanation for the extracted data.
+        Instructions:
+        1. You will be provided with 5 context windows, each containing 3 sentences.
+        2. Carefully read all context windows.
+        3. Analyze the user's query to understand what specific information they are looking for.
+        4. Search for and extract the relevant information from the context windows.
+        5. If the requested information is not present in any of the context windows, state that clearly.
+        6. Present the extracted information in a clear and concise manner.
+        7. If appropriate, provide brief context or explanation for the extracted data.
 
-            Respond in the following format:
-            - Extracted Information: [Provide the extracted data here]
+        Respond in the following format:
+        - Extracted Information: [Provide the extracted data here]
 
-            Remember to focus solely on the information present in the provided context windows. Do not include external knowledge or make assumptions beyond what is explicitly stated.
+        Remember to focus solely on the information present in the provided context windows. Do not include external knowledge or make assumptions beyond what is explicitly stated.
 
-            Context Windows:
-            {context}
+        Context Windows:
+        {context}
 
-            User Query: {query}
-            """)
-        return prompt
+        User Query: {query}
+        """)
 
     def response_generation(self, query, context):
-        # Load chat model
         lang = self.detect_language(query=query)
         prompt = self._prompt_with_context_builder(query, context, lang=lang)
-        
-        # Generate response
+
         response = self.client.chat.completions.create(
             model="gpt-3.5-turbo-0125",
             messages=[
@@ -76,14 +73,16 @@ class ChatbotFunctions:
             ],
             temperature=0
         )
-        # Extract response
+
         answer = response.choices[0].message.content.strip()
         return answer
 
     def detect_language(self, query):
         lang = "en"
+
         try:
             lang = detect(text=query)
+
             if lang == "tr":
                 return lang
             else:

@@ -9,7 +9,6 @@ class GenerateConfig:
         parser = ConfigParser()
         parser.read(filename)
         db_config= {}
-
         if parser.has_section(section):
             params = parser.items(section)
             for param in params:
@@ -17,3 +16,4 @@ class GenerateConfig:
         else:
             raise Exception(f"Section {section} is not found in {filename} file.")
         return db_config
+    

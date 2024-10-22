@@ -11,6 +11,7 @@ function loadScript(url) {
 async function initialize() {
     try {
         await loadScript('/static/js/signup.js');
+        
         initSignupWidgets({
             signupForm: document.getElementById('signup-form'),
             nameInput: document.getElementById('name'),

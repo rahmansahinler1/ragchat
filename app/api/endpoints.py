@@ -14,6 +14,7 @@ router = APIRouter()
 processor = Processor()
 authenticator = Authenticator()
 
+
 @router.post("/db/get_user_info")
 async def get_user_info(
     request: Request
@@ -23,6 +24,7 @@ async def get_user_info(
         user_id = data.get("user_id")
         with Database() as db:
             user_info = db.get_user_info_w_id(user_id)
+
         return JSONResponse(
             content={
             "user_id": user_id,
@@ -89,6 +91,7 @@ async def generate_answer(
                 del resources["file_ids"]
         else:
             sentences, answer, resources = None, "Selected domain is empty", None
+
         return JSONResponse(
             content={
                 "sentences": sentences,
@@ -123,6 +126,7 @@ async def select_files(
                 globals.file_selection_identifiers.append(selection_identifier)
                 globals.file_selections.append(file_info)
                 added_files.append(file.filename)
+
         return JSONResponse(
             content={
                 "file_names": added_files
@@ -151,6 +155,7 @@ async def remove_file_selections(
             identifier for identifier in globals.file_selection_identifiers
             if not (identifier[0] == userID and identifier[1] in files)
         ]
+
         return JSONResponse(
             content={
                 "message": "Selected files removed successfully",
@@ -188,20 +193,17 @@ async def upload_files(
     try:
         selected_domain_number = globals.selected_domain[userID]
         for file_selection in globals.file_selections:
-            # Extract valid sentences and create embeddings from the file
-            if userID != file_selection["user_id"]:
-                continue
+            if userID != file_selection["user_id"]: continue
             file_sentences = processor.rf.read_file(file_bytes=file_selection["file_bytes"], file_name=file_selection["file_name"])
             file_embeddings = processor.ef.create_embeddings_from_sentences(file_sentences=file_sentences)
-            # Udate necessary tables with the file information
             with Database() as db:
                 domain_info = db.get_domain_info(user_id=userID, selected_domain_number=selected_domain_number)
                 db.insert_file_info(file_info=file_selection, domain_id=domain_info["domain_id"])
                 db.insert_file_content(file_id=file_selection["file_id"], file_sentences=file_sentences, file_embeddings=file_embeddings)
                 file_info = db.get_file_info_with_domain(user_id=userID, domain_id=domain_info["domain_id"])
                 db.conn.commit()
-        # Clear file selections of the user and return
         globals.file_selections = [file for file in globals.file_selections if file["user_id"] != userID]
+
         return JSONResponse(
             content={
             "message": f"Files uploaded successfully to domain {selected_domain_number}",
@@ -226,26 +228,27 @@ async def remove_file_upload(
         selected_domain_number = globals.selected_domain[userID]
         data = await request.json()
         files = data.get("files_to_remove", [])
+        message, file_names, domain_name, status_code = "Unsuccessful deletion!", [], "", 500
         with Database() as db:
             deleted_content, file_ids = db.clear_file_content(user_id=userID, files_to_remove=files)
             deleted_files = db.clear_file_info(user_id=userID, file_ids=file_ids)
             domain_info = db.get_domain_info(user_id=userID, selected_domain_number=selected_domain_number)
             file_info = db.get_file_info_with_domain(user_id=userID, domain_id=domain_info["domain_id"])
             db.conn.commit()
+            message = f"{deleted_files} files and {deleted_content} sentences deleted"
+            domain_name = domain_info["domain_name"]
         if file_info:
-            return JSONResponse(content={
-                "message": f"{deleted_files} files and {deleted_content} sentences deleted",
-                "file_names": [info["file_name"] for info in file_info],
-                "domain_name": domain_info["domain_name"]
-            }, status_code=200)
-        else:
-            return JSONResponse(
-                content={
-                "message": f"{deleted_files} files and {deleted_content} sentences deleted",
-                "domain_name": domain_info["domain_name"]
-                },
-                status_code=200
-            )
+            file_names = [info["file_name"] for info in file_info]
+            status_code = 200
+      
+        return JSONResponse(
+            content={
+            "message": message,
+            "domain_name": domain_name,
+            "file_names": file_names
+            },
+            status_code=status_code
+        )
     except KeyError:
         return JSONResponse(content={"message": "Please select the domain number first"}, status_code=200)
     except Exception as e:
@@ -278,6 +281,7 @@ async def login(
                 db.conn.commit()
                 message = "Login sucessfull"
                 status_code = 200
+
         response = JSONResponse(
             content={
                     "message": message,
@@ -336,13 +340,13 @@ async def signup(
                 db.conn.commit()
                 message = "Signup sucessfull! Please contact with --> rahmansahinler1@gmail.com for activation!"
                 status_code = 201
+
         return JSONResponse(
             content={
                     "message": message,
                     },
             status_code=status_code
         )
-
     except Exception as e:
         db.conn.rollback()
         logging.error(f"Error during login: {str(e)}")

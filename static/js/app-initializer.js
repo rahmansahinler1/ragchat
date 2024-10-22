@@ -12,11 +12,13 @@ async function initialize() {
     try {
         await loadScript('/static/js/app.js');
         const userData = await window.fetchUserInfo(window.serverData.userId);
+
         if (!userData) {
             throw new Error('Failed to load user data');
         }
+
         const currentDomain = 0;
-        // Initialize functions
+
         initAppWidgets({
             selectedFileList: document.querySelector('.selected-file-list'),
             uploadFilesButton: document.getElementById('btn-upload-files'),
@@ -34,9 +36,9 @@ async function initialize() {
             chatBox: document.querySelector('.chat-box'),
             resourceSection: document.querySelector('.resource-section')
         });
+
         clearFileSelections(userData);
         window.addMessageToChat(`Welcome ${userData.user_name} ${userData.user_surname}`, 'ragchat');
-
     } catch (error) {
         console.error('Error initializing app:', error);
     }

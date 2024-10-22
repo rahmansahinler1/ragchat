@@ -11,6 +11,7 @@ function loadScript(url) {
 async function initialize() {
     try {
         await loadScript('/static/js/login.js');
+
         initLoginWidgets({
             loginForm: document.getElementById('login-form'),
             emailInput: document.getElementById('email'),
@@ -18,6 +19,7 @@ async function initialize() {
             loginButton: document.getElementById('login-button'),
             togglePasswordButton: document.getElementById('toggle-password')
         });
+        
     } catch (error) {
         console.error('Error initializing login page:', error);
     }
