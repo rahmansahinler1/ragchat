@@ -20,12 +20,12 @@ async def get_user_info(
 ):
     try:
         data = await request.json()
-        user_email = data.get("user_email")
+        user_id = data.get("user_id")
         with Database() as db:
-            user_info = db.get_user_info(user_email)
+            user_info = db.get_user_info_w_id(user_id)
         return JSONResponse(
             content={
-            "user_id": user_info["user_id"],
+            "user_id": user_id,
             "user_name": user_info["user_name"],
             "user_surname": user_info["user_surname"],
             "user_type": user_info["user_type"]
@@ -50,6 +50,7 @@ async def select_domain(
         with Database() as db:
             file_names, domain_name = None, None
             domain_info = db.get_domain_info(userID, selected_domain_number)
+            # TODO: what if there is no domain?
             file_info = db.get_file_info_with_domain(userID, domain_info["domain_id"])
             if file_info:
                 content, embeddings = db.get_file_content(file_ids=[info["file_id"] for info in file_info])
@@ -260,13 +261,13 @@ async def login(
     try:
         data = await request.json()
         user_email = data.get("user_email")
-        user_password = data.get("user_password")
+        trial_password = data.get("trial_password")
         message = None
         status_code = 500
         session_id = None
         with Database() as db:
-            user_info = db.get_user_info(user_email=user_email)
-            if not user_info or not authenticator.verify_password(plain_password=user_password, hashed_password=user_info["user_password"]):
+            user_info = db.get_user_info_w_email(user_email=user_email)
+            if not user_info or not authenticator.verify_password(plain_password=trial_password, hashed_password=user_info["user_password"]):
                 message = "Invalid email or password"
                 status_code = 401
             else:

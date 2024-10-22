@@ -209,7 +209,7 @@ async function selectFiles(fileInput, userData) {
 
     try {
         const userID = userData.user_id;
-        const url = `api/v1/io/select_files?userID=${encodeURIComponent(userID)}`;
+        const url = `/api/v1/io/select_files?userID=${encodeURIComponent(userID)}`;
         const response = await fetch(url, {
             method: 'POST',
             body: formData
@@ -254,7 +254,7 @@ async function removeFileSelection(selectedFileList, userData) {
         }
         const filesToRemove = Array.from(checkedBoxes).map(checkbox => checkbox.nextElementSibling.textContent);
         const userID = userData.user_id;
-        const url = `api/v1/io/remove_file_selections?userID=${encodeURIComponent(userID)}`;
+        const url = `/api/v1/io/remove_file_selections?userID=${encodeURIComponent(userID)}`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -287,7 +287,7 @@ async function removeFileSelection(selectedFileList, userData) {
 
 async function clearFileSelections(userData) {
     try {
-        const response = await fetch(`api/v1/io/clear_file_selections?userID=${encodeURIComponent(userData.user_id)}`, {
+        const response = await fetch(`/api/v1/io/clear_file_selections?userID=${encodeURIComponent(userData.user_id)}`, {
             method: 'POST',
         });
         
@@ -340,7 +340,7 @@ async function uploadFiles(uploadFilesButton, userData) {
     try {
         uploadFilesButton.disabled = true;
         const userID = userData.user_id;
-        const url = `api/v1/io/upload_files?userID=${encodeURIComponent(userID)}`;
+        const url = `/api/v1/io/upload_files?userID=${encodeURIComponent(userID)}`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -380,7 +380,7 @@ async function removeFileUpload(removeUploadButton, userData) {
         }
         const filesToRemove = Array.from(checkedBoxes).map(checkbox => checkbox.nextElementSibling.textContent);
         const userID = userData.user_id;
-        const url = `api/v1/io/remove_file_upload?userID=${encodeURIComponent(userID)}`;
+        const url = `/api/v1/io/remove_file_upload?userID=${encodeURIComponent(userID)}`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -407,11 +407,11 @@ async function removeFileUpload(removeUploadButton, userData) {
     }
 }
 
-async function fetchUserInfo(userEmail) {
+async function fetchUserInfo(userID) {
     try {
         const response = await fetch('/api/v1/db/get_user_info', {
             method: 'POST',
-            body: JSON.stringify({ user_email: userEmail }),
+            body: JSON.stringify({ user_id: userID }),
             headers: {
                 'Content-Type': 'application/json'
             },

@@ -59,7 +59,7 @@ class Database:
     def _bytes_to_embeddings(self, byte_array):
         return np.frombuffer(byte_array.tobytes(), dtype=np.float32).reshape(byte_array.shape[0], -1)
 
-    def get_user_info(self, user_email: str):
+    def get_user_info_w_email(self, user_email: str):
         query = """
         SELECT DISTINCT user_id, user_name, user_surname, user_password, user_type, user_created_at
         FROM user_info
@@ -73,7 +73,26 @@ class Database:
                 )
             )
             data = self.cursor.fetchone()
-            return {"user_id": data[0], "user_name": data[1], "user_surname": data[2], "user_password":data[3], "user_type": data[4], "user_created_at": str(data[5])} if data else None
+            return {"user_id": data[0], "user_name": data[1], "user_surname": data[2], "user_password": data[3], "user_type": data[4], "user_created_at": str(data[5])} if data else None
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+    
+    def get_user_info_w_id(self, user_id: str):
+        query = """
+        SELECT DISTINCT user_name, user_surname, user_email, user_type, user_created_at
+        FROM user_info
+        WHERE user_id = %s
+        """
+        try:
+            self.cursor.execute(
+                query,
+                (
+                user_id,
+                )
+            )
+            data = self.cursor.fetchone()
+            return {"user_name": data[0], "user_surname": data[1], "user_email": data[2], "user_type": data[3], "user_created_at": str(data[4])} if data else None
         except DatabaseError as e:
             self.conn.rollback()
             raise e

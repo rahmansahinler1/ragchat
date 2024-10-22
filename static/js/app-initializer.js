@@ -10,16 +10,12 @@ function loadScript(url) {
 
 async function initialize() {
     try {
-        // Load scripts
         await loadScript('/static/js/app.js');
-        // In the future, this will be updated after logic process
-        const userEmail = "rahmansahinler1@gmail.com";
-        const currentDomain = 0;
-        // Fetch initial user data
-        const userData = await window.fetchUserInfo(userEmail);
+        const userData = await window.fetchUserInfo(window.serverData.userId);
         if (!userData) {
             throw new Error('Failed to load user data');
         }
+        const currentDomain = 0;
         // Initialize functions
         initAppWidgets({
             selectedFileList: document.querySelector('.selected-file-list'),

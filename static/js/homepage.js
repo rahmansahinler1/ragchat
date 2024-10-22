@@ -29,8 +29,6 @@ function initHomepageWidgets({
     // Scroll event for animations or other effects
     window.addEventListener('scroll', handleScroll);
 }
-
-// Function definitions
 function navigateToLogin() {
     window.location.href = '/login';
 }

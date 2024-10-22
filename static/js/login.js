@@ -23,7 +23,7 @@ async function handleLogin(email, password) {
             },
             body: JSON.stringify({ 
                 user_email: email, 
-                user_password: password 
+                trial_password: password 
             }),
         });
 
