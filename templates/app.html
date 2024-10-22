@@ -135,15 +135,15 @@
 
 </body>
 </html>
-
-<script src="../static/js/app-initializer.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"
-    integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
-    crossorigin="anonymous">
-</script>
+<!-- Server data-->
 <script>
     window.serverData = {
         userId: "{{ user_id }}",
         sessionId: "{{ session_id }}"
-    };
-</script>
+    };</script>
+<!-- External libraries -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" 
+        integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
+        crossorigin="anonymous"></script>
+<!-- App Scripts -->
+<script src="/static/js/app-initializer.js" defer></script>
