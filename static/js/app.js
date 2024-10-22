@@ -167,7 +167,7 @@ async function sendMessage(userInput, userData) {
         window.addMessageToChat(message, 'you');
         try {
             const userID = userData.user_id;
-            const url = `api/v1/qa/generate_answer?userID=${encodeURIComponent(userID)}`;
+            const url = `/api/v1/qa/generate_answer?userID=${encodeURIComponent(userID)}`;
 
             const response = await fetch(url, {
                 method: 'POST',

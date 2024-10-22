@@ -7,15 +7,18 @@ function initLoginWidgets({
 }) {
     loginForm.addEventListener('submit', (event) => {
         event.preventDefault();
-        handleLogin(emailInput.value, passwordInput.value);
+        handleLogin(emailInput.value, passwordInput.value, loginButton, loginForm);
     });
     emailInput.addEventListener('input', validateEmail);
     passwordInput.addEventListener('input', validatePassword);
     togglePasswordButton.addEventListener('click', () => togglePassword(passwordInput, togglePasswordButton));
 }
 
-async function handleLogin(email, password) {
+async function handleLogin(email, password, loginButton, loginForm) {
     try {
+        loginButton.disabled = true;
+        loginButton.innerHTML = 'Logging in...';
+
         const response = await fetch('/api/v1/auth/login', {
             method: 'POST',
             headers: {
@@ -30,14 +33,18 @@ async function handleLogin(email, password) {
         const data = await response.json();
 
         if (response.ok) {
+            displayMessage(data.message, loginButton, loginForm);
             localStorage.setItem('sessionId', data.session_id);
-            window.location.href = `/app/${data.session_id}`;
+            setTimeout(() => window.location.href = `/app/${data.session_id}`, 1000);
         } else {
-            displayError(data.message || 'Login failed. Please check your credentials.');
+            displayError(data.message, loginButton, loginForm);
         }
     } catch (error) {
         console.error('Login error:', error);
         displayError('An error occurred during login.');
+    } finally {
+        loginButton.disabled = false;
+        loginButton.innerHTML = 'Log-in';
     }
 }
 
@@ -49,8 +56,20 @@ function validatePassword() {
     // Implement password validation logic
 }
 
-function displayError(message) {
-    alert(message);
+function displayError(message, loginButton, loginForm) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger mt-3';
+    errorDiv.textContent = message;
+    loginForm.insertBefore(errorDiv, loginButton.parentElement);
+    setTimeout(() => errorDiv.remove(), 5000);
+}
+
+function displayMessage(message, loginButton, loginForm) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'alert alert-success mt-3';
+    messageDiv.textContent = message;
+    loginForm.insertBefore(messageDiv, loginButton.parentElement);
+    setTimeout(() => messageDiv.remove(), 5000);
 }
 
 function togglePassword(passwordInput, toggleButton) {

@@ -50,7 +50,6 @@ async def select_domain(
         with Database() as db:
             file_names, domain_name = None, None
             domain_info = db.get_domain_info(userID, selected_domain_number)
-            # TODO: what if there is no domain?
             file_info = db.get_file_info_with_domain(userID, domain_info["domain_id"])
             if file_info:
                 content, embeddings = db.get_file_content(file_ids=[info["file_id"] for info in file_info])
@@ -270,13 +269,15 @@ async def login(
             if not user_info or not authenticator.verify_password(plain_password=trial_password, hashed_password=user_info["user_password"]):
                 message = "Invalid email or password"
                 status_code = 401
+            elif not user_info["is_active"]:
+                message = "User is not activated yet. Please contact with --> rahmansahinler1@gmail.com"
+                status_code = 401
             else:
                 session_id = str(uuid.uuid4())
-                db.insert_session(user_info["user_id"], session_id=session_id)
+                db.insert_session_info(user_info["user_id"], session_id=session_id)
                 db.conn.commit()
                 message = "Login sucessfull"
                 status_code = 200
-        
         response = JSONResponse(
             content={
                     "message": message,
@@ -286,6 +287,61 @@ async def login(
         )
         response.set_cookie(key="session_id", value=session_id, httponly=True, secure=True, samesite='strict')
         return response
+
+    except Exception as e:
+        db.conn.rollback()
+        logging.error(f"Error during login: {str(e)}")
+        raise HTTPException(
+            content={
+                "message": f"Failed deleting, error: {e}"
+            },
+            status_code=500
+        )
+
+@router.post("/auth/signup")
+async def signup(
+    request: Request,
+):
+    try:
+        data = await request.json()
+        user_name = data.get("user_name")
+        user_surname = data.get("user_surname")
+        user_email = data.get("user_email")
+        user_password = data.get("user_password")
+        message = None
+        status_code = 500
+        with Database() as db:
+            user_info = db.get_user_info_w_email(user_email=user_email)
+            if user_info:
+                message = "User already signed up! If you forget your password please contact with --> rahmansahinler1@gmail.com"
+                status_code = 401
+            else:
+                user_id = str(uuid.uuid4())
+                db.insert_user_info(
+                    user_id=user_id,
+                    user_name=user_name,
+                    user_surname=user_surname,
+                    user_password=authenticator.hash_password(user_password),
+                    user_email=user_email,
+                    user_type="trial",
+                    is_active=False
+                )
+                for i in range(5):
+                    db.insert_domain_info(
+                        user_id=user_id,
+                        domain_id=str(uuid.uuid4()),
+                        domain_name=f"Domain {i+1}",
+                        domain_number=i+1,
+                    )
+                db.conn.commit()
+                message = "Signup sucessfull! Please contact with --> rahmansahinler1@gmail.com for activation!"
+                status_code = 201
+        return JSONResponse(
+            content={
+                    "message": message,
+                    },
+            status_code=status_code
+        )
 
     except Exception as e:
         db.conn.rollback()

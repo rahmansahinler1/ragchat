@@ -11,12 +11,13 @@ function loadScript(url) {
 async function initialize() {
     try {
         await loadScript('/static/js/signup.js');
-
-        initLoginWidgets({
-            signupForm: document.getElementById('login-form'),
+        initSignupWidgets({
+            signupForm: document.getElementById('signup-form'),
+            nameInput: document.getElementById('name'),
+            surnameInput: document.getElementById('surname'),
             emailInput: document.getElementById('email'),
             passwordInput: document.getElementById('password'),
-            loginButton: document.getElementById('login-button'),
+            signupButton: document.getElementById('signup-button'),
             togglePasswordButton: document.getElementById('toggle-password')
         });
     } catch (error) {

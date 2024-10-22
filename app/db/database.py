@@ -61,7 +61,7 @@ class Database:
 
     def get_user_info_w_email(self, user_email: str):
         query = """
-        SELECT DISTINCT user_id, user_name, user_surname, user_password, user_type, user_created_at
+        SELECT DISTINCT user_id, user_name, user_surname, user_password, user_type, is_active, user_created_at
         FROM user_info
         WHERE user_email = %s
         """
@@ -73,7 +73,7 @@ class Database:
                 )
             )
             data = self.cursor.fetchone()
-            return {"user_id": data[0], "user_name": data[1], "user_surname": data[2], "user_password": data[3], "user_type": data[4], "user_created_at": str(data[5])} if data else None
+            return {"user_id": data[0], "user_name": data[1], "user_surname": data[2], "user_password": data[3], "user_type": data[4], "is_active": data[5], "user_created_at": str(data[6])} if data else None
         except DatabaseError as e:
             self.conn.rollback()
             raise e
@@ -208,7 +208,48 @@ class Database:
                 )
         )
         data = self.cursor.fetchone()
-        return {"user_id": data[0], "created_at": data[1]} if data else None       
+        return {"user_id": data[0], "created_at": data[1]} if data else None
+
+    def insert_user_info(self, user_id, user_name, user_surname, user_password, user_email, user_type, is_active):
+        query_insert_user_info = """
+        INSERT INTO user_info (user_id, user_name, user_surname, user_password, user_email, user_type, is_active)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        try:
+            self.cursor.execute(
+                query_insert_user_info,
+                (
+                    user_id,
+                    user_name,
+                    user_surname,
+                    user_password,
+                    user_email,
+                    user_type,
+                    is_active,
+                )
+            )
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+
+    def insert_domain_info(self, user_id, domain_id, domain_name, domain_number):
+        query_insert_domain_info = """
+        INSERT INTO domain_info (user_id, domain_id, domain_name, domain_number)
+        VALUES (%s, %s, %s, %s)
+        """
+        try:
+            self.cursor.execute(
+                query_insert_domain_info,
+                (
+                    user_id,
+                    domain_id,
+                    domain_name,
+                    domain_number,
+                )
+            )
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e      
 
     def insert_file_info(self, file_info, domain_id):
         query_insert_file_info = """
@@ -278,7 +319,7 @@ class Database:
             logger.error(f"Unexpected error while inserting file content: {str(e)}")
             raise e
     
-    def insert_session(self, user_id: str, session_id: str):
+    def insert_session_info(self, user_id: str, session_id: str):
         query = """
         INSERT INTO session_info (user_id, session_id, created_at)
         VALUES (%s, %s, NOW())
