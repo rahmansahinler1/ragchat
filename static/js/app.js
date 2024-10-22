@@ -77,34 +77,49 @@ function populateResources(resources, sentences) {
         return;
     }
 
+    const resourceList = document.createElement('div');
+    resourceList.className = 'resource-list';
+
+    const groupedResources = {};
+
     for (let i = 0; i < resources.file_names.length; i++) {
+        const fileName = resources.file_names[i];
+        if (!groupedResources[fileName]) {
+            groupedResources[fileName] = [];
+        }
+        groupedResources[fileName].push({
+            pageNumber: resources.page_numbers[i],
+            sentence: sentences[i]
+        });
+    }
+
+    for (const fileName in groupedResources) {
         const resourceItem = document.createElement('div');
         resourceItem.className = 'resource-item';
 
-        const fileName = document.createElement('h6');
-        fileName.textContent = resources.file_names[i].length > 30 ? 
-            resources.file_names[i].substr(0, 29) + '…' : 
-            resources.file_names[i];
-        fileName.title = resources.file_names[i]; // Full name on hover
+        groupedResources[fileName].forEach((resource, index) => {
+            const header = document.createElement('h6');
+            header.innerHTML = `<strong id="resource-from-text">Resource From:</strong> <span class="document-title">${fileName} | Page ${resource.pageNumber}</span>`;
 
-        const pageNumber = document.createElement('p');
-        pageNumber.className = 'document-title';
-        pageNumber.textContent = `Page ${resources.page_numbers[i]}`;
+            const description = document.createElement('p');
+            description.className = 'description';
+            description.innerHTML = `<span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>${resource.sentence}`;
+            description.title = resource.sentence;
 
-        const sentence = document.createElement('p');
-        sentence.className = 'description';
-        const truncatedSentence = sentences[i].length > 100 ? 
-            sentences[i].substr(0, 99) + '…' : 
-            sentences[i];
-        sentence.innerHTML = `<span class="bullet">►</span> ${truncatedSentence}`;
-        sentence.title = sentences[i]; // Full sentence on hover
+            resourceItem.appendChild(header);
+            resourceItem.appendChild(description);
 
-        resourceItem.appendChild(fileName);
-        resourceItem.appendChild(pageNumber);
-        resourceItem.appendChild(sentence);
+            if (index < groupedResources[fileName].length - 1) {
+                const spacer = document.createElement('div');
+                spacer.style.height = '10px';
+                resourceItem.appendChild(spacer);
+            }
+        });
 
-        window.resourceSection.appendChild(resourceItem);
+        resourceList.appendChild(resourceItem);
     }
+
+    window.resourceSection.appendChild(resourceList);
 }
 
 function updateButtonStates() {
