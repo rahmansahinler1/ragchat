@@ -328,7 +328,7 @@ async def signup(
                     user_password=authenticator.hash_password(user_password),
                     user_email=user_email,
                     user_type="trial",
-                    is_active=True
+                    is_active=False
                 )
                 for i in range(5):
                     db.insert_domain_info(
