@@ -1,6 +1,7 @@
 from PyPDF2 import PdfReader
 import spacy
 import io
+import re
 
 
 class ReadingFunctions:
@@ -29,4 +30,23 @@ class ReadingFunctions:
         docs = self.nlp(text)
         sentences = [sent.text.replace("\n", " ").strip() for sent in docs.sents]
         return [sentence for sentence in sentences if len(sentence) > 15]
+
+    def _validate_file_size(self, file_bytes):
+        size_mb = len(file_bytes) / (1024 * 1024)
+        if size_mb > self.max_file_size:
+            raise ValueError(f"File size exceeds {self.max_file_size}MB limit")
+    
+    def _clean_text(self, text):
+        # Remove multiple spaces
+        text = re.sub(r'\s+', ' ', text)
+        # Remove special characters but keep sentence structure
+        text = re.sub(r'[^\w\s\.!?]', '', text)
+        # Fix common OCR errors
+        text = text.replace('|', 'I')
+        text = text.replace('0', 'O')
+        return text.strip()
+    
+    def _chunk_text(self, text, chunk_size=1000):
+        chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+        return chunks
         

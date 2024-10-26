@@ -194,12 +194,12 @@ async def upload_files(
         selected_domain_number = globals.selected_domain[userID]
         for file_selection in globals.file_selections:
             if userID != file_selection["user_id"]: continue
-            file_sentences = processor.rf.read_file(file_bytes=file_selection["file_bytes"], file_name=file_selection["file_name"])
-            file_embeddings = processor.ef.create_embeddings_from_sentences(file_sentences=file_sentences)
+            file_data = processor.rf.read_file(file_bytes=file_selection["file_bytes"], file_name=file_selection["file_name"])
+            file_embeddings = processor.ef.create_embeddings_from_sentences(file_sentences=file_data["sentences"])
             with Database() as db:
                 domain_info = db.get_domain_info(user_id=userID, selected_domain_number=selected_domain_number)
                 db.insert_file_info(file_info=file_selection, domain_id=domain_info["domain_id"])
-                db.insert_file_content(file_id=file_selection["file_id"], file_sentences=file_sentences, file_embeddings=file_embeddings)
+                db.insert_file_content(file_id=file_selection["file_id"], file_sentences=file_data["sentences"], file_embeddings=file_embeddings)
                 file_info = db.get_file_info_with_domain(user_id=userID, domain_id=domain_info["domain_id"])
                 db.conn.commit()
         globals.file_selections = [file for file in globals.file_selections if file["user_id"] != userID]
