@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS file_content (
     file_id UUID NOT NULL,
     page_number INTEGER,
     sentence TEXT NOT NULL,
+    is_header BOOLEAN DEFAULT FALSE,
     sentence_order INTEGER,
     embedding BYTEA,
     FOREIGN KEY (file_id) REFERENCES file_info(file_id)

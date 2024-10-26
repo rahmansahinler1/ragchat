@@ -272,38 +272,43 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def insert_file_content(self, file_id: str, file_sentences: list, file_embeddings: np.ndarray):
+    def insert_file_content(self, file_id: str, file_sentences: list, file_headers:list, file_embeddings: np.ndarray):
         query_insert_file_content = """
-        INSERT INTO file_content (file_id, page_number, sentence, sentence_order, embedding)
+        INSERT INTO file_content (file_id, page_number, sentence, is_header, sentence_order, embedding)
         VALUES %s
         """
         try:
-            all_inserted_data = []
-            for page_number, (page_sentences, page_embeddings) in enumerate(zip(file_sentences, file_embeddings)):
+            file_data = []
+            for page_number, (page_sentences, page_headers, page_embeddings) in enumerate(zip(file_sentences, file_headers, file_embeddings)):
                 if not isinstance(page_embeddings, np.ndarray):
                     logger.warning(f"Page {page_number} embeddings are not a numpy array. Skipping.")
                     continue
+
                 if not page_embeddings.size or not len(page_sentences):
                     logger.warning(f"Page {page_number} embeddings or sentences are empty. Skipping")
                     continue
+
                 if page_embeddings.shape[1] != 1536:
                     logger.warning(f"Page {page_number} embeddings have unexpected shape: {page_embeddings.shape}. Expected (n, 1536). Skipping.")
                     continue
-                inserted_data = [
-                    (
-                        file_id, 
-                        page_number + 1, 
-                        sentence, 
-                        sentence_order + 1, 
-                        psycopg2.Binary(embedding.astype(np.float32).tobytes())
+
+                page_data = []
+                for sentence_order, (sentence, is_header, embedding) in enumerate(zip(page_sentences, page_headers, page_embeddings)):
+                    page_data.append(
+                        (
+                            file_id, 
+                            page_number + 1, 
+                            sentence,
+                            is_header,
+                            sentence_order + 1, 
+                            psycopg2.Binary(embedding.astype(np.float32).tobytes())
+                        )
                     )
-                    for sentence_order, (sentence, embedding) in enumerate(zip(page_sentences, page_embeddings))
-                    if sentence is not None and embedding is not None
-                ]
-                all_inserted_data.extend(inserted_data)
-            if all_inserted_data:
-                extras.execute_values(self.cursor, query_insert_file_content, all_inserted_data)
-                logger.info(f"Inserted {len(all_inserted_data)} rows for file {file_id}")
+
+                file_data.extend(page_data)
+            if file_data:
+                extras.execute_values(self.cursor, query_insert_file_content, file_data)
+                logger.info(f"Inserted {len(file_data)} rows for file {file_id}")
             else:
                 logger.warning(f"No data to insert for file {file_id}")
         except DatabaseError as e:

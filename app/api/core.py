@@ -2,7 +2,7 @@ from typing import List
 import numpy as np
 import bcrypt
 
-from ..functions.reading_functions1 import ReadingFunctions
+from ..functions.reading_functions import ReadingFunctions
 from ..functions.embedding_functions import EmbeddingFunctions
 from ..functions.indexing_functions import IndexingFunctions
 from ..functions.chatbot_functions import ChatbotFunctions
