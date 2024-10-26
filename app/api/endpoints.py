@@ -55,8 +55,10 @@ async def select_domain(
             file_info = db.get_file_info_with_domain(userID, domain_info["domain_id"])
             if file_info:
                 content, embeddings = db.get_file_content(file_ids=[info["file_id"] for info in file_info])
+                header_embeddings = processor.extract_header_embeddings(domain_content=content)
                 globals.domain_content[userID] = content
                 globals.index[userID] = processor.create_index(embeddings=embeddings)
+                globals.index_header[userID] = processor.create_index(embeddings=header_embeddings)
                 file_names = [info["file_name"] for info in file_info]
                 domain_name = domain_info["domain_name"]
             else:
@@ -85,7 +87,12 @@ async def generate_answer(
         if userID not in globals.selected_domain.keys():
             sentences, answer, resources = None, "Please select a domain first", None
         elif globals.index[userID] and globals.domain_content[userID]:
-            sentences, answer, resources = processor.search_index(user_query=user_message, domain_content=globals.domain_content[userID], index=globals.index[userID])
+            sentences, answer, resources = processor.search_index(
+                user_query=user_message,
+                domain_content=globals.domain_content[userID],
+                index=globals.index[userID],
+                index_header=globals.index_header[userID]
+                )
             with Database() as db:
                 resources["file_names"] = [db.get_file_name_with_id(file_id=file_id) for file_id in resources["file_ids"]]
                 del resources["file_ids"]
@@ -102,7 +109,7 @@ async def generate_answer(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 @router.post("/io/select_files")
 async def select_files(
     userID: str = Query(...),

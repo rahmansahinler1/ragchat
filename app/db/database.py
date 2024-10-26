@@ -159,7 +159,7 @@ class Database:
     
     def get_file_content(self, file_ids: list):
         query_get_content = """
-        SELECT sentence, sentence_order, page_number, file_id
+        SELECT sentence, is_header, sentence_order, page_number, file_id
         FROM file_content
         WHERE file_id IN %s
         """

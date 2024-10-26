@@ -9,6 +9,24 @@ class ChatbotFunctions:
         load_dotenv()
         self.client = OpenAI()
 
+    def _prompt_for_query_generation(self, query, lang):
+        if lang == "en":
+            return textwrap.dedent(f"""
+            Check the user query for spelling errors, correct the errors and write the corrected query as appropriate to the below template.
+            If the query does not contain a meaningful word, do return "no response". Otherwise, complete the following steps:
+            Create exactly 5 different semantically similar questions based on the user query to be used in semantic search algorithm.
+                                   
+            User query: {query}
+
+            Create response as this template:
+            [Corrected original user query.]
+            [First semantically similar query.]
+            [Second semantically similar query.]
+            [Third semantically similar query.]
+            [Fourth semantically similar query.]
+            [Fifth semantically similar query.]
+            """)
+
     def _prompt_with_context_builder(self, query, context, lang):
         if lang == "tr":
             return textwrap.dedent(f"""
@@ -16,7 +34,7 @@ class ChatbotFunctions:
             Göreviniz, verilen bağlam pencerelerini analiz etmek ve kullanıcının sorgusu temelinde ilgili verileri çıkarmaktır.
 
             Talimatlar:
-            1. Size her biri 3 cümle içeren 5 bağlam penceresi verilecektir.
+            1. Size her biri birkaç cümle içeren bağlam penceresi verilecektir.
             2. Tüm bağlam pencerelerini dikkatle okuyun.
             3. Kullanıcının hangi özel bilgiyi aradığını anlamak için kullanıcının sorgusunu analiz edin.
             4. Bağlam pencerelerinden ilgili bilgileri arayın ve çıkarın.
@@ -26,8 +44,8 @@ class ChatbotFunctions:
 
             Aşağıdaki formatta yanıt verin:
             - Çıkarılan Bilgi: [Çıkarılan veriyi buraya yazın]
-            - Güven Düzeyi: [Yüksek/Orta/Düşük - bilginin metinde ne kadar açık bir şekilde belirtildiğine bağlı olarak]
             - Ek Bağlam: [Gerekirse, kısa bir açıklama veya bağlam sağlayın]
+            - Güven Düzeyi: [Yüksek/Orta/Düşük - bilginin metinde ne kadar açık bir şekilde belirtildiğine bağlı olarak]
 
             Yalnızca verilen bağlam pencerelerindeki bilgilere odaklanmayı unutmayın. Açıkça belirtilenlerin ötesinde harici bilgi eklemeyin veya varsayımlarda bulunmayın.
 
@@ -36,35 +54,40 @@ class ChatbotFunctions:
 
             Kullanıcı Sorgusu: {query}
             """)
-        
-        return textwrap.dedent(f"""
-        You are an AI assistant specialized in extracting specific information from provided text.
-        Your task is to analyze the given context windows and extract relevant data based on the user's query.
+        else:
+            return textwrap.dedent(f"""
+            You are an AI assistant specialized in extracting specific information from provided text.
+            Your task is to analyze the given context windows and extract relevant data based on the user's query.
 
-        Instructions:
-        1. You will be provided with 5 context windows, each containing 3 sentences.
-        2. Carefully read all context windows.
-        3. Analyze the user's query to understand what specific information they are looking for.
-        4. Search for and extract the relevant information from the context windows.
-        5. If the requested information is not present in any of the context windows, state that clearly.
-        6. Present the extracted information in a clear and concise manner.
-        7. If appropriate, provide brief context or explanation for the extracted data.
+            Instructions:
+            1. You will be provided with context windows, each containing several sentences.
+            2. Carefully read all context windows.
+            3. Analyze the user's query to understand what specific information they are looking for.
+            4. Search for and extract the relevant information from the context windows.
+            5. If the requested information is not present in any of the context windows, state that clearly.
+            6. Present the extracted information in a clear and concise manner.
+            7. If appropriate, provide brief context or explanation for the extracted data.
 
-        Respond in the following format:
-        - Extracted Information: [Provide the extracted data here]
+            Respond in the following format:
+            - Extracted Information: [Provide the extracted data here]
+            - Extra information: [Provide brief context or explanation]
+            - Confidence: [High/Medium/Low - based on how clearly the information was stated in the text]
 
-        Remember to focus solely on the information present in the provided context windows. Do not include external knowledge or make assumptions beyond what is explicitly stated.
+            Remember to focus solely on the information present in the provided context windows. Do not include external knowledge or make assumptions beyond what is explicitly stated.
 
-        Context Windows:
-        {context}
+            Context Windows:
+            {context}
 
-        User Query: {query}
-        """)
+            User Query: {query}
+            """)
 
     def response_generation(self, query, context):
         lang = self.detect_language(query=query)
-        prompt = self._prompt_with_context_builder(query, context, lang=lang)
-
+        prompt = self._prompt_with_context_builder(
+            query=query,
+            context=context,
+            lang=lang
+        )
         response = self.client.chat.completions.create(
             model="gpt-3.5-turbo-0125",
             messages=[
@@ -73,16 +96,30 @@ class ChatbotFunctions:
             ],
             temperature=0
         )
-
         answer = response.choices[0].message.content.strip()
         return answer
+    
+    def query_generation(self, query):
+        lang = self.detect_language(query=query)
+        prompt = self._prompt_for_query_generation(
+            query,
+            lang=lang
+        )
+        response = self.client.chat.completions.create(
+            model="gpt-3.5-turbo-0125",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": query}
+            ],
+            temperature=0
+        )
+        new_queries = response.choices[0].message.content.strip()
+        return new_queries
 
     def detect_language(self, query):
         lang = "en"
-
         try:
             lang = detect(text=query)
-
             if lang == "tr":
                 return lang
             else:
