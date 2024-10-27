@@ -55,10 +55,10 @@ async def select_domain(
             file_info = db.get_file_info_with_domain(userID, domain_info["domain_id"])
             if file_info:
                 content, embeddings = db.get_file_content(file_ids=[info["file_id"] for info in file_info])
-                header_embeddings = processor.extract_header_embeddings(domain_content=content)
                 globals.domain_content[userID] = content
+                globals.boost_info[userID] = processor.extract_boost_info(domain_content=content, embeddings=embeddings)
                 globals.index[userID] = processor.create_index(embeddings=embeddings)
-                globals.index_header[userID] = processor.create_index(embeddings=header_embeddings)
+                globals.index_header[userID] = processor.create_index(embeddings=globals.boost_info[userID]["header_embeddings"])
                 file_names = [info["file_name"] for info in file_info]
                 domain_name = domain_info["domain_name"]
             else:
@@ -90,9 +90,10 @@ async def generate_answer(
             sentences, answer, resources = processor.search_index(
                 user_query=user_message,
                 domain_content=globals.domain_content[userID],
+                boost_info=globals.boost_info[userID],
                 index=globals.index[userID],
-                index_header=globals.index_header[userID]
-                )
+                index_header=globals.index_header[userID],
+            )
             with Database() as db:
                 resources["file_names"] = [db.get_file_name_with_id(file_id=file_id) for file_id in resources["file_ids"]]
                 del resources["file_ids"]
@@ -202,7 +203,7 @@ async def upload_files(
         for file_selection in globals.file_selections:
             if userID != file_selection["user_id"]: continue
             file_data = processor.rf.read_file(file_bytes=file_selection["file_bytes"], file_name=file_selection["file_name"])
-            file_embeddings = processor.ef.create_embeddings_from_sentences(file_sentences=file_data["sentences"])
+            file_embeddings = processor.ef.create_embeddings_from_nested_sentences(nested_sentences=file_data["sentences"])
             with Database() as db:
                 domain_info = db.get_domain_info(user_id=userID, selected_domain_number=selected_domain_number)
                 db.insert_file_info(
