@@ -217,9 +217,9 @@ body {
 .cases-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 3rem;  /* Increased gap */
-    max-width: 1400px;  /* Increased max-width */
-    margin: -50px auto 0;  /* Negative margin to move it up */
+    gap: 3rem;
+    max-width: 1400px;
+    margin: -50px auto 0;
     padding: 2rem;
 }
 
@@ -227,7 +227,7 @@ body {
     background-color: #0B0F17;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 1.5rem;
-    padding: 2.5rem;  /* Increased padding */
+    padding: 2.5rem;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
@@ -241,15 +241,15 @@ body {
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 2rem;  /* Increased margin */
+    margin-bottom: 2rem;
 }
 
 .case-icon {
-    font-size: 2rem;  /* Increased size */
+    font-size: 2rem;
 }
 
 .case-header h2 {
-    font-size: 1.8rem;  /* Increased size */
+    font-size: 1.8rem;
     color: #F8F9FA;
     margin: 0;
     font-weight: 600;
@@ -257,8 +257,8 @@ body {
 
 .case-image {
     width: 100%;
-    height: 300px;  /* Increased height */
-    margin-bottom: 2rem;  /* Increased margin */
+    height: 300px;
+    margin-bottom: 2rem;
     border-radius: 1rem;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -272,7 +272,7 @@ body {
 }
 
 .case-card:hover .case-image img {
-    transform: scale(1.05);  /* Subtle zoom effect on hover */
+    transform: scale(1.05);
 }
 
 .case-benefits ul {
@@ -280,22 +280,70 @@ body {
     padding: 0;
     margin: 0;
     display: grid;
-    gap: 0.75rem;  /* Space between benefits */
+    gap: 0.75rem;
 }
 
 .case-benefits .benefit-item {
-    color: rgba(255, 255, 255, 0.8);  /* Slightly more visible */
+    color: rgba(255, 255, 255, 0.8);
     padding: 0.5rem 0;
     display: flex;
     align-items: center;
-    font-size: 1.1rem;  /* Increased size */
+    font-size: 1.1rem;
 }
 
 .benefit-item::before {
     content: '✓';
     color: #10B981;
     margin-right: 0.75rem;
-    font-size: 1.2rem;  /* Increased size */
+    font-size: 1.2rem;
+}
+
+/* About Us Section Styles */
+.about-us-content {
+    padding: 0 1rem;
+}
+
+.about-us-block {
+    margin-bottom: 3rem;
+}
+
+.about-us-block:last-child {
+    margin-bottom: 0;
+}
+
+.section-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #F8F9FA;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.section-emoji {
+    font-size: 2rem;
+}
+
+.mission-statement {
+    font-size: 1.4rem;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+.about-us-block p {
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.8;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.contact-email {
+    color: #10B981 !important;
+    font-weight: 500;
+    font-size: 1.2rem !important;
 }
 
 /* Responsive Design */
@@ -322,6 +370,10 @@ body {
 }
 
 @media (max-width: 768px) {
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+
     .cases-grid {
         grid-template-columns: 1fr;
         margin-top: -30px;
@@ -332,11 +384,27 @@ body {
     }
 
     .case-image {
-        height: 300px;  /* Maintain larger height on mobile */
+        height: 300px;
     }
 
     .case-header h2 {
         font-size: 1.6rem;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+    }
+
+    .mission-statement {
+        font-size: 1.2rem;
+    }
+
+    .about-us-block p {
+        font-size: 1rem;
+    }
+
+    .contact-email {
+        font-size: 1.1rem !important;
     }
 }
 
