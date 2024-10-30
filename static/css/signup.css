@@ -1,145 +1,309 @@
+/* Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
-  
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    font-family: 'Dai Banna SIL', sans-serif;
-    background: hsla(0, 0%, 14%, 1);
+  font-family: 'Inter', sans-serif;
+  background-color: #0B0F17;
+  color: #F8F9FA;
+  min-height: 100vh;
+}
 
-    background: radial-gradient(circle, hsla(0, 0%, 14%, 1) 0%, hsla(0, 4%, 11%, 1) 0%, hsla(0, 3%, 8%, 1) 0%, hsla(0, 0%, 9%, 1) 30%, hsla(0, 0%, 0%, 1) 100%);
+/* Navigation */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: transparent;
+}
 
-    background: -moz-radial-gradient(circle, hsla(0, 0%, 14%, 1) 0%, hsla(0, 4%, 11%, 1) 0%, hsla(0, 3%, 8%, 1) 0%, hsla(0, 0%, 9%, 1) 30%, hsla(0, 0%, 0%, 1) 100%);
+.brand {
+  text-decoration: none;
+}
 
-    background: -webkit-radial-gradient(circle, hsla(0, 0%, 14%, 1) 0%, hsla(0, 4%, 11%, 1) 0%, hsla(0, 3%, 8%, 1) 0%, hsla(0, 0%, 9%, 1) 30%, hsla(0, 0%, 0%, 1) 100%);
-    
+.home-button {
+  background-color: transparent;
+  border: none;
+  color: #F8F9FA;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: color 0.3s ease;
+}
+
+.home-button:hover {
+  color: #10B981;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  color: #F8F9FA;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: #e9ecef;
+}
+
+.login-button {
+  background-color: #F8F9FA;
+  color: #000;
+  padding: 0.5rem 1.5rem;
+  border-radius: 25px;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.login-button:hover {
+  background-color: #e9ecef;
+}
+
+/* Header Styles */
+.page-header {
+  height: 300px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(180deg, 
+      rgba(11, 15, 23, 0) 0%,
+      rgba(16, 185, 129, 0.1) 50%,
+      rgba(11, 15, 23, 1) 100%
+  );
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.page-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  opacity: 0.3;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.header-icon {
+  font-size: 3.5rem;
+  color: #F8F9FA;
+}
+
+.header-content h1 {
+  font-size: 4rem;
+  font-weight: 700;
+  color: #F8F9FA;
+  font-family: 'Montserrat', sans-serif;
+  margin: 0;
+}
+
+/* Signup Container and Card */
+.signup-container {
+  width: 100%;
+  max-width: 480px;
+  margin: -50px auto 0;
+  padding: 0 1rem;
+  position: relative;
+  z-index: 2;
+}
+
+.signup-card {
+  background-color: #212121;
+  border-radius: 16px;
+  padding: 2.5rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Form Elements */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  color: #F8F9FA;
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.required {
+  color: #dc3545;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper i {
+  position: absolute;
+  left: 16px;
+  color: #F8F9FA;
+  font-size: 1rem;
+}
+
+.input-wrapper input {
+  width: 100%;
+  background-color: #424242;
+  border: none;
+  padding: 12px 12px 12px 45px;
+  color: #F8F9FA;
+  border-radius: 6px;
+  height: 48px;
+  font-size: 1rem;
+}
+
+.input-wrapper input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5);
+}
+
+/* Show Password Button */
+.show-button {
+  position: absolute;
+  right: 16px;
+  background-color: transparent;
+  border: none;
+  color: #F8F9FA;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.show-button:hover {
+  color: #10B981;
+}
+
+/* Password Requirements */
+.password-requirements {
+  margin-top: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.requirement {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+/* Signup Button */
+.signup-btn {
+  width: 100%;
+  background-color: #10B981;
+  color: #F8F9FA;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  margin: 1.5rem 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.signup-btn:hover {
+  background-color: #0EA271;
+  transform: translateY(-2px);
+}
+
+/* Login Link */
+.login-link {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+}
+
+.login-link a {
+  color: #10B981;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.login-link a:hover {
+  color: #0EA271;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header-content h1 {
+      font-size: 3rem;
   }
-  .dai-banna-sil-medium {
-    font-family: "Dai Banna SIL", serif;
-    font-weight: 500;
-    font-style: normal;
+
+  .header-icon {
+      font-size: 2.8rem;
   }
+
   .signup-card {
-    width: 567px;
-    height: 764px;
-    padding: 2rem;
-    border-radius: 20px;
-    box-shadow: 0 4px 20px rgb(255, 255, 255);
-    background-color: #212121;
-    border: 2px solid white;
+      padding: 2rem;
   }
-  .logo {
-    position: absolute;
-    top: 4%; /* Adjust as needed */
-    left: 5%; /* Adjust as needed */
-    display: flex;
-    align-items: center;
 }
 
-.logo-text {
-    font-size: 2rem; /* Adjust to your desired font size */
-    color: white; /* Or any desired color */
+@media (max-width: 480px) {
+  .navbar {
+      padding: 0.5rem 1rem;
+  }
+
+  .header-content h1 {
+      font-size: 2.5rem;
+  }
+
+  .header-icon {
+      font-size: 2.3rem;
+  }
+
+  .nav-link, 
+  .login-button {
+      font-size: 0.9rem;
+  }
+
+  .signup-container {
+      max-width: 90%;
+  }
+
+  .signup-card {
+      padding: 1.5rem;
+  }
+
+  .password-requirements {
+      grid-template-columns: 1fr;
+  }
+
+  .requirement {
+      font-size: 0.85rem;
+  }
 }
-  .return-link {
-    font-size: 0.9rem;
-    color: #007AEA;
-    text-decoration: none;
-    
-  }
-  .login-redirect {
-    font-size: 1.3rem;
-    margin-left: 10%;
-    color: white;
-  }
-  .confirm-btn {
-    background-color: #007AEA;
-    font-size: 1.2rem;
-  }
-  .login-text {
-    font-size: 1.3rem;
-    text-decoration: none;
-    color: #007AEA;
-  }
-  .login-text:hover {
-    color: #045eb3;
-    text-decoration: none;
-  }
-  .return-link:hover {
-    color: #045eb3;
-    text-decoration: none;
-  }
-
-  .signup-title {
-    font-size: 4rem;
-    margin-left: 10%;
-    color: white;
-  }
-
-  .form-text-small {
-    font-size: 0.9rem;
-    color: white;
-  }
-  .form-label {
-    font-size: 1.2rem;
-    color: white;
-  }
-  .user-info-form {
-    margin-left: 10%;
-    margin-right: 10%;
-  }
-  .btn-signup p {
-    border: none;
-    font-size: 1.6rem;
-    color: white;
-    text-align: center;
-    line-height: 100%;
-    position: relative;
-    top: 18%;
-  }
-  .signup-container{
-    background-color: #007AEA;
-    width: 35%;
-    border: 1px solid white;
-    border-radius: 20px;
-    margin: auto;
-  }
-  .signup-container:hover {
-    background-color: #045eb3;
-  }
-
-  .form-check-label {
-    font-size: 0.9rem;
-  }
-  .required:after {
-    content:" *";
-    color: red;
-  }
-  .form-control {
-    background-color: #3a3a3a;
-    color: white;
-  }
-  .form-control:focus {
-    background-color: #3a3a3a;
-    color: white;
-    border: 1px solid white;
-  }
-  .btn-outline-secondary i, span{
-    color: white;
-  }
-  .btn-outline-secondary {
-    background-color: #3a3a3a;
-    border: 1px solid white;
-  }
-  .btn-outline-secondary:focus {
-    background-color: #212121;
-    border: 1px solid white;
-  }
-  .btn-outline-secondary:hover {
-    background-color: #212121;
-    border: 1px solid white;
-  }
-  .input-group-text {
-    background-color: #3a3a3a;
-    color: white;
-  }
