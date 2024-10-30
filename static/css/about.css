@@ -17,16 +17,34 @@ body {
 /* Navigation Styles */
 .navbar {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     padding: 1rem 2rem;
     position: fixed;
     top: 0;
-    right: 0;
     left: 0;
+    right: 0;
     z-index: 1000;
     background-color: transparent;
 }
+
+.brand {
+    text-decoration: none;
+}
+
+.home-button {
+    background-color: transparent;
+    border: none;
+    color: #F8F9FA;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    transition: color 0.3s ease;
+  }
+  
+  .home-button:hover {
+    color: #10B981;
+  }
 
 .nav-links {
     display: flex;
