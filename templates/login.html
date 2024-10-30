@@ -1,74 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Log In</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In</title>
 
-  <!-- Favicon -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
-  <link rel="manifest" href="/static/favicon/site.webmanifest">
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/static/favicon/site.webmanifest">
 
-  <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <!-- External -->
-  <link href="https://fonts.googleapis.com/css2?family=Dai+Banna+SIL:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <link rel="stylesheet" href="/static/css/login.css">
+    <!-- External -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Dai+Banna+SIL:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/login.css">
 </head>
 
 <body>
-  <div class="logo d-flex align-items-center">
-      <div class="logo-text dai-banna-sil-medium">ragchat</div>
-  </div>
-  <div class="login-card">
-    <!-- Logo and Return Link -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <a href="/" class="return-link">
-        <i class="fa-solid fa-circle-arrow-left"></i> Return to Homepage
-      </a>
-    </div>
-    <!-- Sign-up Title -->
-    <h1 class="login-title dai-banna-sil-medium">Log-in</h1>
-    <p class="dai-banna-sil-medium signup-redirect">If you are new to Ragchat: <a href="/signup" class="signup-text">Sign-up</a></p>
-    <!-- Form -->
-    <form id="login-form">
-      <!-- Email Field -->
-      <div class="mb-3 user-info-form">
-        <label for="email" class="form-label dai-banna-sil-medium required">Email</label>
-        <div class="input-group">
-          <span class="input-group-text" style="background-color:#3a3a3a;color:white;">
-            <i class="fas fa-envelope"></i>
-          </span>
-          <input type="email" class="form-control dai-banna-sil-medium" id="email" required>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <a href="/" class="brand">
+            <button class="home-button">
+                <i class="fas fa-home"></i>
+            </button>
+        </a>
+        <div class="nav-links">
+            <a href="/about" class="nav-link">About</a>
+            <a href="/signup" class="signup-button">Sign Up</a>
         </div>
-      </div>
-      <!-- Password Field -->
-      <div class="mb-3 user-info-form">
-        <label for="password" class="form-label dai-banna-sil-medium required">Password</label>
-        <div class="input-group">
-          <span class="input-group-text" style="background-color:#3a3a3a;color:white;">
-            <i class="fas fa-lock"></i>
-          </span>
-          <input type="password" class="form-control" id="password" required>
-          <button type="button" id="toggle-password" class="btn btn-outline-secondary" style="background-color:#3a3a3a; border:1px solid white;">
-            <i class="fas fa-eye"></i> <span>Show</span>
-          </button>
-        </div>
-      </div>
-      <!-- Log-in Button -->
-      <div class="d-grid mt-4 login-container">
-        <button type="submit" id="login-button" class="btn btn-login"><p class="dai-banna-sil-medium">Log-in</p></button>
-      </div>
-    </form>
-  </div>
+    </nav>
 
-  <!-- External libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
-  <!-- App Scripts -->
-  <script src="/static/js/login-initializer.js"></script>
+    <!-- Header Section -->
+    <header class="page-header">
+        <div class="header-content">
+            <i class="fas fa-door-open header-icon"></i>
+            <h1>GET IN HERE QUICK</h1>
+        </div>
+    </header>
+
+    <!-- Main Login Card -->
+    <div class="login-container">
+        <div class="login-card">
+            <form id="login-form">
+                <!-- Email Field -->
+                <div class="form-group">
+                    <label for="email" class="form-label">Email <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" required>
+                    </div>
+                </div>
+
+                <!-- Password Field -->
+                <div class="form-group">
+                    <label for="password" class="form-label">Password <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" required>
+                        <button type="button" class="show-button" id="toggle-password">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Login Button -->
+                <button type="submit" id="login-button" class="login-btn">
+                    Log-in
+                </button>
+
+                <!-- Forgot Password Link -->
+                <a href="#" class="forgot-link">Forgot password?</a>
+
+                <!-- Divider -->
+                <div class="divider">or</div>
+
+                <!-- Create Account Button -->
+                <a href="/signup" class="create-account-btn">
+                    Create new account
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+    <script src="/static/js/login-initializer.js"></script>
 </body>
 </html>
