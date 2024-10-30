@@ -144,18 +144,19 @@ body {
 }
 
 /* Form Elements */
-.form-group {
+.form-group.user-info-form {
   margin-bottom: 2rem;
 }
 
-.form-label {
+.form-label.dai-banna-sil-medium {
   color: #F8F9FA;
   display: block;
   margin-bottom: 0.75rem;
   font-size: 1.1rem;
 }
 
-.required {
+.form-label.dai-banna-sil-medium.required::after {
+  content: " *";
   color: #dc3545;
 }
 
@@ -163,6 +164,9 @@ body {
   position: relative;
   display: flex;
   align-items: center;
+  background-color: #2A2A2A;
+  border-radius: 6px;
+  height: 48px;
 }
 
 .input-wrapper i {
@@ -172,26 +176,31 @@ body {
   font-size: 1rem;
 }
 
-.input-wrapper input {
+.input-wrapper .form-control {
   width: 100%;
-  background-color: #424242;
+  background-color: transparent;
   border: none;
   padding: 12px 12px 12px 45px;
   color: #F8F9FA;
-  border-radius: 6px;
-  height: 48px;
+  height: 100%;
   font-size: 1rem;
 }
 
-.input-wrapper input:focus {
+.input-wrapper .form-control:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5);
+  box-shadow: none;
+  background-color: transparent;
+}
+
+.form-control.dai-banna-sil-medium {
+  font-family: "Dai Banna SIL", serif !important;
+  font-weight: 500;
 }
 
 /* Show Password Button */
-.show-button {
+.show-button.btn.btn-outline-secondary {
   position: absolute;
-  right: 16px;
+  right: 12px;
   background-color: transparent;
   border: none;
   color: #F8F9FA;
@@ -202,6 +211,7 @@ body {
   justify-content: center;
   cursor: pointer;
   transition: color 0.3s ease;
+  padding: 0;
 }
 
 .show-button i {
@@ -210,30 +220,52 @@ body {
   font-size: 1.1rem;
 }
 
-.show-button:hover {
+.show-button:hover,
+.show-button:focus,
+.show-button:active {
   color: #10B981;
-}
-
-.show-button span {
-  display: none;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 /* Login Button */
-.login-btn {
+.d-grid {
+  display: grid !important;
+}
+
+.mt-4 {
+  margin-top: 1.5rem !important;
+}
+
+.btn.btn-login.login-btn {
   width: 100%;
   background-color: #10B981;
   color: #F8F9FA;
   border: none;
   padding: 14px;
   border-radius: 8px;
-  font-size: 1.1rem;
-  margin: 1.5rem 0;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Dai Banna SIL", serif;
+  font-weight: 500;
+  font-size: 1.2rem;
 }
 
-.login-btn:hover {
+.btn-login:hover {
   background-color: #0EA271;
+}
+
+.btn-login p {
+  margin: 0;
+  padding: 0;
+  font-family: "Dai Banna SIL", serif !important;
+  font-weight: 500;
+  font-size: 1.2rem;
+  line-height: 1;
 }
 
 /* Forgot Password Link */
@@ -248,14 +280,14 @@ body {
 }
 
 .forgot-link:hover {
-  color: #0EA271;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 /* Divider */
 .divider {
   text-align: center;
   position: relative;
-  margin: 2rem 0;
+  margin: 1.5rem 0;
   color: #F8F9FA;
   font-size: 1rem;
 }
@@ -267,7 +299,7 @@ body {
   top: 50%;
   width: 45%;
   height: 1px;
-  background-color: #424242;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .divider::before {
@@ -347,20 +379,23 @@ body {
       padding: 1.5rem;
   }
 
-  .form-group {
+  .form-group.user-info-form {
       margin-bottom: 1.5rem;
   }
 
-  .form-label {
+  .form-label.dai-banna-sil-medium {
       font-size: 1rem;
   }
 
-  .input-wrapper input {
+  .input-wrapper {
       height: 44px;
+  }
+
+  .input-wrapper .form-control {
       font-size: 0.95rem;
   }
 
-  .login-btn,
+  .btn-login,
   .create-account-btn {
       font-size: 1rem;
       padding: 12px;
