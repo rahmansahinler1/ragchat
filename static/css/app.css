@@ -378,6 +378,41 @@ body {
   height: 100%;
 }
 
+.info-section, .explain-section {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+
+.info-section i, .explain-section i {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.info-section span, .explain-section span {
+  flex-grow: 1;
+}
+
+.message-section {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+
+.message-section i {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.message-section span {
+  flex-grow: 1;
+}
+
+.message-section img {
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
 /* General chat box styling */
 .chat-box {
   width: 100%;

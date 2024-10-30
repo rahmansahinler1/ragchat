@@ -91,29 +91,20 @@ class Processor:
                 widen_sentences.append(self._wide_sentences(window_size=2, sentence_index=sentence_index, domain_content=domain_content))
             else:
                widen_sentences.append(self._wide_sentences(window_size=3, sentence_index=sentence_index, domain_content=domain_content))
-        context = self._create_dynamic_context(sentences=widen_sentences)
 
-        # Resource extraction
+        context = self._create_dynamic_context(sentences=widen_sentences)
+        response = self.cf.response_generation(query=user_query, context=context)
+        answer = self._split_response(raw_answer=response)
         resources = self._extract_resources(sentence_indexes=sorted_sentence_indexes, domain_content=domain_content)
 
-        # Response generation
-        response = self.cf.response_generation(query=user_query, context=context)
-
-        return widen_sentences, response, resources
+        return answer, resources, widen_sentences
     
     def query_preprocessing(self, user_query):
         generated_queries = self.cf.query_generation(query=user_query)
-        clean_query_list = []
-        if generated_queries[0][0] == "[":
-            splitted_queries = generated_queries.split('\n')
-            for query in splitted_queries:
-                if query[0] == "[" and query[-1] == "]":
-                    clean_query_list.append(query.split(":")[1][1: -1])
-                else:
-                    clean_query_list.append(query)
+        if not generated_queries:
+            return None
         else:
-            clean_query_list.append(generated_queries.split("\n"))
-        return clean_query_list
+            return generated_queries.split("\n")
     
     def _create_boost_array(self, boost_info: dict, sentence_amount:int, query_vector:np.ndarray, index_header):
         boost_array = np.ones(sentence_amount)
@@ -177,7 +168,7 @@ class Processor:
     def _create_dynamic_context(self, sentences):
         context = ""
         for i, sentence in enumerate(sentences):
-            context += f"Context{i + 1}: {sentence}\n"
+            context += f"{i + 1}: {sentence}\n"
         return context
     
     def extract_boost_info(
@@ -193,3 +184,19 @@ class Processor:
             "headers": headers,
             "header_embeddings": header_embeddings
         }
+    
+    def _split_response(self, raw_answer: str):
+        try:
+            parts = raw_answer.split('E: ')
+            info = parts[0].replace('I: ', '').strip()
+            explanation = parts[1].strip() if len(parts) > 1 else ''
+            
+            return {
+                'information': info,
+                'explanation': explanation
+            }
+        except:
+            return {
+                'information': raw_answer,
+                'explanation': ''
+            }

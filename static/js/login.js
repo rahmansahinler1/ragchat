@@ -38,7 +38,7 @@ async function handleLogin(email, password, loginButton, loginForm) {
         if (response.ok) {
             displayMessage(data.message, loginButton, loginForm);
             localStorage.setItem('sessionId', data.session_id);
-            setTimeout(() => window.location.href = `/app/${data.session_id}`, 1000);
+            setTimeout(() => window.location.href = `/chat/${data.session_id}`, 1000);
         } else {
             displayError(data.message, loginButton, loginForm);
         }

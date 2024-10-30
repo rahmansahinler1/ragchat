@@ -28,7 +28,7 @@ async def login_page(request: Request):
 async def signup_page(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
 
-@app.get("/app/{session_id}")
+@app.get("/chat/{session_id}")
 async def app_page(request: Request, session_id: str, cookie_session: str = Cookie(None)):
     effective_session = cookie_session or session_id
     with Database() as db:

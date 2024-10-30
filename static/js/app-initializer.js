@@ -33,6 +33,7 @@ async function initialize() {
             domainButtons: Array.from(document.querySelectorAll('.btn-circle')),
             sendButton: document.querySelector('.btn-send-message'),
             userInput: document.getElementById('user-input'),
+            userInputTextbox: document.getElementById('bottom-send-tools'),
             chatBox: document.querySelector('.chat-box'),
             resourceSection: document.querySelector('.resource-section')
         });

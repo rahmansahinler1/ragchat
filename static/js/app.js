@@ -12,6 +12,7 @@ function initAppWidgets({
     domainButtons,
     sendButton,
     userInput,
+    userInputTextbox,
     chatBox,
     resourceSection
 }) {
@@ -33,7 +34,7 @@ function initAppWidgets({
 
     userInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
-            sendMessage(userInput, userData);
+            sendMessage(userInput, userData, userInputTextbox);
         }
     });
 
@@ -55,13 +56,86 @@ function addMessageToChat(message, sender) {
     const messageElement = document.createElement('div');
     messageElement.classList.add('message');
     
+    // Create message section with icon
+    const messageSection = document.createElement('div');
+    messageSection.classList.add('message-section');
+    
     if (sender.toLowerCase() === 'you') {
         messageElement.classList.add('user-message');
+        
+        const userIcon = document.createElement('i');
+        userIcon.classList.add('fas', 'fa-user-circle');
+        userIcon.style.marginRight = '8px';
+        userIcon.style.color = '#007AEA';
+        
+        const messageText = document.createElement('span');
+        messageText.textContent = message;
+        
+        messageSection.appendChild(userIcon);
+        messageSection.appendChild(messageText);
     } else {
         messageElement.classList.add('bot-message');
+        
+        // Create custom ragchat icon
+        const ragchatIcon = document.createElement('img');
+        ragchatIcon.src = '/static/favicon/favicon-32x32.png';
+        ragchatIcon.alt = 'ragchat';
+        ragchatIcon.style.width = '20px';
+        ragchatIcon.style.height = '20px';
+        ragchatIcon.style.marginRight = '8px';
+        ragchatIcon.style.marginTop = '4px';
+        
+        const messageText = document.createElement('span');
+        messageText.textContent = message;
+        
+        messageSection.appendChild(ragchatIcon);
+        messageSection.appendChild(messageText);
     }
     
-    messageElement.textContent = message;
+    messageElement.appendChild(messageSection);
+    window.chatBox.appendChild(messageElement);
+    window.chatBox.scrollTop = window.chatBox.scrollHeight;
+}
+
+function generateResponse(information, explanation) {
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message', 'bot-message');
+    
+    // Create information section
+    const infoSection = document.createElement('div');
+    infoSection.classList.add('info-section');
+    
+    const infoIcon = document.createElement('i');
+    infoIcon.classList.add('fas', 'fa-info-circle');
+    infoIcon.style.marginRight = '8px';
+    infoIcon.style.color = '#007AEA';
+    
+    const infoText = document.createElement('span');
+    infoText.textContent = information;
+    
+    infoSection.appendChild(infoIcon);
+    infoSection.appendChild(infoText);
+    
+    // Create explanation section
+    const explainSection = document.createElement('div');
+    explainSection.classList.add('explain-section');
+    explainSection.style.marginTop = '12px';
+    
+    const explainIcon = document.createElement('i');
+    explainIcon.classList.add('fas', 'fa-question-circle');
+    explainIcon.style.marginRight = '8px';
+    explainIcon.style.color = '#6c757d';
+    
+    const explainText = document.createElement('span');
+    explainText.textContent = explanation;
+    
+    explainSection.appendChild(explainIcon);
+    explainSection.appendChild(explainText);
+    
+    // Add sections to message
+    messageElement.appendChild(infoSection);
+    messageElement.appendChild(explainSection);
+    
     window.chatBox.appendChild(messageElement);
     window.chatBox.scrollTop = window.chatBox.scrollHeight;
 }
@@ -167,7 +241,7 @@ function updateDomainList(domainInfo) {
 }
 
 // Request functions
-async function sendMessage(userInput, userData) {
+async function sendMessage(userInput, userData, userInputTextbox) {
     const message = userInput.value.trim();
 
     if (!message) {
@@ -177,6 +251,7 @@ async function sendMessage(userInput, userData) {
 
     if (message) {
         window.addMessageToChat(message, 'you');
+        userInput.value = '';
         try {
             const userID = userData.user_id;
             const url = `/api/v1/qa/generate_answer?userID=${encodeURIComponent(userID)}`;
@@ -191,10 +266,10 @@ async function sendMessage(userInput, userData) {
             }
 
             const data = await response.json();
-            window.addMessageToChat(data.answer, 'ragchat');
+            generateResponse(data.information, data.explanation);
 
-            if (data.resources && data.sentences) {
-                populateResources(data.resources, data.sentences)
+            if (data.resources && data.resource_sentences) {
+                populateResources(data.resources, data.resource_sentences)
             }
 
         } catch (error) {

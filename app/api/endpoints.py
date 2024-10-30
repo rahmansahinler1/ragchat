@@ -85,9 +85,12 @@ async def generate_answer(
         data = await request.json()
         user_message = data.get("user_message")
         if userID not in globals.selected_domain.keys():
-            sentences, answer, resources = None, "Please select a domain first", None
+            return JSONResponse(
+                content={"message": "Please select a domain first"},
+                status_code=500,
+            )
         elif globals.index[userID] and globals.domain_content[userID]:
-            sentences, answer, resources = processor.search_index(
+            answer, resources, resource_sentences = processor.search_index(
                 user_query=user_message,
                 domain_content=globals.domain_content[userID],
                 boost_info=globals.boost_info[userID],
@@ -97,17 +100,21 @@ async def generate_answer(
             with Database() as db:
                 resources["file_names"] = [db.get_file_name_with_id(file_id=file_id) for file_id in resources["file_ids"]]
                 del resources["file_ids"]
+            
+            return JSONResponse(
+                content={
+                    "information": answer["information"],
+                    "explanation": answer["explanation"],
+                    "resources": resources,
+                    "resource_sentences": resource_sentences
+                },
+                status_code=200,
+            )
         else:
-            sentences, answer, resources = None, "Selected domain is empty", None
-
-        return JSONResponse(
-            content={
-                "sentences": sentences,
-                "answer": answer,
-                "resources": resources
-            },
-            status_code=200,
-        )
+            return JSONResponse(
+                content={"message": "Selected domain is empty!"},
+                status_code=500,
+            )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

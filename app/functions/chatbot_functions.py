@@ -62,21 +62,20 @@ class ChatbotFunctions:
             Göreviniz, verilen bağlam pencerelerini analiz etmek ve kullanıcının sorgusu temelinde ilgili verileri çıkarmaktır.
 
             Talimatlar:
-            1. Size her biri birkaç cümle içeren bağlam penceresi verilecektir.
-            2. Her bağlam cümlesinin sonuna bir güven düzeyi sayısı eklenmiştir; daha yüksek güven sayısı, yanıt oluştururken daha yüksek öncelik anlamına gelir. Güven düzeyleri 0 ile 1 arasında olacaktır.
-            3. Tüm bağlam pencerelerini dikkatle okuyun.
-            4. Kullanıcının hangi özel bilgiyi aradığını anlamak için kullanıcının sorgusunu analiz edin.
-            5. Bağlam pencerelerinden ilgili bilgileri arayın ve çıkarın.
-            6. İstenen bilgi bağlam pencerelerinin hiçbirinde mevcut değilse, bunu açıkça belirtin.
-            7. Çıkarılan bilgileri açık ve özlü bir şekilde sunun.
-            8. Uygunsa, çıkarılan veriler için kısa bir bağlam veya açıklama sağlayın.
+            1. Size her biri birkaç cümle içeren ve numaralarla ayırt edilebilen bağlam pencereleri sağlanacaktır. Örneğin 1:, 2: şeklinde.
+            2. Tüm bağlam pencerelerini dikkatlice okuyup anlayın.
+            3. Kullanıcının sorgusunu analiz ederek ne tür spesifik bilgileri aradığını anlayın.
+            4. Hiyerarşiye göre bağlam pencerelerinden ilgili bilgileri arayın ve çıkarın; cevabınız bu önceliği yansıtmalıdır.
+            5. Verilen bağlam pencereleri içinde çelişkili bilgiler varsa, her zaman üst bağlam penceresini kullanın (Örneğin, 3 yerine 1).
+            6. İstenen bilgi hiçbir bağlam penceresinde mevcut değilse bunu açıkça belirtin.
+            7. Çıkardığınız bilgiyi açık ve net bir şekilde sunun.
+            8. Yalnızca sağlanan bağlam pencerelerindeki bilgilere odaklanın. Ek bilgi eklemeyin veya açıkça belirtilmeyen varsayımlarda bulunmayın.
+            9. Çıkarılan bilgiler maddeler içeriyorsa, yanıtı maddeler halinde ayırarak verin.
+            10. Yanıt verdikten sonra bağlam pencerelerindeki bilgileri kullanarak neden-sonuç ilişkisini vurgulayan detaylı bir açıklama hazırlayın.
 
-            Aşağıdaki formatta yanıt verin:
-            - Çıkarılan Bilgi: [Çıkarılan veriyi buraya yazın]
-            - Ek Bağlam: [Gerekirse, kısa bir açıklama veya bağlam sağlayın]
-            - Güven Düzeyi: [Yüksek/Orta/Düşük - bilginin metinde ne kadar açık bir şekilde belirtildiğine bağlı olarak]
-
-            Yalnızca verilen bağlam pencerelerindeki bilgilere odaklanmayı unutmayın. Açıkça belirtilenlerin ötesinde harici bilgi eklemeyin veya varsayımlarda bulunmayın.
+            Aşağıdaki formatta yanıt verin ve her zaman her ikisini de doldurun:
+            I: [Çıkarılan veriyi buraya yazın]
+            E: [Açıklamayı buraya yazın]
 
             Bağlam Pencereleri:
             {context}
@@ -89,21 +88,20 @@ class ChatbotFunctions:
             Your task is to analyze the given context windows and extract relevant data based on the user's query.
 
             Instructions:
-            1. You will be provided with context windows, each containing several sentences.
-            2. There are confidence level specified as numbers after each context sentence, higher confidence number means higher priority in creating answer. Create the answer according to confidence levels. Confidence levels are going to be between 0 and 1.
-            3. Carefully read all context windows.
-            4. Analyze the user's query to understand what specific information they are looking for.
-            5. Search for and extract the relevant information from the context windows according to the hierarchy and ensure your response reflects this priority.
+            1. You will be provided with context windows, each containing several sentences and can be differentiated with numbers. Like Context1:, Context2:
+            2. Carefully read and understand all of the context windows.
+            3. Analyze the user's query to understand what specific information they are looking for.
+            4. Search for and extract the relevant information from the context windows according to the hierarchy and ensure your response reflects this priority.
+            5. If there are contradictory information within the given context windows, always use the higher context window while generating the answer. (For example Context1 insted of Context3)
             6. If the requested information is not present in any of the context windows, state that clearly.
             7. Present the extracted information in a clear and concise manner.
-            8. If appropriate, provide brief context or explanation for the extracted data.
+            8. Remember to focus solely on the information present in the provided context windows. Do not include external knowledge or make assumptions beyond what is explicitly stated.
+            9. If the extracted information includes substances give the answer also dividing it into substances.
+            10. After giving the answer prepare a detailed explanation with using underline cause effect relationship using the information given in context windows.
 
-            Respond in the following format:
-            - Extracted Information: [Provide the extracted data here]
-            - Extra information: [Provide brief context or explanation]
-            - Confidence: [High/Medium/Low - based on how clearly the information was stated in the text]
-
-            Remember to focus solely on the information present in the provided context windows. Do not include external knowledge or make assumptions beyond what is explicitly stated.
+            Answer in the following format and always give them both:
+            I: [Provide the extracted data here]
+            E: [Provide explanation]
 
             Context Windows:
             {context}
