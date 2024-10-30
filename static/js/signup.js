@@ -45,7 +45,6 @@ async function handleSignup(name, surname, email, password, signupButton, signup
 
         if (response.ok) {
             displayMessage(data.message, signupButton, signupForm);
-            setTimeout(() => window.location.href = '/', 5000);
         } else {
             displayError(data.message, signupButton, signupForm);
         }
@@ -75,7 +74,7 @@ function displayError(message, signupButton, signupForm) {
     errorDiv.className = 'alert alert-danger mt-3';
     errorDiv.textContent = message;
     signupForm.insertBefore(errorDiv, signupButton.parentElement);
-    setTimeout(() => errorDiv.remove(), 5000);
+    setTimeout(() => errorDiv.remove(), 10000);
 }
 
 function displayMessage(message, signupButton, signupForm) {
@@ -83,7 +82,7 @@ function displayMessage(message, signupButton, signupForm) {
     messageDiv.className = 'alert alert-success mt-3';
     messageDiv.textContent = message;
     signupForm.insertBefore(messageDiv, signupButton.parentElement);
-    setTimeout(() => messageDiv.remove(), 5000);
+    setTimeout(() => messageDiv.remove(), 10000);
 }
 
 function togglePassword(passwordInput, toggleButton) {

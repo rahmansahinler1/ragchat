@@ -333,8 +333,8 @@ async def signup(
         with Database() as db:
             user_info = db.get_user_info_w_email(user_email=user_email)
             if user_info:
-                message = "User already signed up! If you forget your password please contact with --> rahmansahinler1@gmail.com"
-                status_code = 401
+                message = "User already signed up! If you want activation or forgot password, plase contact with -> rahmansahinler1@gmail.com"
+                status_code = 400
             else:
                 user_id = str(uuid.uuid4())
                 db.insert_user_info(
@@ -354,7 +354,7 @@ async def signup(
                         domain_number=i+1,
                     )
                 db.conn.commit()
-                message = "Signup sucessfull! Please contact with --> rahmansahinler1@gmail.com for activation!"
+                message = "Successfully Signed Up! To activate your account, please contact with ↓ rahmansahinler1@gmail.com"
                 status_code = 201
 
         return JSONResponse(

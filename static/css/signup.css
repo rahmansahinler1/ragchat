@@ -222,6 +222,14 @@ body {
 }
 
 /* Signup Button */
+.d-grid {
+  display: grid !important;
+}
+
+.mt-4 {
+  margin-top: 1.5rem !important;
+}
+
 .signup-btn {
   width: 100%;
   background-color: #10B981;
