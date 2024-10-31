@@ -11,7 +11,7 @@ class ReadingFunctions:
             "en_core_web_sm",
             disable=["tagger", "attribute_ruler", "lemmatizer", "ner", "textcat", "custom"]
         )
-        self.max_file_size_mb = 10
+        self.max_file_size_mb = 50
 
     def read_file(self, file_bytes: bytes, file_name: str):
         """
