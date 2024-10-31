@@ -260,6 +260,7 @@ async def remove_file_upload(
             db.conn.commit()
             message = f"{deleted_files} files and {deleted_content} sentences deleted"
             domain_name = domain_info["domain_name"]
+            status_code = 400
         if file_info:
             file_names = [info["file_name"] for info in file_info]
             status_code = 200
