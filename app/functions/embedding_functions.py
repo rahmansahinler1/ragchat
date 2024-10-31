@@ -26,7 +26,7 @@ class EmbeddingFunctions:
             sentence: list
     ) -> np.ndarray:
         query_embedding = self.client.embeddings.create(model="text-embedding-ada-002", input=sentence)
-        return np.array(query_embedding.data[0].embedding, float).reshape(1, -1)
+        return np.array(query_embedding.data[0].embedding, dtype=np.float16).reshape(1, -1)
     
     def create_embeddings_from_sentences(
         self,
@@ -34,4 +34,4 @@ class EmbeddingFunctions:
     ) -> np.ndarray:
         
         embeddings = self.client.embeddings.create(model="text-embedding-ada-002", input=sentences)
-        return np.array([x.embedding for x in embeddings.data], dtype=np.float32)
+        return np.array([x.embedding for x in embeddings.data], dtype=np.float16)

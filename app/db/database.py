@@ -58,7 +58,7 @@ class Database:
             raise e
     
     def _bytes_to_embeddings(self, byte_array):
-        return np.frombuffer(byte_array.tobytes(), dtype=np.float32).reshape(byte_array.shape[0], -1)
+        return np.frombuffer(byte_array.tobytes(), dtype=np.float16).reshape(byte_array.shape[0], -1)
 
     def get_user_info_w_email(self, user_email: str):
         query_get_user_info = """
@@ -301,7 +301,7 @@ class Database:
                             sentence,
                             is_header,
                             sentence_order + 1, 
-                            psycopg2.Binary(embedding.astype(np.float32).tobytes())
+                            psycopg2.Binary(embedding.tobytes())
                         )
                     )
 
