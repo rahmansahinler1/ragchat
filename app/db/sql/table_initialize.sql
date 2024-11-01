@@ -31,10 +31,9 @@ CREATE TABLE IF NOT EXISTS file_info (
 CREATE TABLE IF NOT EXISTS file_content (
     content_id SERIAL PRIMARY KEY,
     file_id UUID NOT NULL,
-    page_number INTEGER,
     sentence TEXT NOT NULL,
     is_header BOOLEAN DEFAULT FALSE,
-    sentence_order INTEGER,
+    page_number INTEGER,
     embedding BYTEA,
     FOREIGN KEY (file_id) REFERENCES file_info(file_id)
 );

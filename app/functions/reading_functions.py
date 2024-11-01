@@ -43,38 +43,33 @@ class ReadingFunctions:
         except Exception as e:
             raise ValueError(f"Error processing {file_name}: {str(e)}")
 
-    def _process_pdf(self, file_bytes: bytes) -> None:
+    def _process_pdf(self, file_bytes: bytes):
         pdf_data = {
             "sentences": [],
+            "page_number": [],
             "is_header": [],
-            "file_header": "",
         }
         pdf_file = io.BytesIO(file_bytes)
         with fitz.open(stream=pdf_file, filetype="pdf") as pdf:
             # Process each page
             for page_num in range(len(pdf)):
-                page_sentences = []
-                page_headers = []
                 page = pdf.load_page(page_num)
                 blocks = page.get_text("dict")["blocks"]
                 text_blocks = [block for block in blocks if block.get("type") == 0]
                 # Process each block
-                for block in text_blocks:
-                    block_sentences, block_headers = self._process_pdf_block(block)
-                    page_sentences.extend(block_sentences)
-                    page_headers.extend(block_headers)
-                pdf_data["sentences"].append(page_sentences)
-                pdf_data["is_header"].append(page_headers)
-            # Extract first page header
-            pdf_data["file_header"] = self._extract_pdf_header(pdf.load_page(0))
-        
+                for text_block in text_blocks:
+                    if "lines" not in text_block:
+                        continue
+
+                    block_sentences, block_headers = self._process_pdf_block(text_block)
+                    pdf_data["sentences"].extend(block_sentences)
+                    pdf_data["page_number"].extend([page_num + 1] * len(block_sentences))
+                    pdf_data["is_header"].extend(block_headers)
+
         return pdf_data
 
-    def _process_pdf_block(self, block: dict) -> None:
+    def _process_pdf_block(self, block: dict):
         """Process individual PDF block"""
-        if "lines" not in block:
-            return
-        
         block_sentences = []
         block_headers = []
 

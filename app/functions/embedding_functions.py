@@ -9,17 +9,22 @@ class EmbeddingFunctions:
         load_dotenv()
         self.client = OpenAI()
 
-    def create_embeddings_from_nested_sentences(
+    def create_embeddings_from_sentences(
         self,
-        nested_sentences: List[List[str]],
+        sentences: List[str],
+        chunk_size: int = 2000
     ) -> List[np.ndarray]:
-        nested_embeddings = []
-        for sentences in nested_sentences:
-            if sentences:
-                nested_embeddings.append(self.create_embeddings_from_sentences(sentences=sentences))
-            else:
-                nested_embeddings.append(np.array([]))
-        return nested_embeddings
+        
+        file_embeddings = []
+        for chunk_index in range(0, len(sentences), chunk_size):
+            chunk_embeddings = self.client.embeddings.create(
+                model="text-embedding-ada-002",
+                input=sentences[chunk_index:chunk_index + chunk_size]
+            )
+            chunk_array = (np.array([x.embedding for x in chunk_embeddings.data], dtype=np.float16))
+            file_embeddings.append(chunk_array)
+
+        return np.vstack(file_embeddings)
 
     def create_embedding_from_sentence(
             self,
@@ -27,11 +32,3 @@ class EmbeddingFunctions:
     ) -> np.ndarray:
         query_embedding = self.client.embeddings.create(model="text-embedding-ada-002", input=sentence)
         return np.array(query_embedding.data[0].embedding, dtype=np.float16).reshape(1, -1)
-    
-    def create_embeddings_from_sentences(
-        self,
-        sentences: List[str],
-    ) -> np.ndarray:
-        
-        embeddings = self.client.embeddings.create(model="text-embedding-ada-002", input=sentences)
-        return np.array([x.embedding for x in embeddings.data], dtype=np.float16)

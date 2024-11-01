@@ -53,21 +53,21 @@ class Processor:
             index_header
     ):
         queries = self.query_preprocessing(user_query=user_query)
-        query_vector = self.ef.create_embedding_from_sentence(sentence=queries[0])
+        if not queries:
+            return None, None, None
+        
+        query_embeddings = self.ef.create_embeddings_from_sentences(sentences=queries)
         boost_array = self._create_boost_array(
             boost_info=boost_info,
             sentence_amount=index.ntotal,
-            query_vector=query_vector,
+            query_vector=query_embeddings[0],
             index_header=index_header
         )
 
         # Get search distances with occurrences
         dict_resource = {}
-        extract_list = ["\n", "\n\n", "no response", ""]
-        for query in queries:
-            if query in extract_list: continue
-            vector = self.ef.create_embedding_from_sentence(sentence=query)
-            D, I = index.search(vector, 10)
+        for query_embedding in query_embeddings:
+            D, I = index.search(query_embedding.reshape(1, -1), 10)
             for i, match_index in enumerate(I[0]):
                 if match_index in dict_resource:
                     dict_resource[match_index].append(D[0][i])
@@ -100,15 +100,15 @@ class Processor:
         return answer, resources, widen_sentences
     
     def query_preprocessing(self, user_query):
-        generated_queries = self.cf.query_generation(query=user_query)
-        if not generated_queries:
-            return None
-        else:
-            return generated_queries.split("\n")
+        generated_queries = self.cf.query_generation(query=user_query).split("\n")
+
+        if len(generated_queries) == 6:
+            return generated_queries
+        return None
     
     def _create_boost_array(self, boost_info: dict, sentence_amount:int, query_vector:np.ndarray, index_header):
         boost_array = np.ones(sentence_amount)
-        D, I = index_header.search(query_vector, 10)
+        D, I = index_header.search(query_vector.reshape(1, -1), 10)
         filtered_header_indexes = [header_index for index, header_index in enumerate(I[0]) if D[0][index] < 0.40]
         if not filtered_header_indexes:
             return boost_array
@@ -161,8 +161,8 @@ class Processor:
             "page_numbers": []
         }
         for index in sentence_indexes:
-            resources["file_ids"].append(domain_content[index][4])
-            resources["page_numbers"].append(domain_content[index][3])
+            resources["file_ids"].append(domain_content[index][3])
+            resources["page_numbers"].append(domain_content[index][2])
         return resources
 
     def _create_dynamic_context(self, sentences):

@@ -159,7 +159,7 @@ class Database:
     
     def get_file_content(self, file_ids: list):
         query_get_content = """
-        SELECT sentence, is_header, sentence_order, page_number, file_id
+        SELECT sentence, is_header, page_number, file_id
         FROM file_content
         WHERE file_id IN %s
         """
@@ -271,54 +271,50 @@ class Database:
         except DatabaseError as e:
             self.conn.rollback()
             raise e
-
-    def insert_file_content(self, file_id: str, file_sentences: list, file_headers:list, file_embeddings: np.ndarray):
+    
+    def insert_file_content(self, file_id: str, file_sentences: list, page_numbers:list, file_headers: list, file_embeddings: np.ndarray):
         query_insert_file_content = """
-        INSERT INTO file_content (file_id, page_number, sentence, is_header, sentence_order, embedding)
+        INSERT INTO file_content (file_id, sentence, page_number, is_header, embedding)
         VALUES %s
         """
+        
         try:
+            # Input validation
+            assert len(file_sentences) == len(file_headers), "Sentences and headers length mismatch"
+            assert len(file_sentences) == len(page_numbers), "Sentences and page_numbers length mismatch"
+            assert len(file_sentences) == len(file_embeddings), "Sentences and embeddings length mismatch"
+            assert file_embeddings.shape[1] == 1536, f"Unexpected embedding dimension: {file_embeddings.shape[1]}, expected 1536"
+            
+            # Prepare data for bulk insert
             file_data = []
-            for page_number, (page_sentences, page_headers, page_embeddings) in enumerate(zip(file_sentences, file_headers, file_embeddings)):
-                if not isinstance(page_embeddings, np.ndarray):
-                    logger.warning(f"Page {page_number} embeddings are not a numpy array. Skipping.")
-                    continue
-
-                if not page_embeddings.size or not len(page_sentences):
-                    logger.warning(f"Page {page_number} embeddings or sentences are empty. Skipping")
-                    continue
-
-                if page_embeddings.shape[1] != 1536:
-                    logger.warning(f"Page {page_number} embeddings have unexpected shape: {page_embeddings.shape}. Expected (n, 1536). Skipping.")
-                    continue
-
-                page_data = []
-                for sentence_order, (sentence, is_header, embedding) in enumerate(zip(page_sentences, page_headers, page_embeddings)):
-                    page_data.append(
-                        (
-                            file_id, 
-                            page_number + 1, 
-                            sentence,
-                            is_header,
-                            sentence_order + 1, 
-                            psycopg2.Binary(embedding.tobytes())
-                        )
+            for (sentence, page_number, is_header, embedding) in zip(file_sentences, page_numbers, file_headers, file_embeddings):
+                file_data.append(
+                    (
+                        file_id,
+                        sentence,
+                        page_number,
+                        is_header,
+                        psycopg2.Binary(embedding.tobytes())
                     )
-
-                file_data.extend(page_data)
+                )
+            
             if file_data:
                 extras.execute_values(self.cursor, query_insert_file_content, file_data)
-                logger.info(f"Inserted {len(file_data)} rows for file {file_id}")
+                logger.info(f"Successfully inserted {len(file_data)} rows for file {file_id}")
             else:
                 logger.warning(f"No data to insert for file {file_id}")
+                
+        except AssertionError as e:
+            logger.error(f"Data validation failed: {str(e)}")
+            raise
         except DatabaseError as e:
             self.conn.rollback()
             logger.error(f"Database error while inserting file content: {str(e)}")
-            raise e
+            raise
         except Exception as e:
             self.conn.rollback()
             logger.error(f"Unexpected error while inserting file content: {str(e)}")
-            raise e
+            raise
     
     def insert_session_info(self, user_id: str, session_id: str):
         query = """

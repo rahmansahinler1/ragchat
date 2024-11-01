@@ -262,14 +262,16 @@ async function sendMessage(userInput, userData, userInputTextbox) {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to generate response!');
+                throw new Error('Server error!');
             }
 
             const data = await response.json();
-            generateResponse(data.information, data.explanation);
 
-            if (data.resources && data.resource_sentences) {
-                populateResources(data.resources, data.resource_sentences)
+            if (data.information && data.explanation) {
+                generateResponse(data.information, data.explanation);
+                populateResources(data.resources, data.resource_sentences);
+            } else {
+                window.addMessageToChat(data.message, 'ragchat')
             }
 
         } catch (error) {

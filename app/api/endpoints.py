@@ -97,6 +97,13 @@ async def generate_answer(
                 index=globals.index[userID],
                 index_header=globals.index_header[userID],
             )
+
+            if not answer or not resources or not resource_sentences:
+                 return JSONResponse(
+                    content={"message": f"Can you explain the question better? I did not understand '{user_message}'"},
+                    status_code=200,
+                )
+            
             with Database() as db:
                 resources["file_names"] = [db.get_file_name_with_id(file_id=file_id) for file_id in resources["file_ids"]]
                 del resources["file_ids"]
@@ -210,16 +217,17 @@ async def upload_files(
         for file_selection in globals.file_selections:
             if userID != file_selection["user_id"]: continue
             file_data = processor.rf.read_file(file_bytes=file_selection["file_bytes"], file_name=file_selection["file_name"])
-            file_embeddings = processor.ef.create_embeddings_from_nested_sentences(nested_sentences=file_data["sentences"])
+            file_embeddings = processor.ef.create_embeddings_from_sentences(sentences=file_data["sentences"])
             with Database() as db:
                 domain_info = db.get_domain_info(user_id=userID, selected_domain_number=selected_domain_number)
                 db.insert_file_info(
                     file_info=file_selection,
-                    domain_id=domain_info["domain_id"]
+                    domain_id=domain_info["domain_id"],
                 )
                 db.insert_file_content(
                     file_id=file_selection["file_id"],
                     file_sentences=file_data["sentences"],
+                    page_numbers=file_data["page_number"],
                     file_headers=file_data["is_header"],
                     file_embeddings=file_embeddings
                 )
@@ -341,7 +349,7 @@ async def signup(
         with Database() as db:
             user_info = db.get_user_info_w_email(user_email=user_email)
             if user_info:
-                message = "User already signed up! If you want activation or forgot password, plase contact with -> rahmansahinler1@gmail.com"
+                message = "User already signed up!"
                 status_code = 400
             else:
                 user_id = str(uuid.uuid4())
@@ -352,7 +360,7 @@ async def signup(
                     user_password=authenticator.hash_password(user_password),
                     user_email=user_email,
                     user_type="trial",
-                    is_active=False
+                    is_active=True
                 )
                 for i in range(5):
                     db.insert_domain_info(
@@ -362,7 +370,7 @@ async def signup(
                         domain_number=i+1,
                     )
                 db.conn.commit()
-                message = "Successfully Signed Up! To activate your account, please contact with ↓ rahmansahinler1@gmail.com"
+                message = "Successfully Signed Up!"
                 status_code = 201
 
         return JSONResponse(
