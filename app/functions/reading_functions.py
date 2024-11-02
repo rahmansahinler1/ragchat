@@ -9,18 +9,25 @@ class ReadingFunctions:
     def __init__(self):
         self.nlp = spacy.load(
             "en_core_web_sm",
-            disable=["tagger", "attribute_ruler", "lemmatizer", "ner", "textcat", "custom"]
+            disable=[
+                "tagger",
+                "attribute_ruler",
+                "lemmatizer",
+                "ner",
+                "textcat",
+                "custom",
+            ],
         )
         self.max_file_size_mb = 50
 
     def read_file(self, file_bytes: bytes, file_name: str):
         """
         Read and process file content from bytes.
-        
+
         Args:
             file_bytes: Raw file content in bytes
             file_name: Name of the file including extension
-            
+
         Returns:
             Dictionary containing processed file data
         """
@@ -29,7 +36,7 @@ class ReadingFunctions:
 
         if file_size_mb > self.max_file_size_mb:
             raise ValueError(f"File size exceeds {self.max_file_size_mb}MB limit")
-        
+
         try:
             if file_type == "pdf":
                 return self._process_pdf(file_bytes=file_bytes)
@@ -39,7 +46,7 @@ class ReadingFunctions:
                 return self._process_text_file(file_bytes=file_bytes)
             else:
                 raise ValueError(f"Unsupported file type: {file_type}")
-            
+
         except Exception as e:
             raise ValueError(f"Error processing {file_name}: {str(e)}")
 
@@ -63,7 +70,9 @@ class ReadingFunctions:
 
                     block_sentences, block_headers = self._process_pdf_block(text_block)
                     pdf_data["sentences"].extend(block_sentences)
-                    pdf_data["page_number"].extend([page_num + 1] * len(block_sentences))
+                    pdf_data["page_number"].extend(
+                        [page_num + 1] * len(block_sentences)
+                    )
                     pdf_data["is_header"].extend(block_headers)
 
         return pdf_data
@@ -86,12 +95,14 @@ class ReadingFunctions:
                         block_headers.append(False)
         else:
             # Process regular text
-            text = " ".join(span["text"] for line in block["lines"] for span in line["spans"])
+            text = " ".join(
+                span["text"] for line in block["lines"] for span in line["spans"]
+            )
             clean_text = self._clean_text(text)
             if len(clean_text) > 15:
                 block_sentences.append(clean_text)
                 block_headers.append(False)
-        
+
         return block_sentences, block_headers
 
     def _process_docx(self, file_bytes: bytes):
@@ -100,38 +111,42 @@ class ReadingFunctions:
             "is_header": [],
             "file_header": "",
         }
-        
+
         docx_file = io.BytesIO(file_bytes)
         doc = Document(docx_file)
-        
+
         page_sentences = []
         is_header = []
         current_length = 0
         chars_per_page = 2000
-        
+
         for paragraph in doc.paragraphs:
             text = paragraph.text.strip()
-            if not text: continue
-            bool_is_header = paragraph.style.name.startswith('Heading') or paragraph.style.name.startswith('Title')
-            if bool_is_header and not docx_data["file_header"]: docx_data["file_header"] = text
-                
+            if not text:
+                continue
+            bool_is_header = paragraph.style.name.startswith(
+                "Heading"
+            ) or paragraph.style.name.startswith("Title")
+            if bool_is_header and not docx_data["file_header"]:
+                docx_data["file_header"] = text
+
             if bool_is_header or len(text) > 15:
                 if current_length + len(text) > chars_per_page:
                     docx_data["sentences"].append(page_sentences)
                     docx_data["is_header"].append(is_header)
-                    
+
                     page_sentences = []
                     is_header = []
                     current_length = 0
-                
+
                 page_sentences.append(text)
                 is_header.append(is_header)
                 current_length += len(text)
-        
+
         if page_sentences:
             docx_data["sentences"].append(page_sentences)
             docx_data["is_header"].append(is_header)
-        
+
         return docx_data
 
     def _process_text_file(self, file_bytes: bytes):
@@ -140,38 +155,42 @@ class ReadingFunctions:
             "is_header": [],
             "file_header": "",
         }
-        text = file_bytes.decode('utf-8', errors='ignore')
+        text = file_bytes.decode("utf-8", errors="ignore")
         docs = self.nlp(text)
-        sentences = [sent.text.replace('\n', ' ').strip() for sent in docs.sents]
+        sentences = [sent.text.replace("\n", " ").strip() for sent in docs.sents]
         valid_sentences = [s for s in sentences if len(s) > 15]
         text_data["sentences"].append(valid_sentences)
         text_data["is_header"].append(False)
         text_data["file_header"] = None
-        
+
         return text_data
 
     def _get_file_size(self, file_bytes: bytes) -> None:
         return len(file_bytes) / (1024 * 1024)
 
     def _clean_text(self, text: str) -> str:
-        text = re.sub(r'(\b\w+)\s*\n\s*(\w+\b)', r'\1 \2', text)
-        text = re.sub(r'(\w+)-\s+(\w+)', r'\1\2', text)
-        text = re.sub(r'[,()]\s*\n\s*(\w+)', r' \1', text)
-        text = re.sub(r'(\b\w+)\s*-\s*(\w+\b)', r'\1 \2', text)
-        text = re.sub(r'(\w+)\s*[-–]\s*(\w+)', r'\1\2', text)
-        text = re.sub(r'(?:[\s!\"#$%&\'()*+,\-.:;<=>?@\[\\\]^_`{|}~]+)(?!\w)', r' ', text)
-        text = text.replace('\n', ' ').strip()
-        return ' '.join(text.split())
+        text = re.sub(r"(\b\w+)\s*\n\s*(\w+\b)", r"\1 \2", text)
+        text = re.sub(r"(\w+)-\s+(\w+)", r"\1\2", text)
+        text = re.sub(r"[,()]\s*\n\s*(\w+)", r" \1", text)
+        text = re.sub(r"(\b\w+)\s*-\s*(\w+\b)", r"\1 \2", text)
+        text = re.sub(r"(\w+)\s*[-–]\s*(\w+)", r"\1\2", text)
+        text = re.sub(
+            r"(?:[\s!\"#$%&\'()*+,\-.:;<=>?@\[\\\]^_`{|}~]+)(?!\w)", r" ", text
+        )
+        text = text.replace("\n", " ").strip()
+        return " ".join(text.split())
 
     def _is_header(self, span: dict, text: str) -> bool:
-        return (span["size"] > 3 and 
-                any(style in span["font"] for style in ["Medi", "Bold", "B"]) and 
-                len(text) > 3 and 
-                text[0].isalpha() and 
-                not self._is_separator(text))
+        return (
+            span["size"] > 3
+            and any(style in span["font"] for style in ["Medi", "Bold", "B"])
+            and len(text) > 3
+            and text[0].isalpha()
+            and not self._is_separator(text)
+        )
 
     def _is_separator(self, text: str) -> bool:
-        return bool(re.search(r'^[^\w\s]+$|^[_]+$', text))
+        return bool(re.search(r"^[^\w\s]+$|^[_]+$", text))
 
     def _extract_pdf_header(self, first_page):
         file_header = ""

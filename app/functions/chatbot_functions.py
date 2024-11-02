@@ -111,46 +111,32 @@ class ChatbotFunctions:
 
     def response_generation(self, query, context):
         lang = self.detect_language(query=query)
-        prompt = self._prompt_answer_generation(
-            query=query,
-            context=context,
-            lang=lang
-        )
+        prompt = self._prompt_answer_generation(query=query, context=context, lang=lang)
         response = self.client.chat.completions.create(
             model="gpt-3.5-turbo-0125",
             messages=[
                 {"role": "system", "content": prompt},
-                {"role": "user", "content": query}
+                {"role": "user", "content": query},
             ],
-            temperature=0
+            temperature=0,
         )
         answer = response.choices[0].message.content.strip()
         return answer
-    
+
     def query_generation(self, query):
         lang = self.detect_language(query=query)
-        prompt = self._prompt_query_generation(
-            query,
-            lang=lang
-        )
+        prompt = self._prompt_query_generation(query, lang=lang)
         response = self.client.chat.completions.create(
             model="gpt-3.5-turbo-0125",
             messages=[
                 {"role": "system", "content": prompt},
-                {"role": "user", "content": query}
+                {"role": "user", "content": query},
             ],
-            temperature=0
+            temperature=0,
         )
         new_queries = response.choices[0].message.content.strip()
         return new_queries
 
     def detect_language(self, query):
-        lang = "en"
-        try:
-            lang = detect(text=query)
-            if lang == "tr":
-                return lang
-            else:
-                return "en"
-        except:
-            return "en"
+        lang = detect(text=query)
+        return "tr" if lang == "tr" else "en"

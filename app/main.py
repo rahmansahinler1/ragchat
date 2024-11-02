@@ -12,29 +12,42 @@ app.include_router(endpoints.router, prefix="/api/v1", tags=["files"])
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+
 @app.get("/", response_class=HTMLResponse)
-async def homepage(request: Request):
+async def landing(request: Request):
     return templates.TemplateResponse("landing.html", {"request": request})
 
+
 @app.get("/about", response_class=HTMLResponse)
-async def homepage(request: Request):
+async def about(request: Request):
     return templates.TemplateResponse("about.html", {"request": request})
+
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
+
 @app.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
 
+
 @app.get("/chat/{session_id}")
-async def app_page(request: Request, session_id: str, cookie_session: str = Cookie(None)):
+async def app_page(
+    request: Request, session_id: str, cookie_session: str = Cookie(None)
+):
     effective_session = cookie_session or session_id
     with Database() as db:
         session_info = db.get_session_info(effective_session)
     if not session_info:
         return RedirectResponse(url="/login")
     else:
-        return templates.TemplateResponse("app.html", {"request": request, "user_id": session_info["user_id"], "session_id": effective_session})
-    
+        return templates.TemplateResponse(
+            "app.html",
+            {
+                "request": request,
+                "user_id": session_info["user_id"],
+                "session_id": effective_session,
+            },
+        )
