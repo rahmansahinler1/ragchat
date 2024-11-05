@@ -596,12 +596,11 @@ async function sendFeedback(feedbackForm, userData, submitButton) {
         window.addMessageToChat('Thank you for your feedback!', 'ragchat');
         feedbackForm.reset();
         document.getElementById('feedback-modal').classList.remove('active');
+        submitButton.disabled = false;
 
     } catch (error) {
         console.error('Error submitting feedback:', error);
         window.addMessageToChat('Failed to submit feedback. Please try again.', 'ragchat');
-    } finally {
-        const submitButton = feedbackForm.querySelector('.btn-submit');
         submitButton.disabled = false;
     }
 }
