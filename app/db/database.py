@@ -248,6 +248,33 @@ class Database:
             self.conn.rollback()
             raise e
 
+    def insert_user_feedback(
+        self,
+        feedback_id: str,
+        user_id: str,
+        feedback_type: str,
+        description: str,
+        screenshot: str = None,
+    ):
+        query = """
+        INSERT INTO user_feedback (feedback_id, user_id, feedback_type, description, screenshot)
+        VALUES (%s, %s, %s, %s, %s)
+        """
+        try:
+            self.cursor.execute(
+                query,
+                (
+                    feedback_id,
+                    user_id,
+                    feedback_type,
+                    description,
+                    screenshot,
+                ),
+            )
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+
     def insert_domain_info(
         self, user_id: str, domain_id: str, domain_name: str, domain_number: int
     ):

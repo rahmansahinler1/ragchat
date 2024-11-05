@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import List
 import logging
 import uuid
+import base64
 
 from .core import Processor
 from .core import Authenticator
@@ -32,6 +33,43 @@ async def get_user_info(request: Request):
             },
             status_code=200,
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/db/insert_feedback")
+async def insert_feedback(
+    userID: str = Query(...),
+    feedback_type: str = Form(...),
+    feedback_description: str = Form(...),
+    feedback_screenshot: UploadFile = File(None),
+):
+    try:
+        feedback_id = str(uuid.uuid4())
+        screenshot_data = None
+
+        if feedback_screenshot:
+            contents = await feedback_screenshot.read()
+            if len(contents) > 2 * 1024 * 1024:  # 2MB limit
+                raise HTTPException(
+                    status_code=400, detail="Screenshot size should be less than 2MB"
+                )
+            screenshot_data = base64.b64encode(contents).decode("utf-8")
+
+        with Database() as db:
+            db.insert_user_feedback(
+                feedback_id=feedback_id,
+                user_id=userID,
+                feedback_type=feedback_type,
+                description=feedback_description[:5000],
+                screenshot=screenshot_data,
+            )
+            db.conn.commit()
+
+        return JSONResponse(
+            content={"message": "Thanks for the feedback!"}, status_code=200
+        )
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

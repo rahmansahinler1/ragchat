@@ -9,6 +9,16 @@ CREATE TABLE IF NOT EXISTS user_info (
     user_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS user_feedback (
+    feedback_id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    feedback_type VARCHAR(20) NOT NULL,
+    description TEXT NOT NULL,
+    screenshot TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user_info(user_id)
+);
+
 CREATE TABLE IF NOT EXISTS domain_info (
     user_id UUID NOT NULL,
     domain_id UUID PRIMARY KEY,

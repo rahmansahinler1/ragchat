@@ -161,10 +161,14 @@
                 </ol>
             </div>
             <div class="feedback-modal-body">
-                <form id="feedback-form">
+                <form id="feedback-form" enctype="multipart/form-data">
                     <div class="form-group">
                         <label for="feedback-type">Type</label>
-                        <select id="feedback-type" class="form-control">
+                        <select 
+                            id="feedback-type" 
+                            name="feedback_type"
+                            class="form-control"
+                        >
                             <option value="general">General Feedback</option>
                             <option value="bug">Bug Report</option>
                             <option value="feature">Feature Request</option>
@@ -173,7 +177,8 @@
                     <div class="form-group">
                         <label for="feedback-description">Description</label>
                         <textarea 
-                            id="feedback-description" 
+                            id="feedback-description"
+                            name="feedback_description"
                             class="form-control" 
                             rows="4" 
                             placeholder="Please describe your feedback or issue..."
@@ -183,7 +188,8 @@
                         <label for="feedback-screenshot">Screenshot (Optional)</label>
                         <input 
                             type="file" 
-                            id="feedback-screenshot" 
+                            id="feedback-screenshot"
+                            name="feedback_screenshot"
                             class="form-control" 
                             accept="image/*"
                         >

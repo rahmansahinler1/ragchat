@@ -87,7 +87,7 @@ function initFeedbackWidgets({
 
     feedbackForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        sendFeedback(feedbackForm, userData);
+        sendFeedback(feedbackForm, userData, feedbackButton);
     });
 }
 
@@ -570,30 +570,21 @@ async function fetchUserInfo(userID) {
     }
 }
 
-async function sendFeedback(feedbackForm, userData) {
+async function sendFeedback(feedbackForm, userData, submitButton) {
     try {
-        const feedbackType = document.getElementById('feedback-type').value;
-        const description = document.getElementById('feedback-description').value;
-        const screenshot = document.getElementById('feedback-screenshot').files[0];
-        const submitButton = feedbackForm.querySelector('.btn-submit');
-
-        if (!description.trim()) {
+        const descriptionField = feedbackForm.querySelector('#feedback-description');
+        if (!descriptionField || !descriptionField.value.trim()) {
             window.addMessageToChat('Please provide a description for your feedback', 'ragchat');
             return;
         }
 
         submitButton.disabled = true;
-        submitButton.textContent = 'Submitting...';
+        
+        const formData = new FormData(feedbackForm);
+        const userID = userData.user_id;
+        const url = `/api/v1/db/insert_feedback?userID=${encodeURIComponent(userID)}`;
 
-        const formData = new FormData();
-        formData.append('user_id', userData.user_id);
-        formData.append('feedback_type', feedbackType);
-        formData.append('description', description);
-        if (screenshot) {
-            formData.append('screenshot', screenshot);
-        }
-
-        const response = await fetch('/api/v1/feedback/submit', {
+        const response = await fetch(url, {
             method: 'POST',
             body: formData
         });
@@ -612,7 +603,6 @@ async function sendFeedback(feedbackForm, userData) {
     } finally {
         const submitButton = feedbackForm.querySelector('.btn-submit');
         submitButton.disabled = false;
-        submitButton.textContent = 'Submit Feedback';
     }
 }
 
