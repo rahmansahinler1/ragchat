@@ -51,6 +51,46 @@ function initAppWidgets({
     });
 }
 
+function initFeedbackWidgets({
+    feedbackButton,
+    feedbackModal,
+    closeButtons,
+    feedbackForm,
+    screenshotInput,
+    userData
+}) {
+    feedbackButton.addEventListener('click', () => {
+        feedbackModal.classList.add('active');
+    });
+
+    closeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            feedbackModal.classList.remove('active');
+            feedbackForm.reset();
+        });
+    });
+
+    feedbackModal.addEventListener('click', (e) => {
+        if (e.target === feedbackModal) {
+            feedbackModal.classList.remove('active');
+            feedbackForm.reset();
+        }
+    });
+
+    screenshotInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file && file.size > 2 * 1024 * 1024) {
+            alert('File size must be less than 2MB');
+            e.target.value = '';
+        }
+    });
+
+    feedbackForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        sendFeedback(feedbackForm, userData);
+    });
+}
+
 // Helper functions
 function addMessageToChat(message, sender) {
     const messageElement = document.createElement('div');
@@ -527,6 +567,52 @@ async function fetchUserInfo(userID) {
     } catch (error) {
         console.error('Error fetching initial user data:', error);
         return null;
+    }
+}
+
+async function sendFeedback(feedbackForm, userData) {
+    try {
+        const feedbackType = document.getElementById('feedback-type').value;
+        const description = document.getElementById('feedback-description').value;
+        const screenshot = document.getElementById('feedback-screenshot').files[0];
+        const submitButton = feedbackForm.querySelector('.btn-submit');
+
+        if (!description.trim()) {
+            window.addMessageToChat('Please provide a description for your feedback', 'ragchat');
+            return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.textContent = 'Submitting...';
+
+        const formData = new FormData();
+        formData.append('user_id', userData.user_id);
+        formData.append('feedback_type', feedbackType);
+        formData.append('description', description);
+        if (screenshot) {
+            formData.append('screenshot', screenshot);
+        }
+
+        const response = await fetch('/api/v1/feedback/submit', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to submit feedback');
+        }
+
+        window.addMessageToChat('Thank you for your feedback!', 'ragchat');
+        feedbackForm.reset();
+        document.getElementById('feedback-modal').classList.remove('active');
+
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        window.addMessageToChat('Failed to submit feedback. Please try again.', 'ragchat');
+    } finally {
+        const submitButton = feedbackForm.querySelector('.btn-submit');
+        submitButton.disabled = false;
+        submitButton.textContent = 'Submit Feedback';
     }
 }
 

@@ -20,6 +20,7 @@ async function initialize() {
         const currentDomain = 0;
 
         initAppWidgets({
+            // App elements
             selectedFileList: document.querySelector('.selected-file-list'),
             uploadFilesButton: document.getElementById('btn-upload-files'),
             removeSelectionButton: document.getElementById('btn-remove-selection'),
@@ -30,12 +31,22 @@ async function initialize() {
             currentDomain: currentDomain,
             selectFilesButton: document.getElementById('btn-select-files'),
             fileInput: document.getElementById('file-input'),
-            domainButtons: Array.from(document.querySelectorAll('.btn-circle')),
+            domainButtons: Array.from(document.querySelectorAll('#btn-domain-number')),
             sendButton: document.querySelector('.btn-send-message'),
             userInput: document.getElementById('user-input'),
             userInputTextbox: document.getElementById('bottom-send-tools'),
             chatBox: document.querySelector('.chat-box'),
-            resourceSection: document.querySelector('.resource-section')
+            resourceSection: document.querySelector('.resource-section'),
+        });
+
+        initFeedbackWidgets({
+            // Feedback form elements
+            feedbackButton: document.getElementById('feedback-button'),
+            feedbackModal: document.getElementById('feedback-modal'),
+            closeButtons: document.querySelectorAll('.close-modal'),
+            feedbackForm: document.getElementById('feedback-form'),
+            screenshotInput: document.getElementById('feedback-screenshot'),
+            userData: userData
         });
 
         clearFileSelections(userData);

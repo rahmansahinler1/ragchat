@@ -465,6 +465,140 @@ body {
   border: 1px solid var(--message-border-color);
 }
 
+/* Feedback Button Styles */
+#feedback-button {
+  margin-left: 10px;
+  color: var(--text-color);
+  background-color: var(--sidebar-color);
+  border: 1px solid var(--border-color);
+}
+
+/* Modal Styles */
+.feedback-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.feedback-modal-description {
+  padding: 15px 20px 5px;
+  color: var(--text-color);
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.feedback-modal-description p {
+  margin-bottom: 8px;
+}
+
+.feedback-modal-description ol {
+  margin: 0;
+  padding-left: 25px;
+  margin-bottom: 15px;
+}
+
+.feedback-modal-description li {
+  margin-bottom: 4px;
+  color: var(--text-color);
+  opacity: 0.9;
+}
+
+.feedback-modal.active {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.feedback-modal-content {
+  background-color: var(--sidebar-color);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  margin: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.feedback-modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.feedback-modal-header h3 {
+  margin: 0;
+  color: var(--text-color);
+}
+
+.feedback-modal-body {
+  padding: 20px;
+}
+
+.feedback-modal-footer {
+  padding: 15px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Form Styles */
+.feedback-modal .form-group {
+  margin-bottom: 15px;
+}
+
+.feedback-modal label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-color);
+}
+
+.feedback-modal .form-control {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--form-background-color);
+  color: var(--text-color);
+}
+
+.feedback-modal .form-text {
+  font-size: 0.875rem;
+  color: var(--text-color);
+  opacity: 0.8;
+}
+
+/* Button Styles */
+.feedback-modal .btn-cancel {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.feedback-modal .btn-submit {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background: var(--button-color);
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.feedback-modal .close-modal {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+}
+
 /* Scrollbar styling (optional, to make it look better) */
 .chat-box::-webkit-scrollbar,
 .resource-list::-webkit-scrollbar,
@@ -649,8 +783,9 @@ h6 {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  height: 60px; /* Example height */
+  height: 60px;
   padding-right: 20px;
+  gap: 10px;
 }
 
 #theme-switch svg {

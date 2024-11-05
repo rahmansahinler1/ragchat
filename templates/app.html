@@ -88,6 +88,7 @@
             </b>
         </div>
     </div>
+    <!-- Center -->
     <div class="container-fluid vh-100">
         <div class="row h-100 g-0">
             <!-- Chat Section -->
@@ -96,6 +97,9 @@
                     <div class="colored-div-chat">
                         <h2 class="ragchat-text">ragchat</h2>
                         <div class="container">
+                            <button id="feedback-button" class="btn-circle">
+                                <i class="fas fa-comment-dots"></i>
+                            </button>
                             <button id="theme-switch">
                                 <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
                                     fill="#e8eaed">
@@ -119,10 +123,11 @@
                     <button class="btn-send-message">Send</button>
                 </div>
             </div>
-            <div class="col-lg-4 col-md-5 col-sm-12 resource-section"> <!-- Smaller resources section -->
+            <!-- Resources Section -->
+            <div class="col-lg-4 col-md-5 col-sm-12 resource-section">
                 <hr class="chat-resource-section-divider">
                 <div class="colored-div-resources">
-                    <h2 class="text-center">Resources</h2> <!-- Centered title -->
+                    <h2 class="text-center">Resources</h2>
                 </div>
                 <div class="resource-list">
                     <div class="resource-item">
@@ -137,7 +142,61 @@
             </div>
         </div>
     </div>
-    
+    <!-- Feedback Modal -->
+    <div id="feedback-modal" class="feedback-modal">
+        <div class="feedback-modal-content">
+            <div class="feedback-modal-header">
+                <h3>Send Feedback</h3>
+                <button class="close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="feedback-modal-description">
+                <p>Your feedback really helps us get better!</p>
+                <p>Please follow these steps:</p>
+                <ol>
+                    <li>Select the type of your feedback</li>
+                    <li>Add your description</li>
+                    <li>If it helps explain better, attach a screenshot</li>
+                </ol>
+            </div>
+            <div class="feedback-modal-body">
+                <form id="feedback-form">
+                    <div class="form-group">
+                        <label for="feedback-type">Type</label>
+                        <select id="feedback-type" class="form-control">
+                            <option value="general">General Feedback</option>
+                            <option value="bug">Bug Report</option>
+                            <option value="feature">Feature Request</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback-description">Description</label>
+                        <textarea 
+                            id="feedback-description" 
+                            class="form-control" 
+                            rows="4" 
+                            placeholder="Please describe your feedback or issue..."
+                        ></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback-screenshot">Screenshot (Optional)</label>
+                        <input 
+                            type="file" 
+                            id="feedback-screenshot" 
+                            class="form-control" 
+                            accept="image/*"
+                        >
+                        <small class="form-text">Max size: 2MB</small>
+                    </div>
+                    <div class="feedback-modal-footer">
+                        <button type="button" class="btn-cancel close-modal">Cancel</button>
+                        <button type="submit" class="btn-submit">Submit Feedback</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
 <!-- Inputs -->
