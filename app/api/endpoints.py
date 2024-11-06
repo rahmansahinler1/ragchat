@@ -465,9 +465,12 @@ def update_selected_domain(user_id: str, selected_domain: int):
             domain_content=content, embeddings=embeddings
         )
         globals.index[user_id] = processor.create_index(embeddings=embeddings)
-        globals.index_header[user_id] = processor.create_index(
-            embeddings=globals.boost_info[user_id]["header_embeddings"]
-        )
+        try:
+            globals.index_header[user_id] = processor.create_index(
+                embeddings=globals.boost_info[user_id]["header_embeddings"]
+            )
+        except IndexError:
+            globals.index_header[user_id] = None
         file_names = [info["file_name"] for info in file_info]
         domain_name = domain_info["domain_name"]
         return file_names, domain_name

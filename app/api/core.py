@@ -126,6 +126,8 @@ class Processor:
         index_header,
     ):
         boost_array = np.ones(sentence_amount)
+        if not index_header:
+            return boost_array
         D, I = index_header.search(query_vector.reshape(1, -1), 10)
         filtered_header_indexes = [
             header_index
