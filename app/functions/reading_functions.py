@@ -108,44 +108,39 @@ class ReadingFunctions:
     def _process_docx(self, file_bytes: bytes):
         docx_data = {
             "sentences": [],
+            "page_number": [],
             "is_header": [],
-            "file_header": "",
         }
 
         docx_file = io.BytesIO(file_bytes)
         doc = Document(docx_file)
 
-        page_sentences = []
-        is_header = []
         current_length = 0
         chars_per_page = 2000
+        current_page = 1
 
         for paragraph in doc.paragraphs:
             text = paragraph.text.strip()
             if not text:
                 continue
-            bool_is_header = paragraph.style.name.startswith(
-                "Heading"
-            ) or paragraph.style.name.startswith("Title")
-            if bool_is_header and not docx_data["file_header"]:
-                docx_data["file_header"] = text
 
-            if bool_is_header or len(text) > 15:
-                if current_length + len(text) > chars_per_page:
-                    docx_data["sentences"].append(page_sentences)
-                    docx_data["is_header"].append(is_header)
+            if current_length + len(text) > chars_per_page:
+                current_page += 1
+                current_length = 0
 
-                    page_sentences = []
-                    is_header = []
-                    current_length = 0
-
-                page_sentences.append(text)
-                is_header.append(is_header)
+            paragraph_style = paragraph.style.name
+            if ("Heading" in paragraph_style) or ("Title" in paragraph_style):
+                docx_data["sentences"].append(self._clean_text(text=text))
+                docx_data["page_number"].append(current_page)
+                docx_data["is_header"].append(True)
                 current_length += len(text)
+                continue
 
-        if page_sentences:
-            docx_data["sentences"].append(page_sentences)
-            docx_data["is_header"].append(is_header)
+            paragraph_sentences = self._process_text(text=text)
+            docx_data["sentences"].extend(paragraph_sentences)
+            docx_data["page_number"].extend([current_page] * len(paragraph_sentences))
+            docx_data["is_header"].extend([False] * len(paragraph_sentences))
+            current_length += len(text)
 
         return docx_data
 
@@ -164,6 +159,11 @@ class ReadingFunctions:
         text_data["file_header"] = None
 
         return text_data
+
+    def _process_text(self, text):
+        docs = self.nlp(text)
+        sentences = [sent.text.replace("\n", " ").strip() for sent in docs.sents]
+        return [sentence for sentence in sentences if len(sentence) > 15]
 
     def _get_file_size(self, file_bytes: bytes) -> None:
         return len(file_bytes) / (1024 * 1024)
