@@ -16,6 +16,7 @@ processor = Processor()
 authenticator = Authenticator()
 
 
+# request functions
 @router.post("/db/get_user_info")
 async def get_user_info(request: Request):
     try:
@@ -82,34 +83,14 @@ async def select_domain(
     try:
         data = await request.json()
         selected_domain_number = data.get("currentDomain")
-        globals.selected_domain[userID] = selected_domain_number
-        with Database() as db:
-            file_names, domain_name = None, None
-            domain_info = db.get_domain_info(userID, selected_domain_number)
-            file_info = db.get_file_info_with_domain(userID, domain_info["domain_id"])
-            if file_info:
-                content, embeddings = db.get_file_content(
-                    file_ids=[info["file_id"] for info in file_info]
-                )
-                globals.domain_content[userID] = content
-                globals.boost_info[userID] = processor.extract_boost_info(
-                    domain_content=content, embeddings=embeddings
-                )
-                globals.index[userID] = processor.create_index(embeddings=embeddings)
-                globals.index_header[userID] = processor.create_index(
-                    embeddings=globals.boost_info[userID]["header_embeddings"]
-                )
-                file_names = [info["file_name"] for info in file_info]
-                domain_name = domain_info["domain_name"]
-            else:
-                globals.domain_content[userID] = []
-                globals.index[userID] = None
-                domain_name = domain_info["domain_name"]
+        file_names, domain_name = update_selected_domain(
+            user_id=userID, selected_domain=selected_domain_number
+        )
 
-            return JSONResponse(
-                content={"file_names": file_names, "domain_name": domain_name},
-                status_code=200,
-            )
+        return JSONResponse(
+            content={"file_names": file_names, "domain_name": domain_name},
+            status_code=200,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -279,19 +260,19 @@ async def upload_files(
                     file_headers=file_data["is_header"],
                     file_embeddings=file_embeddings,
                 )
-                file_info = db.get_file_info_with_domain(
-                    user_id=userID, domain_id=domain_info["domain_id"]
-                )
                 db.conn.commit()
         globals.file_selections = [
             file for file in globals.file_selections if file["user_id"] != userID
         ]
+        file_names, domain_name = update_selected_domain(
+            user_id=userID, selected_domain=selected_domain_number
+        )
 
         return JSONResponse(
             content={
                 "message": f"Files uploaded successfully to domain {selected_domain_number}",
-                "file_names": [info["file_name"] for info in file_info],
-                "domain_name": domain_info["domain_name"],
+                "file_names": file_names,
+                "domain_name": domain_name,
             },
             status_code=200,
         )
@@ -463,3 +444,30 @@ async def signup(
         raise HTTPException(
             content={"message": f"Failed deleting, error: {e}"}, status_code=500
         )
+
+
+# helper functions
+def update_selected_domain(user_id: str, selected_domain: int):
+    globals.selected_domain[user_id] = selected_domain
+    with Database() as db:
+        domain_info = db.get_domain_info(user_id, selected_domain)
+        file_info = db.get_file_info_with_domain(user_id, domain_info["domain_id"])
+        if not file_info:
+            globals.domain_content[user_id] = []
+            globals.index[user_id] = None
+            return None, domain_info["domain_name"]
+
+        content, embeddings = db.get_file_content(
+            file_ids=[info["file_id"] for info in file_info]
+        )
+        globals.domain_content[user_id] = content
+        globals.boost_info[user_id] = processor.extract_boost_info(
+            domain_content=content, embeddings=embeddings
+        )
+        globals.index[user_id] = processor.create_index(embeddings=embeddings)
+        globals.index_header[user_id] = processor.create_index(
+            embeddings=globals.boost_info[user_id]["header_embeddings"]
+        )
+        file_names = [info["file_name"] for info in file_info]
+        domain_name = domain_info["domain_name"]
+        return file_names, domain_name
