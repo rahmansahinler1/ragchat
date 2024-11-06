@@ -21,16 +21,7 @@ class ReadingFunctions:
         self.max_file_size_mb = 50
 
     def read_file(self, file_bytes: bytes, file_name: str):
-        """
-        Read and process file content from bytes.
-
-        Args:
-            file_bytes: Raw file content in bytes
-            file_name: Name of the file including extension
-
-        Returns:
-            Dictionary containing processed file data
-        """
+        """Read and process file content from bytes"""
         file_size_mb = self._get_file_size(file_bytes=file_bytes)
         file_type = file_name.split(".")[-1].lower()
 
@@ -43,7 +34,7 @@ class ReadingFunctions:
             elif file_type == "docx":
                 return self._process_docx(file_bytes=file_bytes)
             elif file_type in ["txt", "rtf"]:
-                return self._process_text_file(file_bytes=file_bytes)
+                return self._process_txt(file_bytes=file_bytes)
             else:
                 raise ValueError(f"Unsupported file type: {file_type}")
 
@@ -144,19 +135,17 @@ class ReadingFunctions:
 
         return docx_data
 
-    def _process_text_file(self, file_bytes: bytes):
+    def _process_txt(self, file_bytes: bytes):
         text_data = {
             "sentences": [],
+            "page_number": [],
             "is_header": [],
-            "file_header": "",
         }
         text = file_bytes.decode("utf-8", errors="ignore")
-        docs = self.nlp(text)
-        sentences = [sent.text.replace("\n", " ").strip() for sent in docs.sents]
-        valid_sentences = [s for s in sentences if len(s) > 15]
-        text_data["sentences"].append(valid_sentences)
-        text_data["is_header"].append(False)
-        text_data["file_header"] = None
+        valid_sentences = self._process_text(text=text)
+        text_data["sentences"].extend(valid_sentences)
+        text_data["page_number"].extend([1] * len(valid_sentences))
+        text_data["is_header"].extend([False] * len(valid_sentences))
 
         return text_data
 
