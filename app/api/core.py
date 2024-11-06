@@ -114,8 +114,8 @@ class Processor:
     def query_preprocessing(self, user_query):
         generated_queries = self.cf.query_generation(query=user_query).split("\n")
 
-        if len(generated_queries) == 6:
-            return generated_queries
+        if generated_queries:
+            return [user_query] + generated_queries
         return None
 
     def _create_boost_array(
