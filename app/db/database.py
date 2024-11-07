@@ -180,7 +180,7 @@ class Database:
 
     def get_file_content(self, file_ids: list):
         query_get_content = """
-        SELECT sentence, is_header, page_number, file_id
+        SELECT sentence, is_header, is_table, page_number, file_id
         FROM file_content
         WHERE file_id IN %s
         """
@@ -322,10 +322,11 @@ class Database:
         file_sentences: list,
         page_numbers: list,
         file_headers: list,
+        file_tables: list,
         file_embeddings: np.ndarray,
     ):
         query_insert_file_content = """
-        INSERT INTO file_content (file_id, sentence, page_number, is_header, embedding)
+        INSERT INTO file_content (file_id, sentence, page_number, is_header, is_table, embedding)
         VALUES %s
         """
 
@@ -340,14 +341,17 @@ class Database:
             assert len(file_sentences) == len(
                 file_embeddings
             ), "Sentences and embeddings length mismatch"
+            assert len(file_sentences) == len(
+                file_tables
+            ), "Sentences and tables length mismatch"
             assert (
                 file_embeddings.shape[1] == 1536
             ), f"Unexpected embedding dimension: {file_embeddings.shape[1]}, expected 1536"
 
             # Prepare data for bulk insert
             file_data = []
-            for sentence, page_number, is_header, embedding in zip(
-                file_sentences, page_numbers, file_headers, file_embeddings
+            for sentence, page_number, is_header, is_table, embedding in zip(
+                file_sentences, page_numbers, file_headers, file_tables, file_embeddings
             ):
                 file_data.append(
                     (
@@ -355,6 +359,7 @@ class Database:
                         sentence,
                         page_number,
                         is_header,
+                        is_table,
                         psycopg2.Binary(embedding.tobytes()),
                     )
                 )

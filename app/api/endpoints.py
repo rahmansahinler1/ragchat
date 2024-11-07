@@ -258,6 +258,7 @@ async def upload_files(
                     file_sentences=file_data["sentences"],
                     page_numbers=file_data["page_number"],
                     file_headers=file_data["is_header"],
+                    file_tables=file_data["is_table"],
                     file_embeddings=file_embeddings,
                 )
                 db.conn.commit()

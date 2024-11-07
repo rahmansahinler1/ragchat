@@ -195,7 +195,7 @@ function populateResources(resources, sentences) {
     resourceList.className = 'resource-list';
     const groupedResources = {};
 
-    for (let i = 0; i < resources.file_names.length; i++) {
+    for (let i = 0; i < sentences.length; i++) {
         const fileName = resources.file_names[i];
 
         if (!groupedResources[fileName]) {

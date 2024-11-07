@@ -42,29 +42,51 @@ class ReadingFunctions:
             raise ValueError(f"Error processing {file_name}: {str(e)}")
 
     def _process_pdf(self, file_bytes: bytes):
-        pdf_data = {
-            "sentences": [],
-            "page_number": [],
-            "is_header": [],
-        }
+        pdf_data = {"sentences": [], "page_number": [], "is_header": [], "is_table": []}
         pdf_file = io.BytesIO(file_bytes)
         with fitz.open(stream=pdf_file, filetype="pdf") as pdf:
             # Process each page
             for page_num in range(len(pdf)):
                 page = pdf.load_page(page_num)
+                tables = page.find_tables().tables
+                table_info = self._extract_table_info(tables=tables) if tables else None
                 blocks = page.get_text("dict")["blocks"]
-                text_blocks = [block for block in blocks if block.get("type") == 0]
-                # Process each block
-                for text_block in text_blocks:
-                    if "lines" not in text_block:
-                        continue
-
-                    block_sentences, block_headers = self._process_pdf_block(text_block)
-                    pdf_data["sentences"].extend(block_sentences)
-                    pdf_data["page_number"].extend(
-                        [page_num + 1] * len(block_sentences)
+                added_table_indexes = []
+                for block in blocks:
+                    # Check table
+                    table_index = (
+                        self._check_table_bbox(
+                            block_bbox=block["bbox"], table_info=table_info
+                        )
+                        if table_info
+                        else -1
                     )
-                    pdf_data["is_header"].extend(block_headers)
+                    # Process each block
+                    if (table_index >= 0) and (table_index not in added_table_indexes):
+                        pdf_data["is_table"][-1] = True
+                        table_rows = table_info["table_texts"][table_index].split("\n")
+                        table_rows = [row for row in table_rows if row]
+                        pdf_data["sentences"].extend(table_rows)
+                        row_amount = len(table_rows)
+                        pdf_data["page_number"].extend([page_num + 1] * row_amount)
+                        pdf_data["is_header"].extend([False] * row_amount)
+                        pdf_data["is_table"].extend([True] * row_amount)
+                        added_table_indexes.append(table_index)
+                    elif (block.get("type") == 0) and (table_index == -1):
+                        if "lines" not in block:
+                            continue
+
+                        block_sentences, block_headers = self._process_pdf_block(
+                            block=block
+                        )
+                        if block_sentences:
+                            pdf_data["sentences"].extend(block_sentences)
+                            sentence_len = len(block_sentences)
+                            pdf_data["page_number"].extend(
+                                [page_num + 1] * sentence_len
+                            )
+                            pdf_data["is_header"].extend(block_headers)
+                            pdf_data["is_table"].extend([False] * sentence_len)
 
         return pdf_data
 
@@ -76,14 +98,15 @@ class ReadingFunctions:
         if len(block["lines"]) >= 1 and len(block["lines"]) < 5:
             # Process potential headers
             for line in block["lines"]:
+                text_line = ""
                 for span in line["spans"]:
-                    text = span["text"].strip()
-                    if self._is_header(span, text):
-                        block_sentences.append(text)
-                        block_headers.append(True)
-                    elif len(text) > 15 and not self._is_separator(text):
-                        block_sentences.append(text)
-                        block_headers.append(False)
+                    text_line += span["text"].strip()
+                if self._is_header(span, text_line):
+                    block_sentences.append(text_line)
+                    block_headers.append(True)
+                elif len(text_line) > 5 and not self._is_separator(text_line):
+                    block_sentences.append(text_line)
+                    block_headers.append(False)
         else:
             # Process regular text
             text = " ".join(
@@ -149,6 +172,43 @@ class ReadingFunctions:
 
         return text_data
 
+    def _extract_table_info(self, tables):
+        table_bboxes = [
+            (table.bbox[0], table.bbox[1], table.bbox[2], table.bbox[3])
+            for table in tables
+        ]
+        table_texts = self._extract_table_text(tables=tables)
+        return {"table_bboxes": table_bboxes, "table_texts": table_texts}
+
+    def _extract_table_text(self, tables):
+        table_list = []
+        for table in tables:
+            reconsracted_table = ""
+            table_extract = table.extract()
+            for sublist in table_extract:
+                filtered = [
+                    str(item).replace("\n", " ").strip()
+                    for item in sublist
+                    if item is not None
+                ]
+                filtered = [
+                    re.sub(r"(?<!\w)([A-Za-z])\s+(\d+)(?!\w)", r"\1\2", item)
+                    for item in filtered
+                ]
+                combined_string = " ".join(filtered) + "\n"
+                reconsracted_table += combined_string
+            table_list.append(reconsracted_table)
+        return table_list
+
+    def _check_table_bbox(self, block_bbox, table_info):
+        for i, table_bbox in enumerate(table_info["table_bboxes"]):
+            if (
+                table_bbox[1] <= block_bbox[1] <= table_bbox[3]
+                and table_bbox[0] <= block_bbox[0] <= table_bbox[2]
+            ):
+                return i
+        return -1
+
     def _process_text(self, text):
         docs = self.nlp(text)
         sentences = [sent.text.replace("\n", " ").strip() for sent in docs.sents]
@@ -180,17 +240,3 @@ class ReadingFunctions:
 
     def _is_separator(self, text: str) -> bool:
         return bool(re.search(r"^[^\w\s]+$|^[_]+$", text))
-
-    def _extract_pdf_header(self, first_page):
-        file_header = ""
-        blocks = first_page.get_text("dict")["blocks"]
-        text_blocks = [block for block in blocks if block.get("type") == 0]
-
-        for block in text_blocks[:3]:  # Look at first 3 blocks only
-            if "lines" in block and 1 <= len(block["lines"]) < 4:
-                for line in block["lines"]:
-                    for span in line["spans"]:
-                        if self._is_header(span, span["text"]):
-                            file_header += f" {span['text']}"
-
-        return file_header
