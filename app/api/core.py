@@ -80,26 +80,26 @@ class Processor:
         table_chunks = self._extract_table_chunks(
             table_indexes=boost_info["table_indexes"]
         )
-        added_table_indexes = []
         for i, sentence_index in enumerate(sorted_sentence_indexes):
-            if table_chunks:
-                for i, chunk in enumerate(table_chunks):
-                    if (sentence_index in chunk) and (i not in added_table_indexes):
+            table_chunk_amount = len(table_chunks)
+            if table_chunk_amount:
+                for chunk in table_chunks:
+                    if sentence_index in chunk:
                         table_text = ""
                         for table_index in range(chunk[0], chunk[-1] + 1):
-                            table_text += f"{domain_content[table_index][0]}\n"
-                        context += f"{i + 1}: Table\n{table_text}"
+                            table_text += f"{domain_content[table_index][0]}\n\n"
+                        context += f"{i + 1}: Table\n{table_text}\n"
                         context_windows.append(f"{i + 1}: Table\n{table_text}")
-                        added_table_indexes.append(i)
-                continue
-
-            widen_sentence = self._wide_sentences(
-                window_size=3 if i < 3 else 1,
-                sentence_index=sentence_index,
-                domain_content=domain_content,
-            )
-            context += f"{i+1}: {widen_sentence}"
-            context_windows.append(f"{i+1}: {widen_sentence}")
+                        table_chunks.remove(chunk)
+                        break
+            if table_chunk_amount == len(table_chunks):
+                widen_sentence = self._wide_sentences(
+                    window_size=3 if i < 3 else 1,
+                    sentence_index=sentence_index,
+                    domain_content=domain_content,
+                )
+                context += f"{i+1}: {widen_sentence}\n\n"
+                context_windows.append(f"{i+1}: {widen_sentence}")
 
         response = self.cf.response_generation(query=user_query, context=context)
         answer = self._split_response(raw_answer=response)
