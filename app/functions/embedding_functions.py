@@ -15,7 +15,7 @@ class EmbeddingFunctions:
         file_embeddings = []
         for chunk_index in range(0, len(sentences), chunk_size):
             chunk_embeddings = self.client.embeddings.create(
-                model="text-embedding-ada-002",
+                model="text-embedding-3-small",
                 input=sentences[chunk_index : chunk_index + chunk_size],
             )
             chunk_array = np.array(
@@ -27,7 +27,7 @@ class EmbeddingFunctions:
 
     def create_embedding_from_sentence(self, sentence: list) -> np.ndarray:
         query_embedding = self.client.embeddings.create(
-            model="text-embedding-ada-002", input=sentence
+            model="text-embedding-3-small", input=sentence
         )
         return np.array(query_embedding.data[0].embedding, dtype=np.float16).reshape(
             1, -1

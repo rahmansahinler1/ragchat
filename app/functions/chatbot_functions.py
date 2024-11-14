@@ -113,7 +113,7 @@ class ChatbotFunctions:
         lang = self.detect_language(query=query)
         prompt = self._prompt_answer_generation(query=query, context=context, lang=lang)
         response = self.client.chat.completions.create(
-            model="gpt-3.5-turbo-0125",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": query},
@@ -127,7 +127,7 @@ class ChatbotFunctions:
         lang = self.detect_language(query=query)
         prompt = self._prompt_query_generation(query, lang=lang)
         response = self.client.chat.completions.create(
-            model="gpt-3.5-turbo-0125",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": query},
