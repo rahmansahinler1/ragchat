@@ -21,7 +21,9 @@ class EmbeddingFunctions:
             chunk_array = np.array(
                 [x.embedding for x in chunk_embeddings.data], dtype=np.float16
             )
-            file_embeddings.append(chunk_array)
+            file_embeddings.append(
+                chunk_array / np.linalg.norm(chunk_array, axis=1)[:, np.newaxis]
+            )
 
         return np.vstack(file_embeddings)
 

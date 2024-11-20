@@ -70,7 +70,9 @@ class Processor:
         dict_resource = self._avg_resources(dict_resource)
         for key in dict_resource:
             dict_resource[key] *= boost_array[key]
-        sorted_dict = dict(sorted(dict_resource.items(), key=lambda item: item[1]))
+        sorted_dict = dict(
+            sorted(dict_resource.items(), key=lambda item: item[1], reverse=True)
+        )
         indexes = np.array(list(sorted_dict.keys()))
         sorted_sentence_indexes = indexes[:5]
 
@@ -130,7 +132,7 @@ class Processor:
         filtered_header_indexes = [
             header_index
             for index, header_index in enumerate(I[0])
-            if D[0][index] < 0.40
+            if D[0][index] > 0.30
         ]
         if not filtered_header_indexes:
             return boost_array
@@ -140,11 +142,11 @@ class Processor:
                     start = header_indexes[filtered_index] + 1
                     end = header_indexes[filtered_index + 1]
                     if i > 2:
-                        boost_array[start:end] *= 0.9
+                        boost_array[start:end] *= 1.1
                     elif i > 0:
-                        boost_array[start:end] *= 0.8
+                        boost_array[start:end] *= 1.2
                     else:
-                        boost_array[start:end] *= 0.7
+                        boost_array[start:end] *= 1.3
                 except IndexError as e:
                     print(f"List is out of range {e}")
                     continue
@@ -166,7 +168,7 @@ class Processor:
     def _avg_resources(self, resources_dict):
         for key, value in resources_dict.items():
             value_mean = sum(value) / len(value)
-            value_coefficient = value_mean - len(value) * 0.0025
+            value_coefficient = value_mean + len(value) * 0.0025
             resources_dict[key] = value_coefficient
         return resources_dict
 
