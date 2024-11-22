@@ -296,92 +296,50 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def insert_file_info(self, file_info: dict, domain_id: str):
-        query_insert_file_info = """
+    def insert_file_batches(
+        self, file_info_batch: list, file_content_batch: list
+    ) -> bool:
+        """Process both file info and content in a single transaction."""
+        try:
+            self._insert_file_info_batch(file_info_batch)
+            self._insert_file_content_batch(file_content_batch)
+
+            return True
+        except Exception as e:
+            self.conn.rollback()
+            logger.error(f"Error in batch processing: {str(e)}")
+            return False
+
+    def _insert_file_info_batch(self, file_info_batch: list):
+        """Internal method for file info insertion."""
+        query = """
         INSERT INTO file_info (user_id, file_id, domain_id, file_name, file_modified_date)
-        VALUES (%s, %s, %s, %s, %s)
+        VALUES %s
         """
         try:
-            self.cursor.execute(
-                query_insert_file_info,
-                (
-                    file_info["user_id"],
-                    file_info["file_id"],
-                    domain_id,
-                    file_info["file_name"][:100],
-                    file_info["file_modified_date"][:20],
-                ),
+            extras.execute_values(self.cursor, query, file_info_batch)
+            logger.info(
+                f"Successfully inserted {len(file_info_batch)} file info records"
             )
-        except DatabaseError as e:
-            self.conn.rollback()
-            raise e
 
-    def insert_file_content(
-        self,
-        file_id: str,
-        file_sentences: list,
-        page_numbers: list,
-        file_headers: list,
-        file_tables: list,
-        file_embeddings: np.ndarray,
-    ):
-        query_insert_file_content = """
+        except Exception as e:
+            logger.error(f"Error while inserting file info: {str(e)}")
+            raise
+
+    def _insert_file_content_batch(self, file_content_batch: list):
+        """Internal method for file content insertion."""
+        query = """
         INSERT INTO file_content (file_id, sentence, page_number, is_header, is_table, embedding)
         VALUES %s
         """
-
         try:
-            # Input validation
-            assert len(file_sentences) == len(
-                file_headers
-            ), "Sentences and headers length mismatch"
-            assert len(file_sentences) == len(
-                page_numbers
-            ), "Sentences and page_numbers length mismatch"
-            assert len(file_sentences) == len(
-                file_embeddings
-            ), "Sentences and embeddings length mismatch"
-            assert len(file_sentences) == len(
-                file_tables
-            ), "Sentences and tables length mismatch"
-            assert (
-                file_embeddings.shape[1] == 1536
-            ), f"Unexpected embedding dimension: {file_embeddings.shape[1]}, expected 1536"
+            extras.execute_values(self.cursor, query, file_content_batch)
+            logger.info(
+                f"Successfully inserted {len(file_content_batch)} content rows "
+            )
 
-            # Prepare data for bulk insert
-            file_data = []
-            for sentence, page_number, is_header, is_table, embedding in zip(
-                file_sentences, page_numbers, file_headers, file_tables, file_embeddings
-            ):
-                file_data.append(
-                    (
-                        file_id,
-                        sentence,
-                        page_number,
-                        is_header,
-                        is_table,
-                        psycopg2.Binary(embedding.tobytes()),
-                    )
-                )
-
-            if file_data:
-                extras.execute_values(self.cursor, query_insert_file_content, file_data)
-                logger.info(
-                    f"Successfully inserted {len(file_data)} rows for file {file_id}"
-                )
-            else:
-                logger.warning(f"No data to insert for file {file_id}")
-
-        except AssertionError as e:
-            logger.error(f"Data validation failed: {str(e)}")
-            raise
-        except DatabaseError as e:
-            self.conn.rollback()
-            logger.error(f"Database error while inserting file content: {str(e)}")
-            raise
         except Exception as e:
-            self.conn.rollback()
-            logger.error(f"Unexpected error while inserting file content: {str(e)}")
+            logger.error(f"Error while inserting file content: {str(e)}")
             raise
 
     def insert_session_info(self, user_id: str, session_id: str):

@@ -1,3 +1,56 @@
+// Local storage for every user
+class FileBasket {
+    constructor() {
+        this.files = new Map();
+        this.totalSize = 0;
+    }
+
+    addFiles(fileList) {
+        for (let file of fileList) {
+            if (!this.files.has(file.name)) {
+                this.files.set(file.name, {
+                    file: file,
+                    lastModified: file.lastModified
+                });
+                this.totalSize += file.size;
+            }
+        }
+        return this.getFileNames();
+    }
+
+    removeFiles(fileNames) {
+        fileNames.forEach(fileName => {
+            const fileInfo = this.files.get(fileName);
+            if (fileInfo) {
+                this.totalSize -= fileInfo.file.size;
+                this.files.delete(fileName);
+            }
+        });
+        return this.getFileNames();
+    }
+
+    getFileNames() {
+        return Array.from(this.files.keys());
+    }
+
+    clear() {
+        this.files.clear();
+        this.totalSize = 0;
+    }
+
+    getUploadFormData() {
+        const formData = new FormData();
+        this.files.forEach((fileInfo, fileName) => {
+            formData.append('files', fileInfo.file);
+            formData.append('lastModified', fileInfo.lastModified);
+        });
+        return formData;
+    }
+}
+
+const fileBasket = new FileBasket();
+
+// Initialization of widgets and behaviours
 function initAppWidgets({
     selectedFileList,
     uploadFilesButton,
@@ -18,9 +71,9 @@ function initAppWidgets({
 }) {
     selectFilesButton.addEventListener('click', () => fileInput.click());
     
-    fileInput.addEventListener('change', () => selectFiles(fileInput, userData, uploadFilesButton, selectedFileList, removeSelectionButton))
+    fileInput.addEventListener('change', () => selectFiles(fileInput, selectedFileList))
 
-    removeSelectionButton.addEventListener('click', () => removeFileSelection(selectedFileList, userData));
+    removeSelectionButton.addEventListener('click', () => removeFileSelection(selectedFileList));
 
     domainButtons.forEach((button, index) => {
         button.addEventListener('click', () => selectDomain(button, index, domainButtons, userData));
@@ -91,7 +144,54 @@ function initFeedbackWidgets({
     });
 }
 
-// Helper functions
+// Local functions
+function selectFiles(fileInput, selectedFileList) {
+    const updatedFiles = fileBasket.addFiles(fileInput.files);
+    
+    // Update UI
+    selectedFileList.innerHTML = '';
+    updatedFiles.forEach(fileName => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'file-checkbox';
+        const label = document.createElement('label');
+        label.textContent = fileName;
+        fileItem.appendChild(checkbox);
+        fileItem.appendChild(label);
+        selectedFileList.appendChild(fileItem);
+    });
+    
+    updateButtonStates();
+    fileInput.value = '';
+}
+
+function removeFileSelection(selectedFileList) {
+    const checkedBoxes = selectedFileList.querySelectorAll('input[type="checkbox"]:checked');
+    
+    if (checkedBoxes.length === 0) {
+        window.addMessageToChat('No files selected for removal', 'ragchat');
+        return;
+    }
+
+    const filesToRemove = Array.from(checkedBoxes).map(checkbox => 
+        checkbox.nextElementSibling.textContent
+    );
+    
+    fileBasket.removeFiles(filesToRemove);
+    
+    // Update UI
+    checkedBoxes.forEach(checkbox => {
+        const fileItem = checkbox.closest('.file-item');
+        if (fileItem) {
+            fileItem.remove();
+        }
+    });
+    
+    updateButtonStates();
+}
+
 function addMessageToChat(message, sender) {
     const messageElement = document.createElement('div');
     messageElement.classList.add('message');
@@ -324,100 +424,6 @@ async function sendMessage(userInput, userData, userInputTextbox) {
     }
 }
 
-async function selectFiles(fileInput, userData) {
-    const files = fileInput.files;
-    const formData = new FormData();
-    
-    if (files.length === 0) {
-        return;
-    }
-
-    for (let i = 0; i < files.length; i++) {
-        formData.append('files', files[i]);
-        formData.append('lastModified', files[i].lastModified);
-    }
-
-    try {
-        const userID = userData.user_id;
-        const url = `/api/v1/io/select_files?userID=${encodeURIComponent(userID)}`;
-        const response = await fetch(url, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to add files!');
-        }
-        
-        const data = await response.json();
-
-        if (data && data.file_names) {
-            data.file_names.forEach(fileName => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'file-checkbox';
-                const label = document.createElement('label');
-                label.textContent = fileName;
-                fileItem.appendChild(checkbox);
-                fileItem.appendChild(label);
-                window.selectedFileList.appendChild(fileItem);
-            });
-            updateButtonStates();
-        }
-    } catch (error) {
-        console.error('Error selecting files:', error);
-        window.addMessageToChat('Error while selecting files!', 'ragchat');
-    }
-
-    fileInput.value = '';
-}
-
-async function removeFileSelection(selectedFileList, userData) {
-    try {
-        const checkedBoxes = selectedFileList.querySelectorAll('input[type="checkbox"]:checked');
-
-        if (checkedBoxes.length === 0) {
-            window.addMessageToChat('No files selected for removal', 'ragchat');
-            return;
-        }
-
-        const filesToRemove = Array.from(checkedBoxes).map(checkbox => checkbox.nextElementSibling.textContent);
-        const userID = userData.user_id;
-        const url = `/api/v1/io/remove_file_selections?userID=${encodeURIComponent(userID)}`;
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ files_to_remove: filesToRemove })
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to remove files!');
-        }
-
-        const data = await response.json();
-
-        if (data.success) {
-            checkedBoxes.forEach(checkbox => {
-                const fileItem = checkbox.closest('.file-item');
-                if (fileItem) {
-                    fileItem.remove();
-                }
-            });
-
-            updateButtonStates();
-            window.addMessageToChat(`Selected files deleted`, 'ragchat');
-        } else {
-            throw new Error(data.message || 'Failed to remove files');
-        }
-    } catch (error) {
-        console.error('Error removing files:', error);
-        window.addMessageToChat('Error while removing files: ' + error.message, 'ragchat');
-    }
-}
-
 async function clearFileSelections(userData) {
     try {
         const response = await fetch(`/api/v1/io/clear_file_selections?userID=${encodeURIComponent(userData.user_id)}`, {
@@ -469,35 +475,41 @@ async function selectDomain(clickedButton, index, domainButtons, userData) {
 
 async function uploadFiles(uploadFilesButton, userData) {
     try {
-        uploadFilesButton.disabled = true;
-        const userID = userData.user_id;
-        const url = `/api/v1/io/upload_files?userID=${encodeURIComponent(userID)}`;
+        if (fileBasket.files.size === 0) {
+            window.addMessageToChat("No files selected for upload", 'ragchat');
+            return;
+        }
 
+        uploadFilesButton.disabled = true;
+        const formData = fileBasket.getUploadFormData();
+        const url = `/api/v1/io/upload_files?userID=${userData.user_id}`;
+        
         const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            body: formData
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error('Upload failed');
         }
 
         const data = await response.json();
-
+        
         if (data.domain_name) {
             updateDomainList(data);
             updateButtonStates();
             window.addMessageToChat(`Successfully uploaded files to domain ${data.domain_name}`, 'ragchat');
             window.selectedFileList.innerHTML = '';
+            fileBasket.clear();
+        } else {
+            window.addMessageToChat(data.message, 'ragchat');
         }
-        else {
-            window.addMessageToChat(`${data.message}`, 'ragchat');
-        }
+
     } catch (error) {
         console.error('Error uploading files:', error);
         window.addMessageToChat('Error while uploading files: ' + error.message, 'ragchat');
+    } finally {
+        uploadFilesButton.disabled = false;
     }
 }
 

@@ -5,6 +5,7 @@ from typing import List
 import logging
 import uuid
 import base64
+import psycopg2
 
 from .core import Processor
 from .core import Authenticator
@@ -150,121 +151,103 @@ async def generate_answer(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/io/select_files")
-async def select_files(
-    userID: str = Query(...),
-    files: List[UploadFile] = File(...),
-    lastModified: List[int] = Form(...),
-):
-    try:
-        added_files = []
-        for file, last_modified_date in zip(files, lastModified):
-            selection_identifier = [userID, file.filename]
-            if selection_identifier not in globals.file_selection_identifiers:
-                bytes = await file.read()
-                file_modified_date = datetime.fromtimestamp(
-                    int(last_modified_date) / 1000
-                ).strftime("%Y-%m-%d")
-                file_info = {
-                    "user_id": userID,
-                    "file_id": str(uuid.uuid4()),
-                    "file_name": file.filename,
-                    "file_modified_date": file_modified_date,
-                    "file_bytes": bytes,
-                }
-                globals.file_selection_identifiers.append(selection_identifier)
-                globals.file_selections.append(file_info)
-                added_files.append(file.filename)
-
-        return JSONResponse(content={"file_names": added_files}, status_code=200)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/io/remove_file_selections")
-async def remove_file_selections(
-    request: Request,
-    userID: str = Query(...),
-):
-    try:
-        data = await request.json()
-        files = data.get("files_to_remove", [])
-        globals.file_selections = [
-            file_info
-            for file_info in globals.file_selections
-            if not (file_info["user_id"] == userID and file_info["file_name"] in files)
-        ]
-        globals.file_selection_identifiers = [
-            identifier
-            for identifier in globals.file_selection_identifiers
-            if not (identifier[0] == userID and identifier[1] in files)
-        ]
-
-        return JSONResponse(
-            content={"message": "Selected files removed successfully", "success": True},
-            status_code=200,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/io/clear_file_selections")
-async def clear_user_selections(userID: str = Query(...)):
-    try:
-        globals.file_selections = [
-            selection
-            for selection in globals.file_selections
-            if selection["user_id"] != userID
-        ]
-        globals.file_selection_identifiers = [
-            identifier
-            for identifier in globals.file_selection_identifiers
-            if identifier[0] != userID
-        ]
-
-        return JSONResponse(content="", status_code=200)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.post("/io/upload_files")
 async def upload_files(
     userID: str = Query(...),
+    files: List[UploadFile] = File(...),
+    lastModified: List[str] = Form(...),
 ):
-    if not globals.file_selections:
-        raise HTTPException(status_code=400, detail="No file in server to be upload")
     try:
+        if not files:
+            return JSONResponse(
+                content={"message": "No files provided"}, status_code=400
+            )
+
         selected_domain_number = globals.selected_domain[userID]
-        for file_selection in globals.file_selections:
-            if userID != file_selection["user_id"]:
-                continue
-            file_data = processor.rf.read_file(
-                file_bytes=file_selection["file_bytes"],
-                file_name=file_selection["file_name"],
+
+        # Get domain info
+        with Database() as db:
+            domain_info = db.get_domain_info(
+                user_id=userID, selected_domain_number=selected_domain_number
             )
-            file_embeddings = processor.ef.create_embeddings_from_sentences(
-                sentences=file_data["sentences"]
-            )
-            with Database() as db:
-                domain_info = db.get_domain_info(
-                    user_id=userID, selected_domain_number=selected_domain_number
+            if not domain_info:
+                return JSONResponse(
+                    content={"message": "Invalid domain selected"}, status_code=400
                 )
-                db.insert_file_info(
-                    file_info=file_selection,
-                    domain_id=domain_info["domain_id"],
+
+            # Prepare direct insertion tuples
+            file_info_batch = []
+            file_content_batch = []
+
+            # Process all files
+            for file, last_modified in zip(files, lastModified):
+                # Validate file
+                if not file.filename:
+                    continue
+
+                try:
+                    file_bytes = await file.read()
+                    if not file_bytes:
+                        continue
+
+                    file_data = processor.rf.read_file(
+                        file_bytes=file_bytes, file_name=file.filename
+                    )
+
+                    if not file_data["sentences"]:
+                        continue
+
+                    # Prepare batches
+                    file_embeddings = processor.ef.create_embeddings_from_sentences(
+                        sentences=file_data["sentences"]
+                    )
+                    file_id = str(uuid.uuid4())
+                    file_info_batch.append(
+                        (
+                            userID,
+                            file_id,
+                            domain_info["domain_id"],
+                            file.filename[:100],  # Truncate here if needed
+                            datetime.fromtimestamp(int(last_modified) / 1000).strftime(
+                                "%Y-%m-%d"
+                            )[:20],
+                        )
+                    )
+                    for i in range(len(file_data["sentences"])):
+                        file_content_batch.append(
+                            (
+                                file_id,
+                                file_data["sentences"][i],
+                                file_data["page_number"][i],
+                                file_data["is_header"][i],
+                                file_data["is_table"][i],
+                                psycopg2.Binary(file_embeddings[i].tobytes()),
+                            )
+                        )
+
+                except Exception as e:
+                    logging.error(f"Error processing file {file.filename}: {str(e)}")
+                    continue
+
+            if not file_info_batch or not file_content_batch:
+                return JSONResponse(
+                    content={"message": "No valid files to process"}, status_code=400
                 )
-                db.insert_file_content(
-                    file_id=file_selection["file_id"],
-                    file_sentences=file_data["sentences"],
-                    page_numbers=file_data["page_number"],
-                    file_headers=file_data["is_header"],
-                    file_tables=file_data["is_table"],
-                    file_embeddings=file_embeddings,
-                )
+
+            # Bulk insertions
+            try:
+                success = db.insert_file_batches(file_info_batch, file_content_batch)
+                if not success:
+                    return JSONResponse(
+                        content={"message": "Failed to process files"}, status_code=500
+                    )
                 db.conn.commit()
-        globals.file_selections = [
-            file for file in globals.file_selections if file["user_id"] != userID
-        ]
+
+            except Exception as e:
+                logging.error(f"Database error: {str(e)}")
+                raise HTTPException(status_code=500, detail="Database error occurred")
+
+        # Update domain info
         file_names, domain_name = update_selected_domain(
             user_id=userID, selected_domain=selected_domain_number
         )
@@ -277,16 +260,27 @@ async def upload_files(
             },
             status_code=200,
         )
+
     except KeyError:
         return JSONResponse(
             content={"message": "Please select the domain number first"},
             status_code=200,
         )
     except Exception as e:
-        db.conn.rollback()
+        logging.error(f"Error during file upload: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error occurred")
+
+    except KeyError:
+        return JSONResponse(
+            content={"message": "Please select the domain number first"},
+            status_code=200,
+        )
+    except Exception as e:
+        if "db" in locals():
+            db.conn.rollback()
         logging.error(f"Error during file upload: {str(e)}")
         raise HTTPException(
-            content={"message": f"Failed uploading, error: {e}"}, status_code=500
+            status_code=500, detail=f"Failed uploading, error: {str(e)}"
         )
 
 
