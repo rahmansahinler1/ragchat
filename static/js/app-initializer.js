@@ -49,7 +49,6 @@ async function initialize() {
             userData: userData
         });
 
-        clearFileSelections(userData);
         window.addMessageToChat(`Welcome ${userData.user_name} ${userData.user_surname}`, 'ragchat');
     } catch (error) {
         console.error('Error initializing app:', error);

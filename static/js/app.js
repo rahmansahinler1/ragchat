@@ -424,23 +424,6 @@ async function sendMessage(userInput, userData, userInputTextbox) {
     }
 }
 
-async function clearFileSelections(userData) {
-    try {
-        const response = await fetch(`/api/v1/io/clear_file_selections?userID=${encodeURIComponent(userData.user_id)}`, {
-            method: 'POST',
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to clear user selections');
-        }
-
-        updateButtonStates();
-    } catch (error) {
-        console.error('Error clearing user selections:', error);
-        window.addMessageToChat('Error while clearing previous selections!', 'ragchat');
-    }
-}
-
 async function selectDomain(clickedButton, index, domainButtons, userData) {
     try {
         domainButtons.forEach(btn => btn.classList.remove('active'));
