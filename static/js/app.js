@@ -600,6 +600,26 @@ async function sendFeedback(feedbackForm, userData, submitButton) {
     }
 }
 
+async function checkVersion() {
+    try {
+        const response = await fetch('/api/version');
+        const data = await response.json();
+        const currentVersion = localStorage.getItem('appVersion');
+        
+        if (!currentVersion) {
+            localStorage.setItem('appVersion', data.version);
+            return;
+        }
+
+        if (data.version !== currentVersion) {
+            localStorage.setItem('appVersion', data.version);
+            window.location.reload(true);
+        }
+    } catch (error) {
+        console.error('Version check failed:', error);
+    }
+}
+
 // Dark Mode configurations
 let darkmode = localStorage.getItem('dark-mode');
 const themeSwitch = document.getElementById('theme-switch');

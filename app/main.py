@@ -51,3 +51,8 @@ async def app_page(
                 "session_id": effective_session,
             },
         )
+
+
+@app.get("/api/version")
+async def get_version():
+    return {"version": "1.0.1"}
