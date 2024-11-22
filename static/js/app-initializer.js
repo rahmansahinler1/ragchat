@@ -11,6 +11,8 @@ function loadScript(url) {
 async function initialize() {
     try {
         await loadScript('/static/js/app.js');
+        await checkVersion();
+        
         const userData = await window.fetchUserInfo(window.serverData.userId);
 
         if (!userData) {
