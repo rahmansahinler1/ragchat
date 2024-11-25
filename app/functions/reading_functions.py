@@ -3,6 +3,8 @@ import fitz
 import io
 import re
 import spacy
+import pymupdf4llm
+from langchain_text_splitters import MarkdownHeaderTextSplitter
 
 
 class ReadingFunctions:
@@ -19,6 +21,15 @@ class ReadingFunctions:
             ],
         )
         self.max_file_size_mb = 50
+        self.headers_to_split_on = [
+            ("#", "Header 1"),
+            ("##", "Header 2"),
+            ("###", "Header 3"),
+            ("####", "Header 4"),
+        ]
+        self.markdown_splitter = MarkdownHeaderTextSplitter(
+            self.headers_to_split_on, strip_headers=False, return_each_line=True
+        )
 
     def read_file(self, file_bytes: bytes, file_name: str):
         """Read and process file content from bytes"""
@@ -46,78 +57,36 @@ class ReadingFunctions:
         pdf_file = io.BytesIO(file_bytes)
         with fitz.open(stream=pdf_file, filetype="pdf") as pdf:
             # Process each page
-            for page_num in range(len(pdf)):
-                page = pdf.load_page(page_num)
-                tables = page.find_tables().tables
-                table_info = self._extract_table_info(tables=tables) if tables else None
-                blocks = page.get_text("dict")["blocks"]
-                added_table_indexes = []
-                for block in blocks:
-                    # Check table
-                    table_index = (
-                        self._check_table_bbox(
-                            block_bbox=block["bbox"], table_info=table_info
-                        )
-                        if table_info
-                        else -1
-                    )
-                    # Process each block
-                    if (table_index >= 0) and (table_index not in added_table_indexes):
-                        pdf_data["is_table"][-1] = True
-                        table_rows = table_info["table_texts"][table_index].split("\n")
-                        table_rows = [row for row in table_rows if row]
-                        pdf_data["sentences"].extend(table_rows)
-                        row_amount = len(table_rows)
-                        pdf_data["page_number"].extend([page_num + 1] * row_amount)
-                        pdf_data["is_header"].extend([False] * row_amount)
-                        pdf_data["is_table"].extend([True] * row_amount)
-                        added_table_indexes.append(table_index)
-                    elif (block.get("type") == 0) and (table_index == -1):
-                        if "lines" not in block:
-                            continue
-
-                        block_sentences, block_headers = self._process_pdf_block(
-                            block=block
-                        )
-                        if block_sentences:
-                            pdf_data["sentences"].extend(block_sentences)
-                            sentence_len = len(block_sentences)
-                            pdf_data["page_number"].extend(
-                                [page_num + 1] * sentence_len
-                            )
-                            pdf_data["is_header"].extend(block_headers)
-                            pdf_data["is_table"].extend([False] * sentence_len)
-
-        return pdf_data
-
-    def _process_pdf_block(self, block: dict):
-        """Process individual PDF block"""
-        block_sentences = []
-        block_headers = []
-
-        if len(block["lines"]) >= 1 and len(block["lines"]) < 5:
-            # Process potential headers
-            for line in block["lines"]:
-                text_line = ""
-                for span in line["spans"]:
-                    text_line += span["text"].strip()
-                if self._is_header(span, text_line):
-                    block_sentences.append(text_line)
-                    block_headers.append(True)
-                elif len(text_line) > 5 and not self._is_separator(text_line):
-                    block_sentences.append(text_line)
-                    block_headers.append(False)
-        else:
-            # Process regular text
-            text = " ".join(
-                span["text"] for line in block["lines"] for span in line["spans"]
+            markdown_pages = pymupdf4llm.to_markdown(
+                pdf, page_chunks=True, show_progress=False
             )
-            clean_text = self._clean_text(text)
-            if len(clean_text) > 15:
-                block_sentences.append(clean_text)
-                block_headers.append(False)
-
-        return block_sentences, block_headers
+            for i, page in enumerate(markdown_pages):
+                splits = self.markdown_splitter.split_text(page["text"])
+                for split in splits:
+                    if not len(split.page_content) > 5 or re.match(
+                        r"^[^\w]*$", split.page_content
+                    ):
+                        continue
+                    elif (
+                        split.metadata and split.page_content[0] == "#"
+                    ):  # Header detection
+                        pdf_data["sentences"].append(split.page_content)
+                        pdf_data["is_header"].append(True)
+                        pdf_data["is_table"].append(False)
+                        pdf_data["page_number"].append(i + 1)
+                    elif (
+                        split.page_content[0] == "|" and split.page_content[-1] == "|"
+                    ):  # Table detection
+                        pdf_data["sentences"].append(split.page_content)
+                        pdf_data["is_header"].append(False)
+                        pdf_data["is_table"].append(True)
+                        pdf_data["page_number"].append(i + 1)
+                    else:
+                        pdf_data["sentences"].append(split.page_content)
+                        pdf_data["is_header"].append(False)
+                        pdf_data["is_table"].append(False)
+                        pdf_data["page_number"].append(i + 1)
+        return pdf_data
 
     def _process_docx(self, file_bytes: bytes):
         docx_data = {
@@ -172,43 +141,6 @@ class ReadingFunctions:
 
         return text_data
 
-    def _extract_table_info(self, tables):
-        table_bboxes = [
-            (table.bbox[0], table.bbox[1], table.bbox[2], table.bbox[3])
-            for table in tables
-        ]
-        table_texts = self._extract_table_text(tables=tables)
-        return {"table_bboxes": table_bboxes, "table_texts": table_texts}
-
-    def _extract_table_text(self, tables):
-        table_list = []
-        for table in tables:
-            reconsracted_table = ""
-            table_extract = table.extract()
-            for sublist in table_extract:
-                filtered = [
-                    str(item).replace("\n", " ").strip()
-                    for item in sublist
-                    if item is not None
-                ]
-                filtered = [
-                    re.sub(r"(?<!\w)([A-Za-z])\s+(\d+)(?!\w)", r"\1\2", item)
-                    for item in filtered
-                ]
-                combined_string = " ".join(filtered) + "\n"
-                reconsracted_table += combined_string
-            table_list.append(reconsracted_table)
-        return table_list
-
-    def _check_table_bbox(self, block_bbox, table_info):
-        for i, table_bbox in enumerate(table_info["table_bboxes"]):
-            if (
-                table_bbox[1] <= block_bbox[1] <= table_bbox[3]
-                and table_bbox[0] <= block_bbox[0] <= table_bbox[2]
-            ):
-                return i
-        return -1
-
     def _process_text(self, text):
         docs = self.nlp(text)
         sentences = [sent.text.replace("\n", " ").strip() for sent in docs.sents]
@@ -228,15 +160,3 @@ class ReadingFunctions:
         )
         text = text.replace("\n", " ").strip()
         return " ".join(text.split())
-
-    def _is_header(self, span: dict, text: str) -> bool:
-        return (
-            span["size"] > 3
-            and any(style in span["font"] for style in ["Medi", "Bold", "B"])
-            and len(text) > 3
-            and text[0].isalpha()
-            and not self._is_separator(text)
-        )
-
-    def _is_separator(self, text: str) -> bool:
-        return bool(re.search(r"^[^\w\s]+$|^[_]+$", text))
