@@ -9,12 +9,16 @@ import psycopg2
 
 from .core import Processor
 from .core import Authenticator
-from .. import globals
 from ..db.database import Database
+from ..redis_manager import RedisManager, RedisConnectionError
 
 router = APIRouter()
 processor = Processor()
 authenticator = Authenticator()
+redis_manager = RedisManager()
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 # request functions
@@ -88,11 +92,17 @@ async def select_domain(
             user_id=userID, selected_domain=selected_domain_number
         )
 
+        redis_manager.refresh_user_ttl(userID)
+
         return JSONResponse(
             content={"file_names": file_names, "domain_name": domain_name},
             status_code=200,
         )
+    except RedisConnectionError as e:
+        logger.error(f"Redis connection error: {str(e)}")
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
     except Exception as e:
+        logger.error(f"Error in select_domain: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -104,50 +114,69 @@ async def generate_answer(
     try:
         data = await request.json()
         user_message = data.get("user_message")
-        if userID not in globals.selected_domain.keys():
+
+        # Check if domain is selected
+        selected_domain = redis_manager.get_data(f"user:{userID}:selected_domain")
+        if not selected_domain:
             return JSONResponse(
                 content={"message": "Please select a domain first"},
-                status_code=500,
-            )
-        elif globals.index[userID] and globals.domain_content[userID]:
-            answer, resources, resource_sentences = processor.search_index(
-                user_query=user_message,
-                domain_content=globals.domain_content[userID],
-                boost_info=globals.boost_info[userID],
-                index=globals.index[userID],
-                index_header=globals.index_header[userID],
+                status_code=400,
             )
 
-            if not answer or not resources or not resource_sentences:
-                return JSONResponse(
-                    content={
-                        "message": f"Can you explain the question better? I did not understand '{user_message}'"
-                    },
-                    status_code=200,
-                )
+        # Get required data from Redis
+        index = redis_manager.get_data(f"user:{userID}:index")
+        domain_content = redis_manager.get_data(f"user:{userID}:domain_content")
+        boost_info = redis_manager.get_data(f"user:{userID}:boost_info")
+        index_header = redis_manager.get_data(f"user:{userID}:index_header")
 
-            with Database() as db:
-                resources["file_names"] = [
-                    db.get_file_name_with_id(file_id=file_id)
-                    for file_id in resources["file_ids"]
-                ]
-                del resources["file_ids"]
+        if not index or not domain_content:
+            return JSONResponse(
+                content={"message": "Selected domain is empty!"},
+                status_code=400,
+            )
 
+        # Process search
+        answer, resources, resource_sentences = processor.search_index(
+            user_query=user_message,
+            domain_content=domain_content,
+            boost_info=boost_info,
+            index=index,
+            index_header=index_header,
+        )
+
+        if not answer or not resources or not resource_sentences:
             return JSONResponse(
                 content={
-                    "information": answer["information"],
-                    "explanation": answer["explanation"],
-                    "resources": resources,
-                    "resource_sentences": resource_sentences,
+                    "message": f"Can you explain the question better? I did not understand '{user_message}'"
                 },
                 status_code=200,
             )
-        else:
-            return JSONResponse(
-                content={"message": "Selected domain is empty!"},
-                status_code=500,
-            )
+
+        # Get file names
+        with Database() as db:
+            resources["file_names"] = [
+                db.get_file_name_with_id(file_id=file_id)
+                for file_id in resources["file_ids"]
+            ]
+            del resources["file_ids"]
+
+        redis_manager.refresh_user_ttl(userID)
+
+        return JSONResponse(
+            content={
+                "information": answer["information"],
+                "explanation": answer["explanation"],
+                "resources": resources,
+                "resource_sentences": resource_sentences,
+            },
+            status_code=200,
+        )
+
+    except RedisConnectionError as e:
+        logger.error(f"Redis connection error: {str(e)}")
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
     except Exception as e:
+        logger.error(f"Error in generate_answer: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -163,7 +192,9 @@ async def upload_files(
                 content={"message": "No files provided"}, status_code=400
             )
 
-        selected_domain_number = globals.selected_domain[userID]
+        selected_domain_number = redis_manager.get_data(
+            f"user:{userID}:selected_domain"
+        )
 
         # Get domain info
         with Database() as db:
@@ -290,7 +321,9 @@ async def remove_file_upload(
     userID: str = Query(...),
 ):
     try:
-        selected_domain_number = globals.selected_domain[userID]
+        selected_domain_number = redis_manager.get_data(
+            f"user:{userID}:selected_domain"
+        )
         data = await request.json()
         files = data.get("files_to_remove", [])
         message, file_names, domain_name, status_code = (
@@ -441,31 +474,54 @@ async def signup(
         )
 
 
-# helper functions
+# local functions
 def update_selected_domain(user_id: str, selected_domain: int):
-    globals.selected_domain[user_id] = selected_domain
-    with Database() as db:
-        domain_info = db.get_domain_info(user_id, selected_domain)
-        file_info = db.get_file_info_with_domain(user_id, domain_info["domain_id"])
-        if not file_info:
-            globals.domain_content[user_id] = []
-            globals.index[user_id] = None
-            return None, domain_info["domain_name"]
+    try:
+        redis_manager.set_data(f"user:{user_id}:selected_domain", selected_domain)
 
-        content, embeddings = db.get_file_content(
-            file_ids=[info["file_id"] for info in file_info]
-        )
-        globals.domain_content[user_id] = content
-        globals.boost_info[user_id] = processor.extract_boost_info(
-            domain_content=content, embeddings=embeddings
-        )
-        globals.index[user_id] = processor.create_index(embeddings=embeddings)
-        try:
-            globals.index_header[user_id] = processor.create_index(
-                embeddings=globals.boost_info[user_id]["header_embeddings"]
+        with Database() as db:
+            domain_info = db.get_domain_info(user_id, selected_domain)
+            file_info = db.get_file_info_with_domain(user_id, domain_info["domain_id"])
+
+            if not file_info:
+                # Clear any existing domain data
+                redis_manager.delete_data(f"user:{user_id}:domain_content")
+                redis_manager.delete_data(f"user:{user_id}:index")
+                redis_manager.delete_data(f"user:{user_id}:index_header")
+                redis_manager.delete_data(f"user:{user_id}:boost_info")
+                return None, domain_info["domain_name"]
+
+            content, embeddings = db.get_file_content(
+                file_ids=[info["file_id"] for info in file_info]
             )
-        except IndexError:
-            globals.index_header[user_id] = None
-        file_names = [info["file_name"] for info in file_info]
-        domain_name = domain_info["domain_name"]
-        return file_names, domain_name
+
+            # Store domain content in Redis
+            redis_manager.set_data(f"user:{user_id}:domain_content", content)
+
+            # Process and store boost info
+            boost_info = processor.extract_boost_info(
+                domain_content=content, embeddings=embeddings
+            )
+            redis_manager.set_data(f"user:{user_id}:boost_info", boost_info)
+
+            # Create and store main index
+            index = processor.create_index(embeddings=embeddings)
+            redis_manager.set_data(f"user:{user_id}:index", index)
+
+            # Create and store header index if possible
+            try:
+                index_header = processor.create_index(
+                    embeddings=boost_info["header_embeddings"]
+                )
+                redis_manager.set_data(f"user:{user_id}:index_header", index_header)
+            except IndexError:
+                redis_manager.delete_data(f"user:{user_id}:index_header")
+
+            file_names = [info["file_name"] for info in file_info]
+            domain_name = domain_info["domain_name"]
+
+            return file_names, domain_name
+
+    except Exception as e:
+        logger.error(f"Error in update_selected_domain: {str(e)}")
+        raise RedisConnectionError(f"Failed to update domain: {str(e)}")

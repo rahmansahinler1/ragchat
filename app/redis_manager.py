@@ -39,6 +39,8 @@ class RedisManager:
                 logger.error(f"Failed to connect to Redis: {str(e)}")
                 raise RedisConnectionError(f"Redis connection failed: {str(e)}")
 
+        self.default_ttl = 1800
+
     def _handle_connection(func):
         """Decorator to handle Redis connection errors"""
 
@@ -108,6 +110,45 @@ class RedisManager:
             logger.error(f"Failed to get memory usage: {str(e)}")
             return {}
 
+    @_handle_connection
+    def refresh_user_ttl(self, user_id: str) -> bool:
+        """Refresh TTL for all keys belonging to a user"""
+        try:
+            # Get all keys for this user
+            pattern = f"user:{user_id}:*"
+            user_keys = self.client.keys(pattern)
+
+            if not user_keys:
+                return False
+
+            # Update TTL for all user's keys
+            pipeline = self.client.pipeline()
+            for key in user_keys:
+                pipeline.expire(key, self.default_ttl)
+
+            # Execute all EXPIRE commands atomically
+            results = pipeline.execute()
+
+            # Check if all operations succeeded
+            success = all(results)
+            if not success:
+                logger.warning(f"Some TTL updates failed for user {user_id}")
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Failed to refresh TTL for user {user_id}: {str(e)}")
+            return False
+
+    @_handle_connection
+    def refresh_key_ttl(self, key: str, ttl: int = None) -> bool:
+        """Refresh TTL for a specific key"""
+        try:
+            return self.client.expire(key, ttl or self.default_ttl)
+        except Exception as e:
+            logger.error(f"Failed to refresh TTL for key {key}: {str(e)}")
+            return False
+
     def is_connected(self) -> bool:
         """Check if Redis connection is alive"""
         try:
@@ -115,29 +156,48 @@ class RedisManager:
         except Exception:
             return False
 
+    def get_keys_by_pattern(self, pattern: str = "*") -> list:
+        """Get all keys matching pattern"""
+        try:
+            return [key.decode("utf-8") for key in self.client.keys(pattern)]
+        except Exception as e:
+            logger.error(f"Error getting keys: {e}")
+            return []
 
-def test_redis_connection():
-    try:
-        redis_manager = RedisManager()
+    def get_memory_usage(self) -> dict:
+        """Get Redis memory statistics"""
+        try:
+            info = self.client.info(section="memory")
+            return {
+                "used_memory_human": info["used_memory_human"],
+                "peak_memory_human": info["used_memory_peak_human"],
+                "fragmentation_ratio": info["mem_fragmentation_ratio"],
+            }
+        except Exception as e:
+            logger.error(f"Error getting memory usage: {e}")
+            return {}
 
-        # Test connection
-        assert redis_manager.is_connected(), "Redis connection failed"
+    def get_key_info(self, key: str) -> dict:
+        """Get detailed information about a key"""
+        try:
+            return {
+                "type": self.client.type(key).decode("utf-8"),
+                "ttl": self.client.ttl(key),
+                "memory": self.client.memory_usage(key),
+            }
+        except Exception as e:
+            logger.error(f"Error getting key info: {e}")
+            return {}
 
-        # Test set/get operations
-        test_data = {"test": "data"}
-        assert redis_manager.set_data("test_key", test_data), "Failed to set data"
-
-        retrieved_data = redis_manager.get_data("test_key")
-        assert retrieved_data == test_data, "Data mismatch"
-
-        # Test deletion
-        assert redis_manager.delete_data("test_key"), "Failed to delete data"
-
-        print("Redis connection and operations test passed!")
-
-    except Exception as e:
-        print(f"Test failed: {str(e)}")
-
-
-if __name__ == "__main__":
-    test_redis_connection()
+    def monitor_user_data(self, user_id: str) -> dict:
+        """Monitor all data for a specific user"""
+        try:
+            user_keys = self.get_keys_by_pattern(f"user:{user_id}:*")
+            return {
+                "total_keys": len(user_keys),
+                "keys": {key: self.get_key_info(key) for key in user_keys},
+                "memory_usage": self.get_memory_usage(),
+            }
+        except Exception as e:
+            logger.error(f"Error monitoring user data: {e}")
+            return {}
