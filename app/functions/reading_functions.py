@@ -3,7 +3,8 @@ import fitz
 import io
 import re
 import spacy
-
+import pymupdf4llm
+from langchain_text_splitters import MarkdownHeaderTextSplitter
 
 class ReadingFunctions:
     def __init__(self):
@@ -19,6 +20,13 @@ class ReadingFunctions:
             ],
         )
         self.max_file_size_mb = 50
+        self.headers_to_split_on = [
+            ("#", "Header 1"),
+            ("##", "Header 2"),
+            ("###", "Header 3"),
+            ("####", "Header 4")
+        ]
+        self.markdown_splitter = MarkdownHeaderTextSplitter(self.headers_to_split_on,strip_headers=False,return_each_line=True)
 
     def read_file(self, file_bytes: bytes, file_name: str):
         """Read and process file content from bytes"""
@@ -46,48 +54,27 @@ class ReadingFunctions:
         pdf_file = io.BytesIO(file_bytes)
         with fitz.open(stream=pdf_file, filetype="pdf") as pdf:
             # Process each page
-            for page_num in range(len(pdf)):
-                page = pdf.load_page(page_num)
-                tables = page.find_tables().tables
-                table_info = self._extract_table_info(tables=tables) if tables else None
-                blocks = page.get_text("dict")["blocks"]
-                added_table_indexes = []
-                for block in blocks:
-                    # Check table
-                    table_index = (
-                        self._check_table_bbox(
-                            block_bbox=block["bbox"], table_info=table_info
-                        )
-                        if table_info
-                        else -1
-                    )
-                    # Process each block
-                    if (table_index >= 0) and (table_index not in added_table_indexes):
-                        pdf_data["is_table"][-1] = True
-                        table_rows = table_info["table_texts"][table_index].split("\n")
-                        table_rows = [row for row in table_rows if row]
-                        pdf_data["sentences"].extend(table_rows)
-                        row_amount = len(table_rows)
-                        pdf_data["page_number"].extend([page_num + 1] * row_amount)
-                        pdf_data["is_header"].extend([False] * row_amount)
-                        pdf_data["is_table"].extend([True] * row_amount)
-                        added_table_indexes.append(table_index)
-                    elif (block.get("type") == 0) and (table_index == -1):
-                        if "lines" not in block:
-                            continue
-
-                        block_sentences, block_headers = self._process_pdf_block(
-                            block=block
-                        )
-                        if block_sentences:
-                            pdf_data["sentences"].extend(block_sentences)
-                            sentence_len = len(block_sentences)
-                            pdf_data["page_number"].extend(
-                                [page_num + 1] * sentence_len
-                            )
-                            pdf_data["is_header"].extend(block_headers)
-                            pdf_data["is_table"].extend([False] * sentence_len)
-
+            markdown_pages = pymupdf4llm.to_markdown(pdf, page_chunks=True)
+            for i,page in enumerate(markdown_pages):
+                splits = self.markdown_splitter.split_text(page['text'])
+                for split in splits:
+                    if not len(split.page_content) > 5 or re.match(r'^[^\w]*$',split.page_content):
+                        continue
+                    elif split.metadata and split.page_content[0] == '#' : # Header detection
+                        pdf_data['sentences'].append(split.page_content)
+                        pdf_data['is_header'].append(True)
+                        pdf_data['is_table'].append(False)
+                        pdf_data['page_number'].append(i+1)
+                    elif split.page_content[0] == '|' and split.page_content[-1] == '|': # Table detection
+                        pdf_data['sentences'].append(split.page_content)
+                        pdf_data['is_header'].append(False)
+                        pdf_data['is_table'].append(True)
+                        pdf_data['page_number'].append(i+1)
+                    else:
+                        pdf_data['sentences'].append(split.page_content)
+                        pdf_data['is_header'].append(False)
+                        pdf_data['is_table'].append(False)
+                        pdf_data['page_number'].append(i+1)
         return pdf_data
 
     def _process_pdf_block(self, block: dict):

@@ -74,27 +74,23 @@ class Processor:
             sorted(dict_resource.items(), key=lambda item: item[1], reverse=True)
         )
         indexes = np.array(list(sorted_dict.keys()))
-        sorted_sentence_indexes = indexes[:5]
+        sorted_sentence_indexes = indexes[:10]
 
         # Context sentences
         context = ""
         context_windows = []
-        table_chunks = self._extract_table_chunks(
-            table_indexes=boost_info["table_indexes"]
-        )
+        table_indexes = boost_info["table_indexes"]
         for i, sentence_index in enumerate(sorted_sentence_indexes):
-            table_chunk_amount = len(table_chunks)
+            table_chunk_amount = len(table_indexes)
             if table_chunk_amount:
-                for chunk in table_chunks:
-                    if sentence_index in chunk:
-                        table_text = ""
-                        for table_index in range(chunk[0], chunk[-1] + 1):
-                            table_text += f"{domain_content[table_index][0]}\n\n"
+                for table_index in table_indexes:
+                    if sentence_index == table_index:
+                        table_text = f"{domain_content[table_index][0]}"
                         context += f"{i + 1}: Table\n{table_text}\n"
                         context_windows.append(f"{i + 1}: Table\n{table_text}")
-                        table_chunks.remove(chunk)
+                        table_indexes.remove(table_index)
                         break
-            if table_chunk_amount == len(table_chunks):
+            if table_chunk_amount == len(table_indexes):
                 widen_sentence = self._wide_sentences(
                     window_size=3 if i < 3 else 1,
                     sentence_index=sentence_index,
@@ -115,7 +111,7 @@ class Processor:
         generated_queries = self.cf.query_generation(query=user_query).split("\n")
 
         if generated_queries:
-            return [user_query] + generated_queries
+            return generated_queries
         return None
 
     def _create_boost_array(
