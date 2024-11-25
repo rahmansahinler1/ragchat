@@ -208,19 +208,3 @@ class Processor:
         except:  # noqa: E722
             return {"information": raw_answer, "explanation": ""}
 
-    def _extract_table_chunks(self, table_indexes):
-        if not table_indexes:
-            return []
-
-        chunks = []
-        current_chunk = [table_indexes[0]]
-
-        for num in table_indexes[1:]:
-            if num == current_chunk[-1] + 1:
-                current_chunk.append(num)
-            else:
-                chunks.append(current_chunk)
-                current_chunk = [num]
-
-        chunks.append(current_chunk)
-        return chunks

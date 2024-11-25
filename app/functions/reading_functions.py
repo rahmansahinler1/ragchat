@@ -77,35 +77,6 @@ class ReadingFunctions:
                         pdf_data['page_number'].append(i+1)
         return pdf_data
 
-    def _process_pdf_block(self, block: dict):
-        """Process individual PDF block"""
-        block_sentences = []
-        block_headers = []
-
-        if len(block["lines"]) >= 1 and len(block["lines"]) < 5:
-            # Process potential headers
-            for line in block["lines"]:
-                text_line = ""
-                for span in line["spans"]:
-                    text_line += span["text"].strip()
-                if self._is_header(span, text_line):
-                    block_sentences.append(text_line)
-                    block_headers.append(True)
-                elif len(text_line) > 5 and not self._is_separator(text_line):
-                    block_sentences.append(text_line)
-                    block_headers.append(False)
-        else:
-            # Process regular text
-            text = " ".join(
-                span["text"] for line in block["lines"] for span in line["spans"]
-            )
-            clean_text = self._clean_text(text)
-            if len(clean_text) > 15:
-                block_sentences.append(clean_text)
-                block_headers.append(False)
-
-        return block_sentences, block_headers
-
     def _process_docx(self, file_bytes: bytes):
         docx_data = {
             "sentences": [],
@@ -159,43 +130,6 @@ class ReadingFunctions:
 
         return text_data
 
-    def _extract_table_info(self, tables):
-        table_bboxes = [
-            (table.bbox[0], table.bbox[1], table.bbox[2], table.bbox[3])
-            for table in tables
-        ]
-        table_texts = self._extract_table_text(tables=tables)
-        return {"table_bboxes": table_bboxes, "table_texts": table_texts}
-
-    def _extract_table_text(self, tables):
-        table_list = []
-        for table in tables:
-            reconsracted_table = ""
-            table_extract = table.extract()
-            for sublist in table_extract:
-                filtered = [
-                    str(item).replace("\n", " ").strip()
-                    for item in sublist
-                    if item is not None
-                ]
-                filtered = [
-                    re.sub(r"(?<!\w)([A-Za-z])\s+(\d+)(?!\w)", r"\1\2", item)
-                    for item in filtered
-                ]
-                combined_string = " ".join(filtered) + "\n"
-                reconsracted_table += combined_string
-            table_list.append(reconsracted_table)
-        return table_list
-
-    def _check_table_bbox(self, block_bbox, table_info):
-        for i, table_bbox in enumerate(table_info["table_bboxes"]):
-            if (
-                table_bbox[1] <= block_bbox[1] <= table_bbox[3]
-                and table_bbox[0] <= block_bbox[0] <= table_bbox[2]
-            ):
-                return i
-        return -1
-
     def _process_text(self, text):
         docs = self.nlp(text)
         sentences = [sent.text.replace("\n", " ").strip() for sent in docs.sents]
@@ -216,14 +150,3 @@ class ReadingFunctions:
         text = text.replace("\n", " ").strip()
         return " ".join(text.split())
 
-    def _is_header(self, span: dict, text: str) -> bool:
-        return (
-            span["size"] > 3
-            and any(style in span["font"] for style in ["Medi", "Bold", "B"])
-            and len(text) > 3
-            and text[0].isalpha()
-            and not self._is_separator(text)
-        )
-
-    def _is_separator(self, text: str) -> bool:
-        return bool(re.search(r"^[^\w\s]+$|^[_]+$", text))
