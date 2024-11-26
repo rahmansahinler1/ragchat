@@ -285,7 +285,7 @@ async def upload_files(
 
         return JSONResponse(
             content={
-                "message": f"Files uploaded successfully to domain {selected_domain_number}",
+                "message": f"Files uploaded successfully to {selected_domain_number}",
                 "file_names": file_names,
                 "domain_name": domain_name,
             },

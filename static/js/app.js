@@ -481,7 +481,7 @@ async function uploadFiles(uploadFilesButton, userData) {
         if (data.domain_name) {
             updateDomainList(data);
             updateButtonStates();
-            window.addMessageToChat(`Successfully uploaded files to domain ${data.domain_name}`, 'ragchat');
+            window.addMessageToChat(`Successfully uploaded files to ${data.domain_name}`, 'ragchat');
             window.selectedFileList.innerHTML = '';
             fileBasket.clear();
         } else {
