@@ -1,652 +1,763 @@
-// Local storage for every user
-class FileBasket {
-    constructor() {
-        this.files = new Map();
-        this.totalSize = 0;
-    }
+let uploadedFiles = new Set(); // Currently selected files waiting to be uploaded
+let uploadedFileObjects = new Map(); // Keep track of actual File objects
+let sidebarFiles = new Map(); // Files that have been uploaded to the sidebar
+let domainToDelete = null;
+let selectedDomainCard = null;
+let isUploading = false;
 
-    addFiles(fileList) {
-        for (let file of fileList) {
-            if (!this.files.has(file.name)) {
-                this.files.set(file.name, {
-                    file: file,
-                    lastModified: file.lastModified
+// Constants
+const MAX_DOMAIN_NAME_LENGTH = 30; // Maximum length for domain names
+
+
+// Initial domains data
+const initialDomains = [
+    { id: 'regulations', name: 'Regulations', fileCount: 0 },
+    { id: 'algorithms', name: 'Algorithms', fileCount: 0 },
+    { id: 'security', name: 'Security', fileCount: 0 },
+    { id: 'automation', name: 'Automation', fileCount: 0 }
+];
+
+// Utility Functions
+function generateFileId() {
+    return '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function getFileIcon(fileName) {
+    const extension = fileName.split('.').pop().toLowerCase();
+    switch (extension) {
+        case 'pdf':
+            return 'bi-file-pdf';
+        case 'docx':
+            return 'bi-file-word';
+        case 'doc':
+            return 'bi-file-word';
+        case 'txt':
+            return 'bi-file-text';
+        default:
+            return 'bi-file';
+    }
+}
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+// Domain Management Functions
+function createDomainCard(domain) {
+    const displayName = domain.name.length > MAX_DOMAIN_NAME_LENGTH
+        ? domain.name.substring(0, MAX_DOMAIN_NAME_LENGTH) + '...'
+        : domain.name;
+
+    return `
+        <div class="domain-card" data-domain-id="${domain.id}">
+            <div class="domain-content">
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" id="${domain.id}" class="domain-checkbox">
+                    <label for="${domain.id}" class="checkbox-label"></label>
+                </div>
+                <div class="domain-info">
+                    <h6 title="${domain.name}">${displayName}</h6>
+                    <span class="file-count">${domain.fileCount} files</span>
+                </div>
+            </div>
+            <button class="delete-button">
+                <i class="bi bi-trash3"></i>
+            </button>
+        </div>
+    `;
+}
+
+function initializeDomains() {
+    const domainsContainer = document.getElementById('domainsContainer');
+    if (domainsContainer) {
+        domainsContainer.innerHTML = initialDomains.map(domain => createDomainCard(domain)).join('');
+        setupEventListeners();
+    }
+}
+
+function setupEventListeners() {
+    // Single selection for checkboxes
+    const checkboxes = document.querySelectorAll('.domain-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            if (this.checked) {
+                checkboxes.forEach(cb => {
+                    if (cb !== this) cb.checked = false;
                 });
-                this.totalSize += file.size;
-            }
-        }
-        return this.getFileNames();
-    }
-
-    removeFiles(fileNames) {
-        fileNames.forEach(fileName => {
-            const fileInfo = this.files.get(fileName);
-            if (fileInfo) {
-                this.totalSize -= fileInfo.file.size;
-                this.files.delete(fileName);
             }
         });
-        return this.getFileNames();
-    }
-
-    getFileNames() {
-        return Array.from(this.files.keys());
-    }
-
-    clear() {
-        this.files.clear();
-        this.totalSize = 0;
-    }
-
-    getUploadFormData() {
-        const formData = new FormData();
-        this.files.forEach((fileInfo, fileName) => {
-            formData.append('files', fileInfo.file);
-            formData.append('lastModified', fileInfo.lastModified);
-        });
-        return formData;
-    }
-}
-
-const fileBasket = new FileBasket();
-
-// Initialization of widgets and behaviours
-function initAppWidgets({
-    selectedFileList,
-    uploadFilesButton,
-    removeSelectionButton,
-    domainFileList,
-    domainTitle,
-    removeUploadButton,
-    userData,
-    currentDomain,
-    selectFilesButton,
-    fileInput,
-    domainButtons,
-    sendButton,
-    userInput,
-    userInputTextbox,
-    chatBox,
-    resourceSection
-}) {
-    selectFilesButton.addEventListener('click', () => fileInput.click());
-    
-    fileInput.addEventListener('change', () => selectFiles(fileInput, selectedFileList))
-
-    removeSelectionButton.addEventListener('click', () => removeFileSelection(selectedFileList));
-
-    domainButtons.forEach((button, index) => {
-        button.addEventListener('click', () => selectDomain(button, index, domainButtons, userData));
     });
 
-    uploadFilesButton.addEventListener('click', () => uploadFiles(uploadFilesButton, userData));
-
-    removeUploadButton.addEventListener('click', () => removeFileUpload(removeUploadButton, userData));
-
-    sendButton.addEventListener('click', () => sendMessage(userInput, userData));
-
-    userInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            sendMessage(userInput, userData, userInputTextbox);
-        }
-    });
-
-    Object.assign(window, {
-        removeSelectionButton,
-        selectedFileList,
-        uploadFilesButton,
-        domainFileList,
-        domainTitle,
-        removeUploadButton,
-        chatBox,
-        currentDomain,
-        resourceSection
-    });
-}
-
-function initFeedbackWidgets({
-    feedbackButton,
-    feedbackModal,
-    closeButtons,
-    feedbackForm,
-    screenshotInput,
-    userData
-}) {
-    feedbackButton.addEventListener('click', () => {
-        feedbackModal.classList.add('active');
-    });
-
-    closeButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            feedbackModal.classList.remove('active');
-            feedbackForm.reset();
+    // Delete buttons
+    document.querySelectorAll('.delete-button').forEach(button => {
+        button.addEventListener('click', function () {
+            domainToDelete = this.closest('.domain-card');
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+            deleteModal.show();
         });
     });
-
-    feedbackModal.addEventListener('click', (e) => {
-        if (e.target === feedbackModal) {
-            feedbackModal.classList.remove('active');
-            feedbackForm.reset();
-        }
-    });
-
-    screenshotInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file && file.size > 2 * 1024 * 1024) {
-            alert('File size must be less than 2MB');
-            e.target.value = '';
-        }
-    });
-
-    feedbackForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        sendFeedback(feedbackForm, userData, feedbackButton);
-    });
 }
 
-// Local functions
-function selectFiles(fileInput, selectedFileList) {
-    const updatedFiles = fileBasket.addFiles(fileInput.files);
-    
-    // Update UI
-    selectedFileList.innerHTML = '';
-    updatedFiles.forEach(fileName => {
-        const fileItem = document.createElement('div');
-        fileItem.className = 'file-item';
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'file-checkbox';
-        const label = document.createElement('label');
-        label.textContent = fileName;
-        fileItem.appendChild(checkbox);
-        fileItem.appendChild(label);
-        selectedFileList.appendChild(fileItem);
-    });
-    
-    updateButtonStates();
-    fileInput.value = '';
-}
+// File Management Functions
+function handleFiles(newFiles) {
+    if (isUploading) return;
 
-function removeFileSelection(selectedFileList) {
-    const checkedBoxes = selectedFileList.querySelectorAll('input[type="checkbox"]:checked');
-    
-    if (checkedBoxes.length === 0) {
-        window.addMessageToChat('No files selected for removal', 'ragchat');
-        return;
+    const fileList = document.getElementById('fileList');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadArea = document.getElementById('dropZone');
+    let duplicateFound = false;
+
+    Array.from(newFiles).forEach(file => {
+        if (uploadedFiles.has(file.name)) {
+            duplicateFound = true;
+            return;
+        }
+
+        // Store the actual File object
+        uploadedFileObjects.set(file.name, file);
+        uploadedFiles.add(file.name);
+
+        displayFileInList(file, fileList);
+    });
+
+    if (duplicateFound) {
+        alert('Some files were skipped as they were already added');
     }
 
-    const filesToRemove = Array.from(checkedBoxes).map(checkbox => 
-        checkbox.nextElementSibling.textContent
-    );
-    
-    fileBasket.removeFiles(filesToRemove);
-    
-    // Update UI
-    checkedBoxes.forEach(checkbox => {
-        const fileItem = checkbox.closest('.file-item');
-        if (fileItem) {
+    updateUploadUI(fileList, uploadBtn, uploadArea);
+}
+
+function displayFileInList(file, fileList) {
+    const icon = getFileIcon(file.name);
+
+    const fileItem = document.createElement('div');
+    fileItem.className = 'file-item pending-upload';
+    fileItem.dataset.fileName = file.name;
+    fileItem.innerHTML = `
+        <div class="file-icon">
+            <i class="bi ${icon} text-primary-green"></i>
+        </div>
+        <div class="file-info">
+            <div class="file-name">${file.name}</div>
+            <div class="file-progress">
+                <div class="progress-bar"></div>
+            </div>
+        </div>
+        <div class="file-remove">
+            <i class="bi bi-trash"></i>
+        </div>
+    `;
+
+    // Add remove handler
+    const removeButton = fileItem.querySelector('.file-remove');
+    removeButton.addEventListener('click', () => {
+        if (!isUploading) {
+            uploadedFiles.delete(file.name);
+            uploadedFileObjects.delete(file.name);
             fileItem.remove();
+            updateUploadUI(fileList, document.getElementById('uploadBtn'), document.getElementById('dropZone'));
         }
     });
-    
-    updateButtonStates();
+
+    fileList.appendChild(fileItem);
 }
 
-function addMessageToChat(message, sender) {
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('message');
-    
-    // Create message section with icon
-    const messageSection = document.createElement('div');
-    messageSection.classList.add('message-section');
-    
-    if (sender.toLowerCase() === 'you') {
-        messageElement.classList.add('user-message');
-        
-        const userIcon = document.createElement('i');
-        userIcon.classList.add('fas', 'fa-user-circle');
-        userIcon.style.marginRight = '8px';
-        userIcon.style.color = '#007AEA';
-        
-        const messageText = document.createElement('span');
-        messageText.textContent = message;
-        
-        messageSection.appendChild(userIcon);
-        messageSection.appendChild(messageText);
+function updateUploadUI(fileList, uploadBtn, uploadArea) {
+    if (uploadedFiles.size > 0) {
+        uploadArea.style.display = 'none';
+        uploadBtn.disabled = false;
+        ensureAddMoreFilesButton(fileList);
     } else {
-        messageElement.classList.add('bot-message');
-        
-        // Create custom ragchat icon
-        const ragchatIcon = document.createElement('img');
-        ragchatIcon.src = '/static/favicon/favicon-32x32.png';
-        ragchatIcon.alt = 'ragchat';
-        ragchatIcon.style.width = '20px';
-        ragchatIcon.style.height = '20px';
-        ragchatIcon.style.marginRight = '8px';
-        ragchatIcon.style.marginTop = '4px';
-        
-        const messageText = document.createElement('span');
-        messageText.textContent = message;
-        
-        messageSection.appendChild(ragchatIcon);
-        messageSection.appendChild(messageText);
+        uploadArea.style.display = 'flex';
+        uploadBtn.disabled = true;
+        removeAddMoreFilesButton();
     }
-    
-    messageElement.appendChild(messageSection);
-    window.chatBox.appendChild(messageElement);
-    window.chatBox.scrollTop = window.chatBox.scrollHeight;
 }
 
-function generateResponse(information, explanation) {
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('message', 'bot-message');
-    
-    // Create information section
-    const infoSection = document.createElement('div');
-    infoSection.classList.add('info-section');
-    
-    const infoIcon = document.createElement('i');
-    infoIcon.classList.add('fas', 'fa-info-circle');
-    infoIcon.style.marginRight = '8px';
-    infoIcon.style.color = '#007AEA';
-    
-    const infoText = document.createElement('span');
-    infoText.textContent = information;
-    
-    infoSection.appendChild(infoIcon);
-    infoSection.appendChild(infoText);
-    
-    // Create explanation section
-    const explainSection = document.createElement('div');
-    explainSection.classList.add('explain-section');
-    explainSection.style.marginTop = '12px';
-    
-    const explainIcon = document.createElement('i');
-    explainIcon.classList.add('fas', 'fa-question-circle');
-    explainIcon.style.marginRight = '8px';
-    explainIcon.style.color = '#6c757d';
-    
-    const explainText = document.createElement('span');
-    explainText.textContent = explanation;
-    
-    explainSection.appendChild(explainIcon);
-    explainSection.appendChild(explainText);
-    
-    // Add sections to message
-    messageElement.appendChild(infoSection);
-    messageElement.appendChild(explainSection);
-    
-    window.chatBox.appendChild(messageElement);
-    window.chatBox.scrollTop = window.chatBox.scrollHeight;
+function ensureAddMoreFilesButton(fileList) {
+    let addFileBtn = document.querySelector('.add-file-btn');
+    if (!addFileBtn) {
+        addFileBtn = document.createElement('button');
+        addFileBtn.className = 'add-file-btn';
+        addFileBtn.innerHTML = `
+            <i class="bi bi-plus-circle"></i>
+            Add More Files
+        `;
+        addFileBtn.addEventListener('click', () => {
+            if (!isUploading) {
+                document.getElementById('fileInput').click();
+            }
+        });
+        fileList.after(addFileBtn);
+    }
+    addFileBtn.disabled = isUploading;
+    addFileBtn.style.opacity = isUploading ? '0.5' : '1';
 }
 
-function populateResources(resources, sentences) {
-    window.resourceSection.innerHTML = '<div class="colored-div-resources"><h2 class="text-center">Resources</h2></div>';
+function removeAddMoreFilesButton() {
+    const addFileBtn = document.querySelector('.add-file-btn');
+    if (addFileBtn) {
+        addFileBtn.remove();
+    }
+}
 
-    if (!resources || !sentences || resources.file_names.length === 0) {
-        const noResourcesMsg = document.createElement('p');
-        noResourcesMsg.textContent = 'No resources available for this query.';
-        noResourcesMsg.className = 'text-center mt-3';
-        window.resourceSection.appendChild(noResourcesMsg);
-        return;
+function startUpload() {
+    if (uploadedFiles.size === 0 || isUploading) return;
+
+    const fileItems = document.querySelectorAll('.file-item');
+    let completed = 0;
+    isUploading = true;
+
+    // Disable UI elements
+    const uploadBtn = document.getElementById('uploadBtn');
+    uploadBtn.disabled = true;
+
+    const addMoreFilesBtn = document.querySelector('.add-file-btn');
+    if (addMoreFilesBtn) {
+        addMoreFilesBtn.disabled = true;
+        addMoreFilesBtn.style.opacity = '0.5';
     }
 
-    const resourceList = document.createElement('div');
-    resourceList.className = 'resource-list';
-    const groupedResources = {};
+    fileItems.forEach(item => {
+        item.classList.remove('pending-upload');
+        item.classList.add('uploading');
 
-    for (let i = 0; i < sentences.length; i++) {
-        const fileName = resources.file_names[i];
+        const progressBar = item.querySelector('.progress-bar');
+        const progressContainer = item.querySelector('.file-progress');
+        progressContainer.style.display = 'block';
 
-        if (!groupedResources[fileName]) {
-            groupedResources[fileName] = [];
+        simulateFileUpload(item, progressBar, () => {
+            completed++;
+            item.classList.remove('uploading');
+            item.classList.add('uploaded');
+
+            if (completed === fileItems.length) {
+                finishUpload();
+            }
+        });
+    });
+}
+
+function simulateFileUpload(fileItem, progressBar, onComplete) {
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 30;
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+            onComplete();
+        }
+        progressBar.style.width = `${progress}%`;
+    }, 500);
+}
+
+function finishUpload() {
+    isUploading = false;
+
+    const filesToAdd = Array.from(uploadedFileObjects.values());
+    updateSidebarFiles(filesToAdd);
+
+    // Clear upload data
+    uploadedFiles.clear();
+    uploadedFileObjects.clear();
+
+    // Close modal and clean up
+    setTimeout(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('fileUploadModal'));
+        if (modal) {
+            modal.hide();
+        }
+        document.body.classList.remove('modal-open');
+        const modalBackdrops = document.querySelectorAll('.modal-backdrop');
+        modalBackdrops.forEach(backdrop => backdrop.remove());
+    }, 500);
+}
+
+function updateFileMenuPosition() {
+    const sidebarFileList = document.getElementById('sidebarFileList');
+    const fileMenuBtn = document.querySelector('.open-file-btn');
+    const fileListContainer = document.querySelector('.file-list-container');
+    const openFileBtn = document.querySelector('.open-file-btn');
+    const fileAdd = document.querySelector('.file-add');
+    const helperText = document.querySelector('.helper-text');
+
+    if (sidebarFileList && sidebarFileList.children.length > 0) {
+        helperText.style.display = 'none';
+        helperText.style.height = '0';
+        helperText.style.margin = '0';
+        helperText.style.padding = '0';
+    } else {
+        fileListContainer.style.height = 'auto';
+        fileMenuBtn.style.position = 'static';
+        fileMenuBtn.style.width = '100%';
+    }
+}
+
+function updateSidebarFiles(files) {
+    const sidebarFileList = document.getElementById('sidebarFileList');
+    if (!sidebarFileList) return;
+
+    Array.from(files).forEach(file => {
+        const extension = file.name.split('.').pop().toLowerCase();
+        const icon = getFileIcon(extension);
+
+        const maxLength = 25;
+        let displayName = file.name;
+        if (displayName.length > maxLength) {
+            const ext = displayName.slice(displayName.lastIndexOf('.'));
+            displayName = displayName.slice(0, maxLength - ext.length - 3) + '..' + ext;
         }
 
-        groupedResources[fileName].push({
-            pageNumber: resources.page_numbers[i],
-            sentence: sentences[i]
+        const fileItem = document.createElement('li');
+        fileItem.innerHTML = `
+            <i class="bi ${icon} file-icon sidebar-file-list-icon" style="color:#10B981"></i>
+            <span class="file-name" title="${file.name}">${displayName}</span>
+            <div class="file-actions">
+                <i class="bi bi-three-dots-vertical"></i>
+                <div class="action-menu">
+                    <div class="action-menu-item rename-action">
+                        <i class="bi bi-pencil"></i>
+                        Rename
+                    </div>
+                    <div class="action-menu-item delete-action">
+                        <i class="bi bi-trash"></i>
+                        Delete
+                    </div>
+                </div>
+            </div>
+        `;
+
+        sidebarFileList.appendChild(fileItem);
+        setupFileActionHandlers(fileItem);
+    });
+
+    updateFileMenuPosition();
+    updateDomainFileCount();
+}
+
+function setupFileActionHandlers(fileItem) {
+    const actionDots = fileItem.querySelector('.bi-three-dots-vertical');
+    const menu = fileItem.querySelector('.action-menu');
+    const renameAction = fileItem.querySelector('.rename-action');
+    const deleteAction = fileItem.querySelector('.delete-action');
+
+    actionDots.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllMenus(menu);
+        menu.classList.toggle('show');
+    });
+
+    renameAction.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const fileName = fileItem.querySelector('.file-name');
+        const currentName = fileName.textContent;
+
+        const lastDotIndex = currentName.lastIndexOf('.');
+        const nameWithoutExt = currentName.substring(0, lastDotIndex);
+        const extension = currentName.substring(lastDotIndex);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'rename-input';
+        input.value = nameWithoutExt;
+
+        fileName.replaceWith(input);
+        input.focus();
+        menu.classList.remove('show');
+
+        function handleRename() {
+            let newName = input.value.trim();
+            if (newName) {
+                newName = newName + extension;
+                fileName.textContent = newName;
+            } else {
+                fileName.textContent = currentName;
+            }
+            input.replaceWith(fileName);
+        }
+
+        input.addEventListener('blur', handleRename);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') input.blur();
+        });
+    });
+
+    deleteAction.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('Are you sure you want to delete this file?')) {
+            fileItem.remove();
+            updateFileMenuPosition();
+            updateDomainFileCount();
+        }
+        menu.classList.remove('show');
+    });
+}
+
+function closeAllMenus(exceptMenu = null) {
+    document.querySelectorAll('.action-menu.show').forEach(menu => {
+        if (menu !== exceptMenu) {
+            menu.classList.remove('show');
+        }
+    });
+}
+
+function updateDomainFileCount() {
+    const selectedDomain = selectedDomainCard;
+    if (!selectedDomain) return;
+
+    const fileCountElement = selectedDomain.querySelector('.file-count');
+    const sidebarFileList = document.getElementById('sidebarFileList');
+    const currentFileCount = sidebarFileList ? sidebarFileList.children.length : 0;
+
+    // Update domain card file count
+    fileCountElement.textContent = `${currentFileCount} files`;
+
+    // Update sources box count
+    const sourcesBox = document.querySelector('.sources-box');
+    if (sourcesBox) {
+        const sourcesNumber = sourcesBox.querySelector('.sources-number');
+        sourcesNumber.textContent = currentFileCount;
+        sourcesBox.setAttribute('data-count', currentFileCount);
+    }
+}
+// Event Listeners Setup
+document.addEventListener('DOMContentLoaded', function () {
+    // DOM Elements
+    const uploadBtn = document.getElementById('uploadBtn');
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const searchInput = document.getElementById('domainSearchInput');
+    const newDomainBtn = document.getElementById('newDomainBtn');
+
+    // Setup Search Functionality
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            const searchTerm = this.value.toLowerCase();
+            document.querySelectorAll('.domain-card:not(.new-domain-input-card)').forEach(card => {
+                const domainName = card.querySelector('h6').textContent.toLowerCase();
+                card.classList.toggle('filtered', !domainName.includes(searchTerm));
+            });
         });
     }
 
-    for (const fileName in groupedResources) {
-        const resourceItem = document.createElement('div');
-        resourceItem.className = 'resource-item';
+    // Setup Domain Selection
+    const selectButton = document.querySelector('.select-button');
+    if (selectButton) {
+        selectButton.addEventListener('click', function () {
+            const selectedCheckbox = document.querySelector('.domain-checkbox:checked');
+            if (selectedCheckbox) {
+                selectedDomainCard = selectedCheckbox.closest('.domain-card');
+                const selectedDomainName = selectedDomainCard.querySelector('h6').textContent;
 
-        groupedResources[fileName].forEach((resource, index) => {
-            const header = document.createElement('h6');
-            const description = document.createElement('p');
-            header.innerHTML = `<strong id="resource-from-text">Resource From:</strong> <span class="document-title">${fileName} | Page ${resource.pageNumber}</span>`;
-            description.className = 'description';
-            description.innerHTML = `<span class="bullet"><i class="fa-solid fa-arrow-right"></i></span>${resource.sentence}`;
-            description.title = resource.sentence;
-            resourceItem.appendChild(header);
-            resourceItem.appendChild(description);
+                const sidebarDomainText = document.querySelector('.bi-folder.empty-folder').nextElementSibling;
+                if (sidebarDomainText) {
+                    sidebarDomainText.textContent = selectedDomainName;
+                }
 
-            if (index < groupedResources[fileName].length - 1) {
-                const spacer = document.createElement('div');
-                spacer.style.height = '10px';
-                resourceItem.appendChild(spacer);
+                bootstrap.Modal.getInstance(document.getElementById('domainSelectModal')).hide();
+            }
+        });
+    }
+    const domainText = document.querySelector('.selected-domain-text');
+    
+    if (domainText) {
+        // Add title attribute when text is truncated
+        const updateTitle = () => {
+            if (domainText.offsetWidth < domainText.scrollWidth) {
+                domainText.title = domainText.textContent;
+            } else {
+                domainText.removeAttribute('title');
+            }
+        };
+
+        // Update on content change
+        const observer = new MutationObserver(updateTitle);
+        observer.observe(domainText, { 
+            characterData: true, 
+            childList: true, 
+            subtree: true 
+        });
+
+        // Initial check
+        updateTitle();
+    }
+    // Setup Domain Deletion
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', function () {
+            if (domainToDelete) {
+                if (domainToDelete === selectedDomainCard) {
+                    const sidebarDomainText = document.querySelector('.bi-folder.empty-folder').nextElementSibling;
+                    if (sidebarDomainText) {
+                        sidebarDomainText.textContent = 'Select Domain';
+                    }
+                    selectedDomainCard = null;
+                }
+
+                domainToDelete.remove();
+                domainToDelete = null;
+                bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
+
+                // Clear modal backdrop
+                document.body.classList.remove('modal-open');
+                const modalBackdrops = document.querySelectorAll('.modal-backdrop');
+                modalBackdrops.forEach(backdrop => backdrop.remove());
+            }
+        });
+    }
+
+    // Setup New Domain Creation
+    if (newDomainBtn) {
+        newDomainBtn.addEventListener('click', function () {
+            const templateContent = document.getElementById('newDomainInputTemplate').content.cloneNode(true);
+            const domainsContainer = document.getElementById('domainsContainer');
+            domainsContainer.appendChild(templateContent);
+
+            const inputCard = domainsContainer.querySelector('.new-domain-input-card');
+            const input = inputCard.querySelector('.new-domain-input');
+            const confirmBtn = inputCard.querySelector('.confirm-button');
+            const cancelBtn = inputCard.querySelector('.cancel-button');
+
+            input.setAttribute('maxlength', MAX_DOMAIN_NAME_LENGTH);
+
+            if (window.innerWidth <= 350) {
+                const actionsContainer = inputCard.querySelector('.new-domain-actions');
+                actionsContainer.style.marginLeft = '8px';
+                confirmBtn.style.padding = '4px';
+                cancelBtn.style.padding = '4px';
             }
 
-        });
-        resourceList.appendChild(resourceItem);
-    }
-    window.resourceSection.appendChild(resourceList);
-}
+            input.focus();
 
-function updateButtonStates() {
-    const selectedFiles = window.selectedFileList.querySelectorAll('.file-item');
-    const uploadedFiles = window.domainFileList.querySelectorAll('.file-item');
-
-    if (selectedFiles.length === 0) {
-        uploadFilesButton.disabled = true;
-        removeSelectionButton.disabled = true;
-    } else {
-        uploadFilesButton.disabled = false;
-        removeSelectionButton.disabled = false;
-    }
-
-    if (uploadedFiles.length === 0) {
-        removeUploadButton.disabled = true;
-    } else {
-        removeUploadButton.disabled = false;
-    }
-}
-
-function updateDomainList(domainInfo) {
-    if (domainInfo.file_names && domainInfo.file_names.length > 0) {
-        domainFileList.innerHTML = '';
-
-        domainInfo.file_names.forEach(fileName => {
-            const fileItem = document.createElement('div');
-            fileItem.className = 'file-item';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'file-checkbox';
-            const label = document.createElement('label');
-            label.textContent = fileName;
-            fileItem.appendChild(checkbox);
-            fileItem.appendChild(label);
-            window.domainFileList.appendChild(fileItem);
-        });
-    } else {
-        window.domainFileList.innerHTML = '<p class = "empty-message">No files in this domain.</p>';
-    }
-
-    if (domainInfo.domain_name) {
-        window.domainTitle.textContent = domainInfo.domain_name;
-    } else {
-        window.domainTitle.textContent = '<p>No specifed domain name</p>';
-    }
-}
-
-// Request functions
-async function sendMessage(userInput, userData, userInputTextbox) {
-    const message = userInput.value.trim();
-
-    if (!message) {
-        window.addMessageToChat("Please enter your sentence!", 'ragchat');
-        return;
-    }
-
-    if (message) {
-        window.addMessageToChat(message, 'you');
-        userInput.value = '';
-        try {
-            const userID = userData.user_id;
-            const url = `/api/v1/qa/generate_answer?userID=${encodeURIComponent(userID)}`;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ user_message: message })
+            confirmBtn.addEventListener('click', function () {
+                const name = input.value.trim();
+                if (name) {
+                    const newDomain = {
+                        id: name.toLowerCase().replace(/\s+/g, '-'),
+                        name: name,
+                        fileCount: 0
+                    };
+                    inputCard.insertAdjacentHTML('beforebegin', createDomainCard(newDomain));
+                    inputCard.remove();
+                    setupEventListeners();
+                }
             });
 
-            if (!response.ok) {
-                throw new Error('Server error!');
+            cancelBtn.addEventListener('click', () => inputCard.remove());
+
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') confirmBtn.click();
+            });
+        });
+    }
+    const userSection = document.getElementById('userProfileMenu');
+    
+    if (userSection) {
+        userSection.addEventListener('click', function(e) {
+            e.stopPropagation();
+            this.classList.toggle('active');
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!userSection.contains(e.target)) {
+                userSection.classList.remove('active');
+            }
+        });
+
+        // Handle menu items click
+        const menuItems = userSection.querySelectorAll('.menu-item');
+        menuItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (this.classList.contains('logout-item')) {
+                    // Handle logout
+                    console.log('Logging out...');
+                    // Add your logout logic here
+                }
+                userSection.classList.remove('active');
+            });
+        });
+    }
+    // Setup File Upload Modal
+    const openFileBtn = document.querySelector('.open-file-btn');
+    if (openFileBtn) {
+        openFileBtn.addEventListener('click', function () {
+            const selectedDomain = document.querySelector('.bi-folder.empty-folder').nextElementSibling.textContent;
+            if (selectedDomain === 'Select Domain') {
+                alert('Please select a domain first');
+                return;
             }
 
-            const data = await response.json();
+            const modal = new bootstrap.Modal(document.getElementById('fileUploadModal'));
+            document.querySelector('#fileUploadModal .domain-name').textContent = selectedDomain;
 
-            if (data.information && data.explanation) {
-                generateResponse(data.information, data.explanation);
-                populateResources(data.resources, data.resource_sentences);
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+
+            if (uploadBtn) uploadBtn.disabled = true;
+            if (dropZone) dropZone.style.display = 'flex';
+
+            uploadedFiles.clear();
+            uploadedFileObjects.clear();
+            removeAddMoreFilesButton();
+
+            modal.show();
+        });
+    }
+
+    // Setup Drag and Drop
+    if (dropZone && fileInput) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                if (!isUploading) {
+                    dropZone.classList.add('dragover');
+                }
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+
+        dropZone.addEventListener('drop', function (e) {
+            if (!isUploading) {
+                const files = e.dataTransfer.files;
+                handleFiles(files);
+            }
+        }, false);
+
+        const chooseText = document.querySelector('.choose-text');
+        if (chooseText) {
+            chooseText.addEventListener('click', () => {
+                if (!isUploading) {
+                    fileInput.click();
+                }
+            });
+        }
+
+        fileInput.addEventListener('change', function () {
+            handleFiles(this.files);
+        });
+    }
+    const menuTrigger = document.querySelector('.menu-trigger');
+    const sidebarContainer = document.querySelector('.sidebar-container');
+    let backdrop;
+    let timeout;
+
+    // Create backdrop element
+    function createBackdrop() {
+        backdrop = document.createElement('div');
+        backdrop.className = 'sidebar-backdrop';
+        document.body.appendChild(backdrop);
+    }
+    createBackdrop();
+
+    function showSidebar() {
+        clearTimeout(timeout);
+        sidebarContainer.classList.add('visible');
+        backdrop.classList.add('visible');
+    }
+
+    function hideSidebar() {
+        timeout = setTimeout(() => {
+            sidebarContainer.classList.remove('visible');
+            backdrop.classList.remove('visible');
+        }, 300); // Delay to allow moving mouse to sidebar
+    }
+
+    // Menu button hover
+    menuTrigger.addEventListener('mouseenter', showSidebar);
+    menuTrigger.addEventListener('mouseleave', hideSidebar);
+
+    // Sidebar hover
+    sidebarContainer.addEventListener('mouseenter', showSidebar);
+    sidebarContainer.addEventListener('mouseleave', hideSidebar);
+
+    // Backdrop click
+    backdrop.addEventListener('click', () => {
+        sidebarContainer.classList.remove('visible');
+        backdrop.classList.remove('visible');
+    });
+    const domainNameSpan = document.querySelector('.domain-name');
+    
+    if (domainNameSpan) {
+        // Add title attribute when text is truncated
+        const updateTitle = () => {
+            if (domainNameSpan.offsetWidth < domainNameSpan.scrollWidth) {
+                domainNameSpan.title = domainNameSpan.textContent;
             } else {
-                window.addMessageToChat(data.message, 'ragchat')
+                domainNameSpan.removeAttribute('title');
             }
+        };
 
-        } catch (error) {
-            console.error('Error generating message!', error);
-            window.addMessageToChat('Error generating message!', 'ragchat')
-        }
-    } else {
-        console.error('Error!', error);
-        window.addMessageToChat('No message!', 'ragchat')
-    }
-}
-
-async function selectDomain(clickedButton, index, domainButtons, userData) {
-    try {
-        domainButtons.forEach(btn => btn.classList.remove('active'));
-        clickedButton.classList.add('active');
-        const currentDomain = index + 1;
-        const userID = userData.user_id;
-        const url = `/api/v1/qa/select_domain?userID=${encodeURIComponent(userID)}`;
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                currentDomain
-            })
+        // Update on content change
+        const observer = new MutationObserver(updateTitle);
+        observer.observe(domainNameSpan, { 
+            characterData: true, 
+            childList: true, 
+            subtree: true 
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch domain info');
-        }
-
-        const data = await response.json();
-        updateDomainList(data);
-        updateButtonStates();
-        window.addMessageToChat(`Successfully switched to domain ${currentDomain}`, 'ragchat');
-    } catch (error) {
-        console.error('Error fetching domain info:', error);
-        window.addMessageToChat(`Error switching to domain ${index + 1}: ${error.message}`, 'ragchat');
+        // Initial check
+        updateTitle();
     }
-}
-
-async function uploadFiles(uploadFilesButton, userData) {
-    try {
-        if (fileBasket.files.size === 0) {
-            window.addMessageToChat("No files selected for upload", 'ragchat');
-            return;
-        }
-
-        uploadFilesButton.disabled = true;
-        const formData = fileBasket.getUploadFormData();
-        const url = `/api/v1/io/upload_files?userID=${userData.user_id}`;
+    // Setup Upload Button
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', startUpload);
+    }
+    const uploadIconWrapper = document.querySelector('.upload-icon-wrapper');
+    if (uploadIconWrapper) {
+        uploadIconWrapper.addEventListener('click', () => {
+            if (!isUploading) {
+                document.getElementById('fileInput').click();
+            }
+        });
+    }
+    const documentNames = document.querySelectorAll('.document-name');
+    
+    documentNames.forEach(docName => {
+        const fullText = docName.textContent;
+        const lastDotIndex = fullText.lastIndexOf('.');
         
-        const response = await fetch(url, {
-            method: 'POST',
-            body: formData
+        if (lastDotIndex !== -1) {
+            const nameWithoutExt = fullText.substring(0, lastDotIndex);
+            const extension = fullText.substring(lastDotIndex);
+            
+            // Maximum length for the name part (adjust as needed)
+            const maxLength = 40;
+            
+            if (nameWithoutExt.length > maxLength) {
+                const truncatedName = nameWithoutExt.substring(0, maxLength) + '...' + extension;
+                docName.textContent = truncatedName;
+                docName.title = fullText; // Show full name on hover
+            }
+        }
+    });
+    // Setup Menu Button
+    // Setup Settings Icon
+    const settingsIcon = document.querySelector('.settings-icon');
+    if (settingsIcon) {
+        settingsIcon.addEventListener('click', function () {
+            const modal = new bootstrap.Modal(document.getElementById('domainSelectModal'));
+            modal.show();
         });
-
-        if (!response.ok) {
-            throw new Error('Upload failed');
-        }
-
-        const data = await response.json();
-        
-        if (data.domain_name) {
-            updateDomainList(data);
-            updateButtonStates();
-            window.addMessageToChat(`Successfully uploaded files to domain ${data.domain_name}`, 'ragchat');
-            window.selectedFileList.innerHTML = '';
-            fileBasket.clear();
-        } else {
-            window.addMessageToChat(data.message, 'ragchat');
-        }
-
-    } catch (error) {
-        console.error('Error uploading files:', error);
-        window.addMessageToChat('Error while uploading files: ' + error.message, 'ragchat');
-    } finally {
-        uploadFilesButton.disabled = false;
     }
-}
 
-async function removeFileUpload(removeUploadButton, userData) {
-    try {
-        removeUploadButton.disabled = true;
-        const checkedBoxes = domainFileList.querySelectorAll('input[type="checkbox"]:checked');
-
-        if (checkedBoxes.length === 0) {
-            window.addMessageToChat('No file selected for deletion', 'ragchat');
-            removeUploadButton.disabled = false;
-            return;
+    // Global click handler for closing action menus
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.file-actions')) {
+            closeAllMenus();
         }
-
-        const filesToRemove = Array.from(checkedBoxes).map(checkbox => checkbox.nextElementSibling.textContent);
-        const userID = userData.user_id;
-        const url = `/api/v1/io/remove_file_upload?userID=${encodeURIComponent(userID)}`;
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ files_to_remove: filesToRemove })
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to remove file upload!');
-        }
-
-        const data = await response.json();
-
-        if (data.domain_name) {
-            updateDomainList(data);
-            updateButtonStates();
-            window.addMessageToChat(`${data.message}`,'ragchat');
-        }
-        else {
-            window.addMessageToChat(`${data.message}`, 'ragchat');
-        }
-    } catch (error) {
-        console.error('Error removing files:', error);
-        window.addMessageToChat('Error while removing files: ' + error.message, 'ragchat');
-    }
-}
-
-async function fetchUserInfo(userID) {
-    try {
-        const response = await fetch('/api/v1/db/get_user_info', {
-            method: 'POST',
-            body: JSON.stringify({ user_id: userID }),
-            headers: {
-                'Content-Type': 'application/json'
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch initial user data');
-        }
-
-        data = await response.json();
-
-        if (!data) {
-            window.addMessageToChat('User could not be found!', 'ragchat');
-            return;
-        }
-
-        return data
-    } catch (error) {
-        console.error('Error fetching initial user data:', error);
-        return null;
-    }
-}
-
-async function sendFeedback(feedbackForm, userData, submitButton) {
-    try {
-        const descriptionField = feedbackForm.querySelector('#feedback-description');
-        if (!descriptionField || !descriptionField.value.trim()) {
-            window.addMessageToChat('Please provide a description for your feedback', 'ragchat');
-            return;
-        }
-
-        submitButton.disabled = true;
-        
-        const formData = new FormData(feedbackForm);
-        const userID = userData.user_id;
-        const url = `/api/v1/db/insert_feedback?userID=${encodeURIComponent(userID)}`;
-
-        const response = await fetch(url, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to submit feedback');
-        }
-
-        window.addMessageToChat('Thank you for your feedback!', 'ragchat');
-        feedbackForm.reset();
-        document.getElementById('feedback-modal').classList.remove('active');
-        submitButton.disabled = false;
-
-    } catch (error) {
-        console.error('Error submitting feedback:', error);
-        window.addMessageToChat('Failed to submit feedback. Please try again.', 'ragchat');
-        submitButton.disabled = false;
-    }
-}
-
-async function checkVersion() {
-    try {
-        const response = await fetch('/api/version');
-        const data = await response.json();
-        const currentVersion = localStorage.getItem('appVersion');
-        
-        if (!currentVersion) {
-            localStorage.setItem('appVersion', data.version);
-            return;
-        }
-
-        if (data.version !== currentVersion) {
-            localStorage.setItem('appVersion', data.version);
-            window.location.reload(true);
-        }
-    } catch (error) {
-        console.error('Version check failed:', error);
-    }
-}
-
-// Dark Mode configurations
-let darkmode = localStorage.getItem('dark-mode');
-const themeSwitch = document.getElementById('theme-switch');
-
-const enableDarkMode = () => {
-    document.body.classList.add('dark-mode');
-    localStorage.setItem('dark-mode', 'enabled');
-}
-
-const disableDarkMode = () => {
-    document.body.classList.remove('dark-mode');
-    localStorage.setItem('dark-mode', null);
-}
-
-if(darkmode === 'enabled') {
-    enableDarkMode();
-}
-
-themeSwitch.addEventListener('click', () => {
-    darkmode = localStorage.getItem('dark-mode');
-    if(darkmode !== 'enabled') {
-        enableDarkMode();
-    } else {
-        disableDarkMode();
-    }
+    });
+    
+    
+    
+    // Initialize domains
+    initializeDomains();
 });
-
-window.initAppWidgets = initAppWidgets;
-window.addMessageToChat = addMessageToChat;
-window.fetchUserInfo = fetchUserInfo;
