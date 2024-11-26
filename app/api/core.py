@@ -79,6 +79,7 @@ class Processor:
         # Context sentences
         context = ""
         context_windows = []
+        start_end_list = []
         table_indexes = boost_info["table_indexes"]
         for i, sentence_index in enumerate(sorted_sentence_indexes):
             table_chunk_amount = len(table_indexes)
@@ -95,9 +96,12 @@ class Processor:
                     window_size=3 if i < 3 else 1,
                     sentence_index=sentence_index,
                     domain_content=domain_content,
+                    header_indexes=boost_info["header_indexes"],
+                    start_end_list=start_end_list
                 )
-                context += f"{i+1}: {widen_sentence}\n\n"
-                context_windows.append(f"{i+1}: {widen_sentence}")
+                if widen_sentence:
+                    context += f"{i+1}: {widen_sentence}\n\n"
+                    context_windows.append(f"{i+1}: {widen_sentence}")
 
         response = self.cf.response_generation(query=user_query, context=context)
         answer = self._split_response(raw_answer=response)
@@ -149,17 +153,39 @@ class Processor:
             return boost_array
 
     def _wide_sentences(
-        self, window_size: int, sentence_index: int, domain_content: List[tuple]
+        self, window_size: int, sentence_index: int, domain_content: List[tuple], header_indexes: list, start_end_list: list
     ):
-        widen_sentences = ""
         start = max(0, sentence_index - window_size)
         end = min(len(domain_content) - 1, sentence_index + window_size)
-        try:
-            for index in range(start, end):
-                widen_sentences += f"{domain_content[index][0]} "
-            return widen_sentences
-        except:  # noqa: E722
-            return ""
+
+        if not header_indexes:
+                return " ".join(domain_content[index][0] for index in range(start,end))
+
+        for i, current_header in enumerate(header_indexes):
+            if sentence_index == current_header:
+                start = max(0, sentence_index)
+                if i + 1 < len(header_indexes) and abs(sentence_index - header_indexes[i+1]) <= 10:
+                    end = min(len(domain_content) - 1, header_indexes[i+1])
+                else:
+                    end = min(len(domain_content) - 1, sentence_index + window_size)
+                break
+            elif i + 1 < len(header_indexes) and current_header < sentence_index < header_indexes[i+1]:
+                start = (current_header if abs(sentence_index - current_header) <= 10 else max(0, sentence_index - window_size))
+                end = (header_indexes[i+1] if abs(header_indexes[i+1] - sentence_index) <= 10 else min(len(domain_content) - 1, sentence_index + window_size))
+                break
+            elif i == len(header_indexes) - 1 and current_header >= sentence_index:
+                start = (max(0, sentence_index) if abs(current_header - sentence_index) <= 10 else max(0, sentence_index - window_size))
+                end = min(len(domain_content) - 1, sentence_index + window_size)
+                break
+
+        if (start,end) not in start_end_list:
+            start_end_list.append((start, end))
+            try:
+                return " ".join(domain_content[index][0] for index in range(start,end))
+            except Exception:
+                return ""
+
+        return ""
 
     def _avg_resources(self, resources_dict):
         for key, value in resources_dict.items():
