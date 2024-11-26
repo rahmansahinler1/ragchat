@@ -144,20 +144,6 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def get_file_name_with_id(self, file_id: str):
-        query_get_file_name = """
-        SELECT file_name
-        FROM file_info
-        WHERE file_id = %s
-        """
-        try:
-            self.cursor.execute(query_get_file_name, (file_id,))
-            data = self.cursor.fetchone()
-            return data[0]
-        except DatabaseError as e:
-            self.conn.rollback()
-            raise e
-
     def get_domain_info(self, user_id: str, selected_domain_number: int):
         query = """
         SELECT DISTINCT domain_id, domain_name
@@ -180,9 +166,10 @@ class Database:
 
     def get_file_content(self, file_ids: list):
         query_get_content = """
-        SELECT sentence, is_header, is_table, page_number, file_id
-        FROM file_content
-        WHERE file_id IN %s
+        SELECT t1.sentence as sentence, t1.is_header as is_header, t1.is_table as is_table, t1.page_number as page_number, t1.file_id as file_id, t2.file_name as file_name
+        FROM file_content t1
+        left join file_info t2 on t1.file_id = t2.file_id
+        WHERE t1.file_id IN %s
         """
         query_get_embeddings = """
         SELECT array_agg(embedding) AS embeddings

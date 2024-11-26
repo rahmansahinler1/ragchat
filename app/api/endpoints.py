@@ -152,14 +152,6 @@ async def generate_answer(
                 status_code=200,
             )
 
-        # Get file names
-        with Database() as db:
-            resources["file_names"] = [
-                db.get_file_name_with_id(file_id=file_id)
-                for file_id in resources["file_ids"]
-            ]
-            del resources["file_ids"]
-
         redis_manager.refresh_user_ttl(userID)
 
         return JSONResponse(

@@ -75,6 +75,9 @@ class Processor:
         )
         indexes = np.array(list(sorted_dict.keys()))
         sorted_sentence_indexes = indexes[:10]
+        resources = self._extract_resources(
+            sentence_indexes=sorted_sentence_indexes, domain_content=domain_content
+        )
 
         # Context sentences
         context = ""
@@ -86,7 +89,7 @@ class Processor:
                 for table_index in table_indexes:
                     if sentence_index == table_index:
                         table_text = f"{domain_content[table_index][0]}"
-                        context += f"{i + 1}: Table\n{table_text}\n"
+                        context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sorted_sentence_indexes)-i+1)/len(sorted_sentence_indexes)}, Table\n{table_text}\n"
                         context_windows.append(f"{i + 1}: Table\n{table_text}")
                         table_indexes.remove(table_index)
                         break
@@ -96,14 +99,11 @@ class Processor:
                     sentence_index=sentence_index,
                     domain_content=domain_content,
                 )
-                context += f"{i+1}: {widen_sentence}\n\n"
+                context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sorted_sentence_indexes)-i)/len(sorted_sentence_indexes)}, {widen_sentence}\n\n"
                 context_windows.append(f"{i+1}: {widen_sentence}")
 
         response = self.cf.response_generation(query=user_query, context=context)
         answer = self._split_response(raw_answer=response)
-        resources = self._extract_resources(
-            sentence_indexes=sorted_sentence_indexes, domain_content=domain_content
-        )
 
         return answer, resources, context_windows
 
@@ -169,9 +169,9 @@ class Processor:
         return resources_dict
 
     def _extract_resources(self, sentence_indexes: list, domain_content: List[tuple]):
-        resources = {"file_ids": [], "page_numbers": []}
+        resources = {"file_names": [], "page_numbers": []}
         for index in sentence_indexes:
-            resources["file_ids"].append(domain_content[index][4])
+            resources["file_names"].append(domain_content[index][5])
             resources["page_numbers"].append(domain_content[index][3])
         return resources
 
