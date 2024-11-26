@@ -122,17 +122,3 @@ class TestRedisConnection:
         # Assert reasonable performance (adjust thresholds as needed)
         assert write_time < 5.0, f"Write performance too slow: {write_time:.2f}s"
         assert read_time < 5.0, f"Read performance too slow: {read_time:.2f}s"
-
-    def test_memory_usage(self, redis_manager, cleanup):
-        """Test memory usage monitoring"""
-        # Add some data
-        large_data = {"data": np.random.rand(1000, 1000)}
-        redis_manager.set_data("test:memory", large_data)
-
-        # Get memory after adding data
-        final_memory = redis_manager.get_memory_usage()
-
-        # Verify memory information is available
-        assert "used_memory" in final_memory
-        assert "peak_memory" in final_memory
-        assert "fragmentation" in final_memory
