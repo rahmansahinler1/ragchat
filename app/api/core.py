@@ -79,7 +79,7 @@ class Processor:
         # Context sentences
         context = ""
         context_windows = []
-        start_end_list = []
+        widened_indexes = []
         table_indexes = boost_info["table_indexes"]
         for i, sentence_index in enumerate(sorted_sentence_indexes):
             table_chunk_amount = len(table_indexes)
@@ -97,7 +97,7 @@ class Processor:
                     sentence_index=sentence_index,
                     domain_content=domain_content,
                     header_indexes=boost_info["header_indexes"],
-                    start_end_list=start_end_list
+                    widened_indexes=widened_indexes
                 )
                 if widen_sentence:
                     context += f"{i+1}: {widen_sentence}\n\n"
@@ -153,7 +153,7 @@ class Processor:
             return boost_array
 
     def _wide_sentences(
-        self, window_size: int, sentence_index: int, domain_content: List[tuple], header_indexes: list, start_end_list: list
+        self, window_size: int, sentence_index: int, domain_content: List[tuple], header_indexes: list, widened_indexes: list
     ):
         start = max(0, sentence_index - window_size)
         end = min(len(domain_content) - 1, sentence_index + window_size)
@@ -178,8 +178,8 @@ class Processor:
                 end = min(len(domain_content) - 1, sentence_index + window_size)
                 break
 
-        if (start,end) not in start_end_list:
-            start_end_list.append((start, end))
+        if (start,end) not in widened_indexes:
+            widened_indexes.append((start, end))
             try:
                 return " ".join(domain_content[index][0] for index in range(start,end))
             except Exception:
