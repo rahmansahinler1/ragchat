@@ -8,6 +8,7 @@ from .db.database import Database
 
 
 app = FastAPI(title="ragchat")
+app.router.timeout = 300
 app.include_router(endpoints.router, prefix="/api/v1", tags=["files"])
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
