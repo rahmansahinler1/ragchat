@@ -74,6 +74,12 @@ class ReadingFunctions:
                         pdf_data["is_header"].append(True)
                         pdf_data["is_table"].append(False)
                         pdf_data["page_number"].append(i + 1)
+                    elif (split.page_content[0] == "*" and split.page_content[-1] == '*' and (re.match(r"(\*{2,})(\d+(?:\.\d+)*)\s*(\*{2,})?(.*)$",split.page_content) or re.match(r"(\*{1,3})?([A-Z][a-zA-Z\s\-]+)(\*{1,3})?$",split.page_content))
+                    ): # Sub-Header and Header variant detection
+                        pdf_data["sentences"].append(split.page_content)
+                        pdf_data["is_header"].append(True)
+                        pdf_data["is_table"].append(False)
+                        pdf_data["page_number"].append(i+1)
                     elif (
                         split.page_content[0] == "|" and split.page_content[-1] == "|"
                     ):  # Table detection
