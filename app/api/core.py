@@ -96,7 +96,7 @@ class Processor:
                         break
             if table_chunk_amount == len(table_indexes):
                 widen_sentence = self._wide_sentences(
-                    window_size=3 if i < 3 else 1,
+                    window_size=4 if i < 3 else 2,
                     sentence_index=sentence_index,
                     domain_content=domain_content,
                     header_indexes=boost_info["header_indexes"],
@@ -163,17 +163,17 @@ class Processor:
         for i, current_header in enumerate(header_indexes):
             if sentence_index == current_header:
                 start = max(0, sentence_index)
-                if i + 1 < len(header_indexes) and abs(sentence_index - header_indexes[i+1]) <= 10:
+                if i + 1 < len(header_indexes) and abs(sentence_index - header_indexes[i+1]) <= 15 and abs(sentence_index - header_indexes[i+1]) > 4:
                     end = min(len(domain_content) - 1, header_indexes[i+1])
                 else:
                     end = min(len(domain_content) - 1, sentence_index + window_size)
                 break
             elif i + 1 < len(header_indexes) and current_header < sentence_index < header_indexes[i+1]:
-                start = (current_header if abs(sentence_index - current_header) <= 10 else max(0, sentence_index - window_size))
-                end = (header_indexes[i+1] if abs(header_indexes[i+1] - sentence_index) <= 10 else min(len(domain_content) - 1, sentence_index + window_size))
+                start = (current_header if abs(sentence_index - current_header) <= 15 and abs(sentence_index - current_header) > 4 else max(0, sentence_index - window_size))
+                end = (header_indexes[i+1] if abs(header_indexes[i+1] - sentence_index) <= 15 and abs(header_indexes[i+1] - sentence_index) > 4 else min(len(domain_content) - 1, sentence_index + window_size))
                 break
             elif i == len(header_indexes) - 1 and current_header >= sentence_index:
-                start = (max(0, sentence_index) if abs(current_header - sentence_index) <= 10 else max(0, sentence_index - window_size))
+                start = (max(0, sentence_index) if abs(current_header - sentence_index) <= 15 and abs(current_header - sentence_index) > 4 else max(0, sentence_index - window_size))
                 end = min(len(domain_content) - 1, sentence_index + window_size)
                 break
 
