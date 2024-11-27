@@ -79,9 +79,22 @@ class ChatbotFunctions:
             Yanıtta güven katsayısını belirtmeyin.
                                    
             *Kesinlikle* aşağıdaki formatta yanıt verin:
-            Çıkarılan Bilgiler: Sorguya dayalı açık, yapılandırılmış bir yanıt sağlayın. Uygun olduğunda madde işaretleri veya başlıklar kullanın. Eğer madde işaretleri veya başlıklar kullanıyorsanız, Başlık gibi kalın metin kullanın.]
-            Güven Seviyesi: [Yüksek/Orta/Düşük - Metindeki bilginin açıklık derecesine göre yalnızca bir kelimeyle yanıtlayın: yüksek, orta veya düşük]
-            Çıkarılan Bilgiler ve Güven Seviyesi metinlerinde kalın yazı kullanmayın.
+            Çıkarılan Bilgiler:
+            
+            [header]Bölüm Adı[/header]  
+            \n- İçerik, gerektiğinde [b]kalın terimler[/b] ile  
+
+            [header]Bir Başka Bölüm[/header]  
+            \n- Daha fazla içerik, [b]önemli terimler[/b] ile  
+
+            Kurallar:  
+            1. Her ana bölüm [header]...[/header] ile başlamalıdır  
+            2. İçerikte önemli terimler veya vurgular için [b]...[/b] kullanın  
+            3. Her madde işareti \n- ile başlamalıdır  
+            4. Bölümler arasında bir boş satır bırakın (\n\n)  
+            5. Başlıklar şu kategorilerden biri olmalıdır: Tanım, Amaç, Temel Özellikler, İşleyiş, Bağlam vb.
+            
+            Güven Seviyesi: [Yüksek/Orta/Düşük]
 
             Bağlam Pencereleri:
             {context}

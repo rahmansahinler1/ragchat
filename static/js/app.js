@@ -258,6 +258,7 @@ function generateResponse(text) {
     let processedText = text
         .replace(/Confidence Level: (High|Medium|Low)/i, '')
         .replace('Extracted Information:', '')
+        .replace('Çıkarılan Bilgiler:', '')
         .trim();
     
     // First, process the headers
