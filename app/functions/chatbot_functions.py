@@ -78,9 +78,10 @@ class ChatbotFunctions:
             Gerekli bilgi bağlamda bulunmuyorsa, bunu açıkça belirtin ve mümkünse öneriler veya açıklamalar sunun.
             Yanıtta güven katsayısını belirtmeyin.
                                    
-            **Kesinlikle** aşağıdaki formatta yanıt verin:
-            Çıkarılan Bilgiler: [Sorguya dayalı açık, yapılandırılmış bir yanıt sağlayın. Uygun olduğunda madde işaretleri veya başlıklar kullanın.]
+            *Kesinlikle* aşağıdaki formatta yanıt verin:
+            Çıkarılan Bilgiler: Sorguya dayalı açık, yapılandırılmış bir yanıt sağlayın. Uygun olduğunda madde işaretleri veya başlıklar kullanın. Eğer madde işaretleri veya başlıklar kullanıyorsanız, Başlık gibi kalın metin kullanın.]
             Güven Seviyesi: [Yüksek/Orta/Düşük - Metindeki bilginin açıklık derecesine göre yalnızca bir kelimeyle yanıtlayın: yüksek, orta veya düşük]
+            Çıkarılan Bilgiler ve Güven Seviyesi metinlerinde kalın yazı kullanmayın.
 
             Bağlam Pencereleri:
             {context}
@@ -110,9 +111,24 @@ class ChatbotFunctions:
             If the required information is not found in the context, state this clearly and offer suggestions or clarifications if possible.
             Do not specify the confidence coefficient in response.
 
-            Respond **strictly** in the following format:
-            Extracted Information: [Provide a clear, structured answer based on the query. Use bullet points or headings when appropriate]
-            Confidence Level: [High/Medium/Low - depending on how clearly the information is stated in the text, just answer in one word, with high, medium or low]                                               
+            Respond *strictly* in the following format:
+
+            Extracted Information: 
+
+            [header]Section Name[/header]
+            \n- Content with [b]bold terms[/b] when needed
+
+            [header]Another Section[/header]
+            \n- More content with [b]important terms[/b]
+
+            Rules:
+            1. Each major section must start with [header]...[/header]
+            2. Use [b]...[/b] for important terms or emphasis within content
+            3. Each point starts with \n- 
+            4. Leave an empty line between sections (\n\n)
+            5. Headers should be one of: Definition, Purpose, Key Features, Operation, Context, etc.
+
+            Confidence Level: [High/Medium/Low]                                 
                                    
             Context Windows:
             {context}

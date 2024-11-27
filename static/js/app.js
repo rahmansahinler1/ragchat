@@ -237,44 +237,76 @@ function addMessageToChat(message, sender) {
     window.chatBox.scrollTop = window.chatBox.scrollHeight;
 }
 
-function generateResponse(information, explanation) {
+function generateResponse(text) {
     const messageElement = document.createElement('div');
     messageElement.classList.add('message', 'bot-message');
     
-    // Create information section
-    const infoSection = document.createElement('div');
-    infoSection.classList.add('info-section');
+    // Extract confidence level
+    const confidenceLevelMatch = text.match(/Confidence Level: (High|Medium|Low)/i);
+    const confidenceLevel = confidenceLevelMatch ? confidenceLevelMatch[1].toLowerCase() : 'medium';
     
-    const infoIcon = document.createElement('i');
-    infoIcon.classList.add('fas', 'fa-info-circle');
-    infoIcon.style.marginRight = '8px';
-    infoIcon.style.color = '#007AEA';
+    // Create main content section
+    const contentSection = document.createElement('div');
+    contentSection.classList.add('message-section');
     
-    const infoText = document.createElement('span');
-    infoText.textContent = information;
+    // Add confidence point
+    const confidencePoint = document.createElement('span');
+    confidencePoint.classList.add('confidence-point', `confidence-${confidenceLevel}`);
+    contentSection.appendChild(confidencePoint);
     
-    infoSection.appendChild(infoIcon);
-    infoSection.appendChild(infoText);
+    // Clean initial text
+    let processedText = text
+        .replace(/Confidence Level: (High|Medium|Low)/i, '')
+        .replace('Extracted Information:', '')
+        .trim();
     
-    // Create explanation section
-    const explainSection = document.createElement('div');
-    explainSection.classList.add('explain-section');
-    explainSection.style.marginTop = '12px';
+    // First, process the headers
+    processedText = processedText.replace(/\[header\](.*?)\[\/header\]/g, 
+        '<div class="section-header" style="margin: 20px 0 12px 0; font-weight: bold; font-size: 1.1em;"><strong>$1</strong></div>'
+    );
     
-    const explainIcon = document.createElement('i');
-    explainIcon.classList.add('fas', 'fa-question-circle');
-    explainIcon.style.marginRight = '8px';
-    explainIcon.style.color = '#6c757d';
+    // Split into sections
+    const sections = processedText.split(/(?=<div class="section-header")/);
     
-    const explainText = document.createElement('span');
-    explainText.textContent = explanation;
+    const formattedContent = sections
+        .map(section => {
+            section = section.trim();
+            if (!section) return '';
+            
+            // Process both bold formats
+            let processedSection = section
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Process double-star format
+                .replace(/\[b\](.*?)\[\/b\]/g, '<strong>$1</strong>'); // Process [b] format
+            
+            // Process bullet points
+            const lines = processedSection.split('\\n');
+            return lines
+                .map(line => {
+                    line = line.trim();
+                    if (!line) return '';
+                    
+                    // If it's already a header, return as is
+                    if (line.includes('class="section-header"')) {
+                        return line;
+                    }
+                    
+                    // Handle bullet points
+                    if (line.startsWith('-')) {
+                        return `<div class="bullet-point" style="margin: 8px 0 8px 20px;">• ${line.substring(1).trim()}</div>`;
+                    }
+                    
+                    return `<div style="margin: 8px 0">${line}</div>`;
+                })
+                .filter(line => line)
+                .join('');
+        })
+        .filter(section => section)
+        .join('');
     
-    explainSection.appendChild(explainIcon);
-    explainSection.appendChild(explainText);
-    
-    // Add sections to message
-    messageElement.appendChild(infoSection);
-    messageElement.appendChild(explainSection);
+    const textContent = document.createElement('span');
+    textContent.innerHTML = formattedContent;
+    contentSection.appendChild(textContent);
+    messageElement.appendChild(contentSection);
     
     window.chatBox.appendChild(messageElement);
     window.chatBox.scrollTop = window.chatBox.scrollHeight;
@@ -381,7 +413,7 @@ function updateDomainList(domainInfo) {
 }
 
 // Request functions
-async function sendMessage(userInput, userData, userInputTextbox) {
+async function sendMessage(userInput, userData) {
     const message = userInput.value.trim();
 
     if (!message) {
@@ -407,8 +439,8 @@ async function sendMessage(userInput, userData, userInputTextbox) {
 
             const data = await response.json();
 
-            if (data.information && data.explanation) {
-                generateResponse(data.information, data.explanation);
+            if (data.answer) {
+                generateResponse(data.answer);
                 populateResources(data.resources, data.resource_sentences);
             } else {
                 window.addMessageToChat(data.message, 'ragchat')

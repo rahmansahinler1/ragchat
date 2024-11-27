@@ -156,8 +156,7 @@ async def generate_answer(
 
         return JSONResponse(
             content={
-                "information": answer["information"],
-                "explanation": answer["explanation"],
+                "answer": answer,
                 "resources": resources,
                 "resource_sentences": resource_sentences,
             },
