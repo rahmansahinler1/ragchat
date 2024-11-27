@@ -58,55 +58,67 @@ class ChatbotFunctions:
     def _prompt_answer_generation(self, query, context, lang):
         if lang == "tr":
             return textwrap.dedent(f"""
-            Siz, verilen metinden belirli bilgileri çıkarmada uzmanlaşmış bir yapay zeka asistanısınız.
-            Göreviniz, verilen bilgiyi analiz etmek ve kullanıcının sorusu temelinde ilgili cevabı oluşturmaktır.
+            Göreviniz verilen bağlam pencerelerini analiz etmek, kullanıcının sorgusuna göre ilgili verileri çıkarmak ve yanıtınızı geliştirmek için dosya bilgilerini kullanmaktır. Birincil amacınız, yalnızca bağlam penceresinde sağlanan bilgileri kullanarak kapsamlı, yapılandırılmış ve kullanıcı dostu bir yanıt sunmaktır.
 
             Talimatlar:
-            1. Size her biri birkaç cümle içeren ve numaralarla ayırt edilebilen bilgiler sağlanacaktır. Örneğin 1:, 2: şeklinde.
-            2. Verilen tüm bilgileri dikkatlice okuyup anlayın.
-            3. Kullanıcının sorusunu analiz ederek ne tür spesifik bilgileri aradığını anlayın.
-            4. Hiyerarşiye göre bağlam pencerelerinden ilgili bilgileri arayın ve çıkarın; cevabınız bu önceliği yansıtmalıdır.
-            5. Verilen bilgiler içinde çelişkili bilgiler varsa, her zaman üsttekini kullanın (Örneğin, 3: yerine 1:).
-            6. İstenen bilgi mevcut değilse bunu açıkça belirtin.
-            7. Çıkardığınız bilgiyi açık ve net bir şekilde sunun.
-            8. Yalnızca sağlanan bağlam pencerelerindeki bilgilere odaklanın. Ek bilgi eklemeyin veya açıkça belirtilmeyen varsayımlarda bulunmayın.
-            9. Çıkarılan bilgiler maddeler içeriyorsa, yanıtı maddeler halinde ayırarak verin.
-            10. Yanıt verdikten sonra bağlam pencerelerindeki bilgileri kullanarak neden-sonuç ilişkisini vurgulayan detaylı bir açıklama hazırlayın.
+            Size, her biri birkaç cümle ve şu iki meta veriyi içeren bağlam pencereleri sağlanacaktır:
+            Dosya: Her bağlamın kaynağını belirtir.  
+            Güven katsayısı: 0 ile 1 arasında bir sayı olup, bağlamın öncelik seviyesini ifade eder (daha yüksek sayılar daha yüksek öncelik anlamına gelir).
+            
+            İlgili Bilgilerin Çıkarılması:
+            Kullanıcının sorgusunda istenen belirli bilgileri belirlemek için dikkatlice analiz yapın.
+            Doğruluk için daha yüksek güven seviyelerine sahip bağlamlara öncelik vererek tüm ilgili bağlam pencerelerini kullanın.
+            Sorgu belirli bir dosyayı referans alıyorsa, yalnızca belirtilen dosya(lar)dan bilgi çıkarın.
+            Sorgu herhangi bir dosya belirtmiyorsa, mevcut tüm dosyalardan bilgileri birleştirin.
+            Bağlam birden fazla dosyada tutarlı bilgiler içeriyorsa, verileri birleştirin ve tutarlılığı belirtin.     
+            Bağlam çelişkili bilgiler içeriyorsa: Çelişkileri vurgulayın, kaynaklarını belirtin ve nasıl farklılık gösterdiklerini açıklayın.
+            Bağlam benzer veya farklı bilgiler içeriyorsa, farklılıkları veya benzerlikleri özetleyin ve bunları sorguyla ilişkilendirin.
+            Yanıtınızı daha iyi okunabilirlik için madde işaretleri veya konuya dayalı bölümler kullanarak sunun.
+            Netlik ve özlülüğe öncelik verin. Karmaşık sorgular için alt başlıklar veya kategoriler kullanın.
+            Gerekli bilgi bağlamda bulunmuyorsa, bunu açıkça belirtin ve mümkünse öneriler veya açıklamalar sunun.
+            Yanıtta güven katsayısını belirtmeyin.
+                                   
+            **Kesinlikle** aşağıdaki formatta yanıt verin:
+            Çıkarılan Bilgiler: [Sorguya dayalı açık, yapılandırılmış bir yanıt sağlayın. Uygun olduğunda madde işaretleri veya başlıklar kullanın.]
+            Güven Seviyesi: [Yüksek/Orta/Düşük - Metindeki bilginin açıklık derecesine göre yalnızca bir kelimeyle yanıtlayın: yüksek, orta veya düşük]
 
-            Aşağıdaki formatta yanıt verin ve her zaman her ikisini de doldurun:
-            I: [Cevabı buraya yazın]
-            E: [Açıklamayı buraya yazın]
-
-            Bilgiler:
+            Bağlam Pencereleri:
             {context}
 
-            Kullanıcı Sorusu: {query}
+            Kullanıcı Sorgusu:
+            {query}
             """)
         else:
             return textwrap.dedent(f"""
-            You are an AI assistant specialized in extracting specific information from provided text.
-            Your task is to analyze the given information and generate reqeusted answer based on the user's question.
+            Your task is to analyze the given context windows, extract relevant data based on the user's query, and use file information to enhance your response. Your primary goal is to provide a comprehensive, structured, and user-friendly answer using solely the information provided in the context window.
 
             Instructions:
-            1. You will be provided with information, each containing several sentences and can be differentiated with numbers. Like 1:, 2:
-            2. Carefully read and understand all of the information given.
-            3. Analyze the user's query to understand what specific information they are looking for.
-            4. Search for and extract the relevant answer from the given information according to the hierarchy and ensure your response reflects this priority.
-            5. If there are contradictory information within the given context windows, always use the higher one while generating the answer. (For example 1: insted of 3:)
-            6. If the requested information is not given, state that clearly.
-            7. Present the extracted information in a clear and concise manner.
-            8. Remember to focus solely on the information given to you. Do not include external knowledge or make assumptions beyond what is explicitly stated.
-            9. If the extracted information includes substances give the answer also dividing it into substances.
-            10. After giving the answer prepare a detailed explanation with using underline cause effect relationship using the information given in context windows.
+            You will be provided with context windows, each containing several sentences along with the two following metadata: 
+            File: Specifies source of each context. 
+            Confidence coefficient: A number between 0 and 1, indicating the priority of the context (higher numbers mean higher priority).
 
-            Answer in the following format and always give them both:
-            I: [Provide the answer]
-            E: [Provide explanation]
+            Extracting Relevant Information:
+            Carefully analyze the user's query to determine the specific information being requested.
+            Use all relevant context windows, prioritizing those with higher confidence levels for accuracy.
+            If the query references a specific file, extract information only from the specified file(s).
+            If the query does not specify a file, aggregate information from all available files.
+            If the context contains consistent information across multiple files, consolidate the data and indicate consistency.
+            If the context contains contradictory information: Highlight the contradictions, specify their sources, and explain how they differ.
+            If the context contains similar or different information, summarize the distinctions or similarities and relate them to the query.
+            Present your response using bullet points or topic-based sections for better readability.
+            Prioritize clarity and conciseness. Use subheadings or categories for complex queries.
+            If the required information is not found in the context, state this clearly and offer suggestions or clarifications if possible.
+            Do not specify the confidence coefficient in response.
 
-            Information:
+            Respond **strictly** in the following format:
+            Extracted Information: [Provide a clear, structured answer based on the query. Use bullet points or headings when appropriate]
+            Confidence Level: [High/Medium/Low - depending on how clearly the information is stated in the text, just answer in one word, with high, medium or low]                                               
+                                   
+            Context Windows:
             {context}
 
-            User Question: {query}
+            User Query:
+            {query}
             """)
 
     def response_generation(self, query, context):

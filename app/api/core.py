@@ -102,8 +102,7 @@ class Processor:
                 context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sorted_sentence_indexes)-i)/len(sorted_sentence_indexes)}, {widen_sentence}\n\n"
                 context_windows.append(f"{i+1}: {widen_sentence}")
 
-        response = self.cf.response_generation(query=user_query, context=context)
-        answer = self._split_response(raw_answer=response)
+        answer = self.cf.response_generation(query=user_query, context=context)
 
         return answer, resources, context_windows
 
@@ -197,13 +196,3 @@ class Processor:
                 boost_info["table_indexes"].append(index)
         boost_info["header_embeddings"] = embeddings[boost_info["header_indexes"]]
         return boost_info
-
-    def _split_response(self, raw_answer: str):
-        try:
-            parts = raw_answer.split("E: ")
-            info = parts[0].replace("I: ", "").strip()
-            explanation = parts[1].strip() if len(parts) > 1 else ""
-
-            return {"information": info, "explanation": explanation}
-        except:  # noqa: E722
-            return {"information": raw_answer, "explanation": ""}
