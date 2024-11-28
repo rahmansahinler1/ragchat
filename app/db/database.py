@@ -369,10 +369,9 @@ class Database:
         WHERE user_id = %s AND domain_number = %s
         """
         get_file_ids_query = """
-        SELECT DISTINCT t1.file_id
-        FROM file_info AS t1
-        LEFT JOIN domain_info t2 ON t1.domain_id = t2.domain_id
-        WHERE t1.user_id = %s AND t1.file_name IN %s AND t2.domain_id = %s
+        SELECT DISTINCT file_id
+        FROM file_info
+        WHERE user_id = %s AND file_name IN %s AND domain_id = %s
         """
         clear_content_query = """
         DELETE FROM file_content
