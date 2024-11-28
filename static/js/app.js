@@ -2,7 +2,10 @@
 class FileBasket {
     constructor() {
         this.files = new Map();
+        this.uploadQueue = [];
         this.totalSize = 0;
+        this.MAX_BATCH_SIZE = 20 * 1024 * 1024; // 20MB in bytes
+        this.MAX_CONCURRENT = 10;
     }
 
     addFiles(fileList) {
@@ -10,21 +13,60 @@ class FileBasket {
             if (!this.files.has(file.name)) {
                 this.files.set(file.name, {
                     file: file,
-                    lastModified: file.lastModified
+                    lastModified: file.lastModified,
+                    status: 'pending'
                 });
+                this.uploadQueue.push(file.name);
                 this.totalSize += file.size;
             }
         }
         return this.getFileNames();
     }
 
+    getBatch() {
+        let currentBatchSize = 0;
+        const batch = [];
+        
+        while (this.uploadQueue.length > 0 && batch.length < this.MAX_CONCURRENT) {
+            const fileName = this.uploadQueue[0];
+            const fileInfo = this.files.get(fileName);
+            
+            if (currentBatchSize + fileInfo.file.size > this.MAX_BATCH_SIZE) {
+                break;
+            }
+            
+            batch.push(this.uploadQueue.shift());
+            currentBatchSize += fileInfo.file.size;
+        }
+        
+        return batch;
+    }
+
+    getFileFormData(fileName) {
+        const fileInfo = this.files.get(fileName);
+        if (!fileInfo) return null;
+
+        const formData = new FormData();
+        formData.append('file', fileInfo.file);
+        formData.append('lastModified', fileInfo.lastModified);
+        return formData;
+    }
+
+    removeFile(fileName) {
+        const fileInfo = this.files.get(fileName);
+        if (fileInfo) {
+            this.totalSize -= fileInfo.file.size;
+            this.files.delete(fileName);
+            const queueIndex = this.uploadQueue.indexOf(fileName);
+            if (queueIndex > -1) {
+                this.uploadQueue.splice(queueIndex, 1);
+            }
+        }
+    }
+
     removeFiles(fileNames) {
         fileNames.forEach(fileName => {
-            const fileInfo = this.files.get(fileName);
-            if (fileInfo) {
-                this.totalSize -= fileInfo.file.size;
-                this.files.delete(fileName);
-            }
+            this.removeFile(fileName);
         });
         return this.getFileNames();
     }
@@ -33,18 +75,14 @@ class FileBasket {
         return Array.from(this.files.keys());
     }
 
-    clear() {
-        this.files.clear();
-        this.totalSize = 0;
+    hasFilesToUpload() {
+        return this.uploadQueue.length > 0;
     }
 
-    getUploadFormData() {
-        const formData = new FormData();
-        this.files.forEach((fileInfo, fileName) => {
-            formData.append('files', fileInfo.file);
-            formData.append('lastModified', fileInfo.lastModified);
-        });
-        return formData;
+    clear() {
+        this.files.clear();
+        this.uploadQueue = [];
+        this.totalSize = 0;
     }
 }
 
@@ -491,39 +529,68 @@ async function selectDomain(clickedButton, index, domainButtons, userData) {
 
 async function uploadFiles(uploadFilesButton, userData) {
     try {
-        if (fileBasket.files.size === 0) {
+        if (!fileBasket.hasFilesToUpload()) {
             window.addMessageToChat("No files selected for upload", 'ragchat');
             return;
         }
 
         uploadFilesButton.disabled = true;
-        const formData = fileBasket.getUploadFormData();
-        const url = `/api/v1/io/upload_files?userID=${userData.user_id}`;
+        let successCount = 0;
         
-        const response = await fetch(url, {
-            method: 'POST',
-            body: formData
-        });
+        while (fileBasket.hasFilesToUpload()) {
+            const batch = fileBasket.getBatch();
+            const uploadPromises = batch.map(async (fileName) => {
+                try {
+                    const formData = fileBasket.getFileFormData(fileName);
+                    const url = `/api/v1/io/store_file?userID=${userData.user_id}`;
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    });
 
-        if (!response.ok) {
-            throw new Error('Upload failed');
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        successCount++;
+                        const fileElement = Array.from(window.selectedFileList.children)
+                            .find(el => el.querySelector('label').textContent === fileName);
+                        if (fileElement) fileElement.remove();
+                        fileBasket.removeFile(fileName);
+                        
+                        window.addMessageToChat(`Successfully stored ${fileName}`, 'ragchat');
+                    } else {
+                        throw new Error(data.message || 'Storage failed');
+                    }
+                } catch (error) {
+                    window.addMessageToChat(`Failed to store ${fileName}: ${error.message}`, 'ragchat');
+                }
+            });
+
+            await Promise.all(uploadPromises);
         }
 
-        const data = await response.json();
-        
-        if (data.domain_name) {
-            updateDomainList(data);
-            updateButtonStates();
-            window.addMessageToChat(`Successfully uploaded files to ${data.domain_name}`, 'ragchat');
-            window.selectedFileList.innerHTML = '';
-            fileBasket.clear();
-        } else {
-            window.addMessageToChat(data.message, 'ragchat');
+        if (successCount > 0) {
+            // Upload stored files
+            const uploadUrl = `/api/v1/io/upload_files?userID=${userData.user_id}`;
+            const uploadResponse = await fetch(uploadUrl, {
+                method: 'POST'
+            });
+
+            const uploadData = await uploadResponse.json();
+            
+            if (uploadResponse.ok) {
+                updateDomainList(uploadData);
+                updateButtonStates();
+                window.addMessageToChat(`Successfully uploaded ${successCount} files`, 'ragchat');
+            } else {
+                throw new Error(uploadData.message || 'Uploading failed');
+            }
         }
 
     } catch (error) {
-        console.error('Error uploading files:', error);
-        window.addMessageToChat('Error while uploading files: ' + error.message, 'ragchat');
+        console.error('Error in upload upload:', error);
+        window.addMessageToChat('Error in upload upload: ' + error.message, 'ragchat');
     } finally {
         uploadFilesButton.disabled = false;
     }

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, HTTPException, Request, Query, File, Form
 from fastapi.responses import JSONResponse
 from datetime import datetime
-from typing import List
+import numpy as np
 import logging
 import uuid
 import base64
@@ -171,16 +171,19 @@ async def generate_answer(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/io/upload_files")
-async def upload_files(
+@router.post("/io/upload_file1")
+async def upload_file1(
     userID: str = Query(...),
-    files: List[UploadFile] = File(...),
-    lastModified: List[str] = Form(...),
+    file: UploadFile = File(...),
+    lastModified: str = Form(...),
 ):
     try:
-        if not files:
+        if not file:
             return JSONResponse(
-                content={"message": "No files provided"}, status_code=400
+                content={
+                    "message": f"There is an error occurred of upload of {file.filename}"
+                },
+                status_code=400,
             )
 
         selected_domain_number = redis_manager.get_data(
@@ -201,17 +204,39 @@ async def upload_files(
             file_info_batch = []
             file_content_batch = []
 
+            file_bytes = await file.read()
+            if not file_bytes:
+                return JSONResponse(
+                    content={
+                        "message": f"Error reading {file.filename} maybe it's corrupted. You can report this as a bug."
+                    },
+                    status_code=400,
+                )
+
+            file_data = processor.rf.read_file(
+                file_bytes=file_bytes, file_name=file.filename
+            )
+
+            if not file_data["sentences"]:
+                return JSONResponse(
+                    content={
+                        "message": f"No sentence found in {file.filename}. If you see any, please report this to us."
+                    },
+                    status_code=400,
+                )
+
+            file_embeddings = processor.ef.create_embeddings_from_sentences(
+                sentences=file_data["sentences"]
+            )
+            file_id = str(uuid.uuid4())
+
             # Process all files
-            for file, last_modified in zip(files, lastModified):
+            for file, last_modified in zip(file, lastModified):
                 # Validate file
                 if not file.filename:
                     continue
 
                 try:
-                    file_bytes = await file.read()
-                    if not file_bytes:
-                        continue
-
                     file_data = processor.rf.read_file(
                         file_bytes=file_bytes, file_name=file.filename
                     )
@@ -306,6 +331,158 @@ async def upload_files(
         )
 
 
+@router.post("/io/store_file")
+async def store_file(
+    userID: str = Query(...),
+    file: UploadFile = File(...),
+    lastModified: str = Form(...),
+):
+    try:
+        file_bytes = await file.read()
+        if not file_bytes:
+            return JSONResponse(
+                content={
+                    "message": f"Empty file {file.filename}. If you think not, please report this to us!"
+                },
+                status_code=400,
+            )
+
+        file_data = processor.rf.read_file(
+            file_bytes=file_bytes, file_name=file.filename
+        )
+
+        if not file_data["sentences"]:
+            return JSONResponse(
+                content={
+                    "message": f"No content to extract in {file.filename}. If there is please report this to us!"
+                },
+                status_code=400,
+            )
+
+        # Create embeddings
+        file_embeddings = processor.ef.create_embeddings_from_sentences(
+            sentences=file_data["sentences"]
+        )
+
+        # Store in Redis
+        redis_key = f"user:{userID}:upload:{file.filename}"
+        upload_data = {
+            "file_name": file.filename,
+            "last_modified": datetime.fromtimestamp(int(lastModified) / 1000).strftime(
+                "%Y-%m-%d"
+            )[:20],
+            "sentences": file_data["sentences"],
+            "page_numbers": file_data["page_number"],
+            "is_headers": file_data["is_header"],
+            "is_tables": file_data["is_table"],
+            "embeddings": file_embeddings,
+        }
+
+        redis_manager.set_data(redis_key, upload_data, expiry=3600)
+
+        return JSONResponse(
+            content={"message": "File stored successfully", "file_name": file.filename},
+            status_code=200,
+        )
+
+    except Exception as e:
+        logging.error(f"Error storing file {file.filename}: {str(e)}")
+        return JSONResponse(
+            content={"message": f"Error storing file: {str(e)}"}, status_code=500
+        )
+
+
+@router.post("/io/upload_files")
+async def upload_files(userID: str = Query(...)):
+    try:
+        # Get domain info
+        selected_domain_number = redis_manager.get_data(
+            f"user:{userID}:selected_domain"
+        )
+
+        with Database() as db:
+            domain_info = db.get_domain_info(
+                user_id=userID, selected_domain_number=selected_domain_number
+            )
+
+            if not domain_info:
+                return JSONResponse(
+                    content={"message": "Invalid domain selected"}, status_code=400
+                )
+
+            # Get all stored files from Redis
+            stored_files = redis_manager.get_keys_by_pattern(f"user:{userID}:upload:*")
+            if not stored_files:
+                return JSONResponse(
+                    content={"message": "No files to process"}, status_code=400
+                )
+
+            file_info_batch = []
+            file_content_batch = []
+
+            # Process stored files
+            for redis_key in stored_files:
+                upload_data = redis_manager.get_data(redis_key)
+                if not upload_data:
+                    continue
+
+                file_id = str(uuid.uuid4())
+
+                # Prepare batches
+                file_info_batch.append(
+                    (
+                        userID,
+                        file_id,
+                        domain_info["domain_id"],
+                        upload_data["file_name"],
+                        upload_data["last_modified"],
+                    )
+                )
+
+                for i in range(len(upload_data["sentences"])):
+                    file_content_batch.append(
+                        (
+                            file_id,
+                            upload_data["sentences"][i],
+                            upload_data["page_numbers"][i],
+                            upload_data["is_headers"][i],
+                            upload_data["is_tables"][i],
+                            psycopg2.Binary(upload_data["embeddings"][i]),
+                        )
+                    )
+
+                # Clean up Redis
+                redis_manager.delete_data(redis_key)
+
+            # Bulk insert
+            success = db.insert_file_batches(file_info_batch, file_content_batch)
+            if not success:
+                return JSONResponse(
+                    content={"message": "Failed to process files"}, status_code=500
+                )
+            db.conn.commit()
+
+        # Update domain info
+        file_names, domain_name = update_selected_domain(
+            user_id=userID, selected_domain=selected_domain_number
+        )
+
+        return JSONResponse(
+            content={
+                "message": "Files uploaded successfully",
+                "file_names": file_names,
+                "domain_name": domain_name,
+            },
+            status_code=200,
+        )
+
+    except Exception as e:
+        logging.error(f"Error processing uploads: {str(e)}")
+        return JSONResponse(
+            content={"message": f"Error processing uploads: {str(e)}"}, status_code=500
+        )
+
+
 @router.post("/io/remove_file_upload")
 async def remove_file_upload(
     request: Request,
@@ -317,37 +494,33 @@ async def remove_file_upload(
         )
         data = await request.json()
         files = data.get("files_to_remove", [])
-        message, file_names, domain_name, status_code = (
-            "Unsuccessful deletion!",
-            [],
-            "",
-            500,
-        )
+
         with Database() as db:
-            deleted_content, file_ids = db.clear_file_content(
-                user_id=userID, files_to_remove=files
+            file_ids = db.clear_file_content(
+                user_id=userID,
+                files_to_remove=files,
+                domain_number=selected_domain_number,
             )
-            deleted_files = db.clear_file_info(user_id=userID, file_ids=file_ids)
-            domain_info = db.get_domain_info(
-                user_id=userID, selected_domain_number=selected_domain_number
-            )
-            file_info = db.get_file_info_with_domain(
-                user_id=userID, domain_id=domain_info["domain_id"]
-            )
+            success = db.clear_file_info(user_id=userID, file_ids=file_ids)
+            if not success:
+                return JSONResponse(
+                    content={
+                        "message": "Error deleting files",
+                    },
+                    status_code=400,
+                )
             db.conn.commit()
-            message = f"{deleted_files} files and {deleted_content} sentences deleted"
-            domain_name = domain_info["domain_name"]
-            status_code = 200
-        if file_info:
-            file_names = [info["file_name"] for info in file_info]
+        file_names, domain_name = update_selected_domain(
+            user_id=userID, selected_domain=selected_domain_number
+        )
 
         return JSONResponse(
             content={
-                "message": message,
+                "message": "Files deleted successfully!",
                 "domain_name": domain_name,
                 "file_names": file_names,
             },
-            status_code=status_code,
+            status_code=200,
         )
     except KeyError:
         return JSONResponse(

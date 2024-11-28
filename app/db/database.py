@@ -166,9 +166,9 @@ class Database:
 
     def get_file_content(self, file_ids: list):
         query_get_content = """
-        SELECT t1.sentence as sentence, t1.is_header as is_header, t1.is_table as is_table, t1.page_number as page_number, t1.file_id as file_id, t2.file_name as file_name
+        SELECT t1.sentence AS sentence, t1.is_header AS is_header, t1.is_table AS is_table, t1.page_number AS page_number, t1.file_id AS file_id, t2.file_name AS file_name
         FROM file_content t1
-        left join file_info t2 on t1.file_id = t2.file_id
+        LEFT JOIN file_info t2 ON t1.file_id = t2.file_id
         WHERE t1.file_id IN %s
         """
         query_get_embeddings = """
@@ -355,16 +355,24 @@ class Database:
                     ),
                 ),
             )
-            return self.cursor.rowcount
+            return 1
         except DatabaseError as e:
             self.conn.rollback()
             raise e
 
-    def clear_file_content(self, user_id: str, files_to_remove: list):
+    def clear_file_content(
+        self, user_id: str, files_to_remove: list, domain_number: int
+    ):
+        get_domain_id_query = """
+        SELECT domain_id
+        FROM domain_info
+        WHERE user_id = %s AND domain_number = %s
+        """
         get_file_ids_query = """
-        SELECT DISTINCT file_id
-        FROM file_info
-        WHERE user_id = %s AND file_name IN %s
+        SELECT DISTINCT t1.file_id
+        FROM file_info AS t1
+        LEFT JOIN domain_info t2 ON t1.domain_id = t2.domain_id
+        WHERE t1.user_id = %s AND t1.file_name IN %s AND t2.domain_id = %s
         """
         clear_content_query = """
         DELETE FROM file_content
@@ -372,19 +380,25 @@ class Database:
         """
         try:
             self.cursor.execute(
-                get_file_ids_query,
+                get_domain_id_query,
                 (
                     user_id,
-                    tuple(
-                        files_to_remove,
-                    ),
+                    domain_number,
                 ),
             )
-            file_ids = [row[0] for row in self.cursor.fetchall()]
-            if file_ids:
+            data = self.cursor.fetchone()
+            if data:
+                self.cursor.execute(
+                    get_file_ids_query,
+                    (
+                        user_id,
+                        tuple(files_to_remove),
+                        data[0],
+                    ),
+                )
+                file_ids = [row[0] for row in self.cursor.fetchall()]
                 self.cursor.execute(clear_content_query, (tuple(file_ids),))
-                total_cleared = self.cursor.rowcount
-                return total_cleared, file_ids
+                return file_ids
             else:
                 return 0
         except DatabaseError as e:
