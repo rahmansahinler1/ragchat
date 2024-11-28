@@ -12,47 +12,86 @@ class ChatbotFunctions:
     def _prompt_query_generation(self, query, lang):
         if lang == "tr":
             return textwrap.dedent(f"""
-            Görev: Önce anlamı sonra yazım hatalarını kontrol edin ve anlamsal olarak benzer 5 soru oluşturun.
+            Görev: Analiz Et, Düzelt ve İlgili Sorular & Cevaplar Oluştur.
 
-            Talimatlar: Size bir kullanıcı sorusu verilir.
-            Öncelikle kullanıcı sorusunu kontrol edin, eğer kullanıcı sorusunun anlamı yoksa boş string '' döndürün, soru anlamlıysa şunları yapın:
+            Talimatlar: 
+            Kullanıcı sorgusu size verilmiştir.
+            Öncelikle Kullanıcı sorusunu kontrol edin. Eğer anlamsızsa, boş bir string '' döndürün. Anlamlıysa, şu işlemleri yapın:
             Herhangi bir yazım veya dilbilgisi hatası olup olmadığını kontrol edin ve düzeltilmiş soruyu çıktıdaki ilk soru olarak döndürün.
-            Ardından, düzeltilmiş soruya anlamsal olarak benzer 5 ek soru oluşturun.
-            Oluşturulan soruların kelime kullanımının farklı olmasını ancak orijinal sorunun aynı anlamını veya amacını korumasını sağlayın.
-            Çıktıyı **kesinlikle** başka bir metin veya açıklama eklemeden aşağıdaki şablon formatında döndürün:
+            Ardından, Düzeltmiş soruyla aynı anlamı koruyan 3 semantik olarak benzer sorgu oluşturun.
+            Orijinal soruyu farklı açılardan ele alan, ancak yine de ilgili kalan 3 farklı soru oluşturun.
+            Son 3 soruya, her biri 1-2 cümlelik kısa cevaplarla yanıt verin.
+            Çıktıyı **kesinlikle** şu formatta döndürün:
 
-            [düzeltilmiş soru]
-            [birinci anlamsal benzer soru]
-            [ikinci anlamsal benzer soru]
-            [üçüncü anlamsal benzer soru]
-            [dördüncü anlamsal benzer soru]
-            [beşinci anlamsal benzer soru]
+            [düzeltilmiş sorgu]  
+            [birinci semantik olarak benzer sorgu]  
+            [ikinci semantik olarak benzer sorgu]  
+            [üçüncü semantik olarak benzer sorgu]  
+            [birinci farklı-açıdan soru]  
+            [ikinci farklı-açıdan soru]  
+            [üçüncü farklı-açıdan soru]  
+            [birinci farklı-açıdan cevap]  
+            [ikinci farklı-açıdan cevap]  
+            [üçüncü farklı-açıdan cevap] 
+                                   
+            Kullanıcı Sorgusu: {query}
 
-            Çıktınız tam olarak bu formatı takip etmelidir. Bu şablonun ötesinde hiçbir ek bilgi veya metin eklenmemelidir.
+            Örnek:
+            Kullanıcı sorgusu: "Retrieval-augmented generation yapay zeka sistemlerinde nasıl çalışır?"
+
+            Çıktı:
+            Retrieval-augmented generation yapay zeka sistemlerinde nasıl çalışır?
+            Retrieval-augmented generation süreci yapay zekada nasıl işler?
+            RAG, yapay zeka sistemlerine bilgi getirme ve oluşturma konusunda nasıl yardımcı olur?
+            Retrieval-augmented generation yapay zeka uygulamalarında nasıl işlev görür?
+            RAG kullanmanın yapay zeka için temel avantajları nelerdir?
+            RAG, geleneksel makine öğrenimi modellerinden nasıl farklıdır?
+            RAG’in uygulanmasında karşılaşılan zorluklar nelerdir?
+            RAG, yapay zekayı dış verileri getirerek daha doğru yanıtlar sağlamada geliştirir.
+            RAG, geleneksel modellerden farklı olarak çıkarım sırasında harici bilgilere erişim sağlar.
+            Başlıca zorluklar arasında getirme gecikmesi, getirilen verilerin uygunluğu ve bilgilerin güncel tutulması yer alır.
             
             Kullanıcı sorusu: {query}
             """)
         else:
             return textwrap.dedent(f"""
-            Task: Check for meaning first then spelling errors and create 5 semantically similar questions.
+            Task: Analyze, Correct, and Generate Related Questions & Answers
+            Instructions:
+            You are given a user query.
 
-            Instructions: You are given a user question. 
-            First, check the user question, if the user question has no meaning then return empty string '' if question is meaningul do the following:
-            Check for any spelling or grammatical errors, and return the corrected question as the first question in the output. 
-            Then, generate 5 additional questions that are semantically similar to the corrected question. 
-            Ensure that the generated questions vary in wording but retain the same meaning or intent as the original question. 
-            Return the output **strictly** in the following template format without any additional text or explanations:
+            First, check the user question. If it has no meaning, return an empty string. If it is meaningful, do the following:
+            Correct any spelling or grammatical errors and return the corrected question as the first line of the output.
+            Generate 3 semantically similar queries that retain the same meaning as the corrected query.
+            Create 3 different questions that approach the original query from different angles but stay related.
+            Answer last 3 questions with concise responses, 1-2 sentences max each.
+            Return the output **strictly** in the following format:
+            [corrected query]  
+            [first semantically similar query]  
+            [second semantically similar query]  
+            [third semantically similar query]  
+            [first different-angle question]  
+            [second different-angle question]  
+            [third different-angle question]  
+            [first different-angle answer]  
+            [second different-angle answer]  
+            [third different-angle answer]  
 
-            [corrected question]
-            [first semantically similar question]
-            [second semantically similar question]
-            [third semantically similar question]
-            [fourth semantically similar question]
-            [fifth semantically similar question]
+            User query: {query}
 
-            Your output should follow this format exactly. No extra information or text should be included beyond this template.
-            
-            User question: {query}
+            Example:
+            User query: "How does retrieval-augmented generation work in AI systems?"
+
+            Output:
+            How does retrieval-augmented generation work in AI systems?
+            What is the process of retrieval-augmented generation in AI?
+            How does RAG help AI systems retrieve and generate information?
+            Can you explain how retrieval-augmented generation functions in AI applications?
+            What are the key advantages of using RAG in AI?
+            How does RAG differ from traditional machine learning models?
+            What challenges does RAG face in implementation?
+            RAG enhances AI by providing more accurate responses by retrieving relevant external data.
+            Unlike traditional models, RAG integrates search capabilities to access external knowledge during inference.
+            Major challenges include latency in retrieval, ensuring relevance of fetched data, and maintaining up-to-date information.
             """)
 
     def _prompt_answer_generation(self, query, context, lang):
