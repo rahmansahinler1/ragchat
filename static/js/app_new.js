@@ -1055,13 +1055,20 @@ class Sidebar extends Component {
         
         fileList.innerHTML = '';
         
-        if (files.length > 0, fileIDS.length > 0) {
+        if (files.length > 0 && fileIDS.length > 0) {
             files.forEach((file, index) => {
                 const fileItem = this.createFileListItem(file, fileIDS[index]);
+                
+                // Check the checkbox by default
+                const checkbox = fileItem.querySelector('.file-checkbox');
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+                
                 fileList.appendChild(fileItem);
             });
         }
-
+    
         this.updateFileMenuVisibility();
     }
 
