@@ -285,16 +285,46 @@ class Database:
             raise e
 
     def delete_domain(self, domain_id: str):
-        query = """
+        get_files_query = """
+        SELECT file_id 
+        FROM file_info 
+        WHERE domain_id = %s
+        """
+
+        delete_content_query = """
+        DELETE FROM file_content 
+        WHERE file_id IN %s
+        """
+
+        delete_files_query = """
+        DELETE FROM file_info 
+        WHERE domain_id = %s
+        """
+
+        delete_domain_query = """
         DELETE FROM domain_info 
         WHERE domain_id = %s
         """
+
         try:
-            self.cursor.execute(query, (domain_id,))
+            self.cursor.execute(get_files_query, (domain_id,))
+            file_data = self.cursor.fetchall()
+            file_ids = [data[0] for data in file_data]
+
+            # content -> files -> domain
+            if file_ids:
+                self.cursor.execute(delete_content_query, (tuple(file_ids),))
+            self.cursor.execute(delete_files_query, (domain_id,))
+            self.cursor.execute(delete_domain_query, (domain_id,))
+
             rows_affected = self.cursor.rowcount
-            return rows_affected > 0
+
+            return 1 if rows_affected else 0
+
         except DatabaseError as e:
-            self.conn.rollback()
+            # Rollback in case of error
+            self.cursor.execute("ROLLBACK")
+            logger.error(f"Error deleting domain {domain_id}: {str(e)}")
             raise e
 
     def insert_user_info(

@@ -1007,6 +1007,35 @@ body {
   background: #bb2d3b;
 }
 
+/* Modal stacking fixes */
+#deleteConfirmModal {
+  z-index: 1060 !important; /* Higher than domain modal */
+}
+
+#deleteConfirmModal .modal-backdrop {
+  z-index: 1059 !important;
+}
+
+.modal-backdrop + .modal-backdrop {
+  display: none !important; /* Prevent multiple backdrops */
+}
+
+/* Ensure delete modal content stays on top */
+#deleteConfirmModal .modal-content {
+  position: relative;
+  z-index: 1061 !important;
+}
+
+/* Fix for domain modal when delete modal is open */
+#domainSelectModal.delete-confirmation-open {
+  overflow-y: hidden !important;
+}
+
+#domainSelectModal.delete-confirmation-open .modal-content {
+  filter: blur(2px);
+  transition: filter 0.2s ease;
+}
+
 #fileUploadModal .modal-dialog {
   max-width: 600px;
 }

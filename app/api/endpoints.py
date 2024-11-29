@@ -50,11 +50,11 @@ async def rename_domain(request: Request):
         with Database() as db:
             success = db.rename_domain(domain_id=selected_domain_id, new_name=new_name)
 
-        if not success:
-            return JSONResponse(
-                content={"message": "error while renaming domain"},
-                status_code=400,
-            )
+            if not success:
+                return JSONResponse(
+                    content={"message": "error while renaming domain"},
+                    status_code=400,
+                )
 
         return JSONResponse(
             content={"message": "success"},
@@ -79,11 +79,11 @@ async def create_domain(
                 user_id=userID, domain_id=domain_id, domain_name=domain_name
             )
 
-        if not success:
-            return JSONResponse(
-                content={"message": "error while creating domain"},
-                status_code=400,
-            )
+            if not success:
+                return JSONResponse(
+                    content={"message": "error while creating domain"},
+                    status_code=400,
+                )
 
         return JSONResponse(
             content={"message": "success", "domain_id": domain_id},
@@ -102,11 +102,13 @@ async def delete_domain(request: Request):
         with Database() as db:
             success = db.delete_domain(domain_id=domain_id)
 
-        if not success:
-            return JSONResponse(
-                content={"message": "error while renaming domain"},
-                status_code=400,
-            )
+            if not success:
+                return JSONResponse(
+                    content={"message": "error while renaming domain"},
+                    status_code=400,
+                )
+
+            db.conn.commit()
 
         return JSONResponse(
             content={"message": "success"},

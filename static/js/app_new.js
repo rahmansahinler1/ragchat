@@ -92,7 +92,7 @@ class DomainManager {
 
     async addDomain(domain) {
         const domainData = {
-            id: domain.id,
+            id: domain["domain_id"],
             name: domain.name,
             fileCount: domain.files?.length || 0,
             files: domain.files || [],
@@ -179,6 +179,7 @@ class DomainSettingsModal extends Component {
         this.deleteModal = null;
         this.temporarySelectedId = null;
         this.render();
+        this.initializeDeleteModal();
         this.setupEventListeners();
     }
 
@@ -265,15 +266,6 @@ class DomainSettingsModal extends Component {
             if (this.temporarySelectedId) {
                 this.events.emit('domainSelected', this.temporarySelectedId);
                 this.hide();
-            }
-        });
-
-        // Delete confirmation
-        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-        confirmDeleteBtn?.addEventListener('click', async () => {
-            if (this.domainToDelete) {
-                await this.handleDomainDelete(this.domainToDelete);
-                this.domainToDelete = null;
             }
         });
 
@@ -507,11 +499,44 @@ class DomainSettingsModal extends Component {
         }
     }
 
-    showDomainDeleteModal() {
-        if (!this.deleteModal) {
-            this.deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    initializeDeleteModal() {
+        const deleteModalElement = document.getElementById('deleteConfirmModal');
+        if (deleteModalElement) {
+            this.deleteModal = new bootstrap.Modal(deleteModalElement, {
+                backdrop: 'static',
+                keyboard: false
+            });
+    
+            deleteModalElement.addEventListener('show.bs.modal', () => {
+                document.getElementById('domainSelectModal').classList.add('delete-confirmation-open');
+            });
+    
+            deleteModalElement.addEventListener('hidden.bs.modal', () => {
+                document.getElementById('domainSelectModal').classList.remove('delete-confirmation-open');
+                this.domainToDelete = null; // Clean up on hide
+            });
+    
+            const confirmBtn = deleteModalElement.querySelector('#confirmDeleteBtn');
+            confirmBtn?.addEventListener('click', async () => {
+                if (this.domainToDelete) {
+                    await this.handleDomainDelete(this.domainToDelete);
+                    this.domainToDelete = null;
+                    this.deleteModal.hide();
+                }
+            });
+    
+            const cancelBtn = deleteModalElement.querySelector('.btn-outline-secondary');
+            cancelBtn?.addEventListener('click', () => {
+                this.domainToDelete = null;
+                this.deleteModal.hide();
+            });
         }
-        this.deleteModal.show();
+    }
+
+    showDomainDeleteModal() {
+        if (this.deleteModal) {
+            this.deleteModal.show();
+        }
     }
 
     hideDomainDeleteModal() {
@@ -1361,11 +1386,6 @@ class App {
                 text: `Successfully created domain ${domainData.name}`,
                 type: 'success'
             });
-        });
-
-        this.domainSettingsModal.events.on('domainDelete', (domainId) => {
-            this.domainManager.deleteDomain(domainId);
-            this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());
         });
 
         this.domainSettingsModal.events.on('domainSearch', (searchTerm) => {
