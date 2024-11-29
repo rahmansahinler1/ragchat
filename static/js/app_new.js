@@ -90,7 +90,7 @@ class DomainManager {
         return this.domains.get(domainId);
     }
 
-    addDomain(domain) {
+    async addDomain(domain) {
         const domainData = {
             id: domain.id,
             name: domain.name,
@@ -145,6 +145,15 @@ class DomainManager {
             }
             this.selectedDomainId = null;
         }
+    }
+
+    renameDomain(domainId, newName) {
+        const domain = this.domains.get(domainId);
+        if (domain) {
+            domain.data.name = newName;
+            return true;
+        }
+        return false;
     }
 }
 
@@ -368,15 +377,29 @@ class DomainSettingsModal extends Component {
     setupNewDomainHandlers(inputCard, input) {
         const confirmBtn = inputCard.querySelector('.confirm-button');
         const cancelBtn = inputCard.querySelector('.cancel-button');
-
-        const handleConfirm = () => {
+    
+        const handleConfirm = async () => {
             const name = input.value.trim();
             if (name) {
-                this.events.emit('domainCreate', name);
-                inputCard.remove();
+                if (name.length > 20) {
+                    this.events.emit('warning', 'Domain name must be less than 20 characters');
+                    return;
+                }
+    
+                const result = await window.createDomain(window.serverData.userId, name);
+                
+                if (result.success) {
+                    this.events.emit('domainCreate', {
+                        domain_id: result.domain_id,
+                        name: name
+                    });
+                    inputCard.remove();
+                } else {
+                    this.events.emit('warning', 'Failed to create domain');
+                }
             }
         };
-
+    
         confirmBtn.addEventListener('click', handleConfirm);
         cancelBtn.addEventListener('click', () => inputCard.remove());
         
@@ -389,36 +412,52 @@ class DomainSettingsModal extends Component {
         });
     }
 
-    enableDomainEditing(card) {
+    async enableDomainEditing(card) {
         const domainInfo = card.querySelector('.domain-info');
         const domainNameElement = domainInfo.querySelector('h6');
         const currentName = domainNameElement.getAttribute('title') || domainNameElement.textContent;
-
+        const domainId = card.dataset.domainId;
+    
         const wrapper = document.createElement('div');
         wrapper.className = 'domain-name-input-wrapper';
         wrapper.innerHTML = `
-            <input type="text" class="domain-name-input" value="${currentName}" maxlength="30">
+            <input type="text" class="domain-name-input" value="${currentName}" maxlength="20">
             <div class="domain-edit-actions">
                 <button class="edit-confirm-button"><i class="bi bi-check"></i></button>
                 <button class="edit-cancel-button"><i class="bi bi-x"></i></button>
             </div>
         `;
-
+    
         const input = wrapper.querySelector('.domain-name-input');
         const confirmBtn = wrapper.querySelector('.edit-confirm-button');
         const cancelBtn = wrapper.querySelector('.edit-cancel-button');
-
-        const handleConfirm = () => {
+    
+        const handleConfirm = async () => {
             const newName = input.value.trim();
             if (newName && newName !== currentName) {
-                this.events.emit('domainEdit', {
-                    id: card.dataset.domainId,
-                    newName: newName
-                });
+                if (newName.length > 20) {
+                    this.events.emit('warning', 'Domain name must be less than 20 characters');
+                    return;
+                }
+        
+                const success = await window.renameDomain(domainId, newName);
+                
+                if (success) {
+                    this.events.emit('domainEdit', {
+                        id: domainId,
+                        newName: newName
+                    });
+                    wrapper.replaceWith(domainNameElement);
+                    domainNameElement.textContent = newName;
+                    domainNameElement.setAttribute('title', newName);
+                } else {
+                    this.events.emit('warning', 'Failed to rename domain');
+                }
+            } else {
+                wrapper.replaceWith(domainNameElement);
             }
-            wrapper.replaceWith(domainNameElement);
         };
-
+    
         confirmBtn.addEventListener('click', handleConfirm);
         cancelBtn.addEventListener('click', () => wrapper.replaceWith(domainNameElement));
         
@@ -429,7 +468,7 @@ class DomainSettingsModal extends Component {
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') wrapper.replaceWith(domainNameElement);
         });
-
+    
         domainNameElement.replaceWith(wrapper);
         input.focus();
         input.select();
@@ -1278,14 +1317,19 @@ class App {
         });
 
         // Domain Settings Modal events
-        this.domainSettingsModal.events.on('domainCreate', (name) => {
-            const newDomain = {
-                id: crypto.randomUUID(),
-                name: name,
-                fileCount: 0
-            };
-            this.domainManager.addDomain(newDomain);
+        this.domainSettingsModal.events.on('domainCreate', async (domainData) => {
+            const domainCard = this.domainManager.addDomain({
+                domain_id: domainData.domain_id,
+                name: domainData.name
+            });
+        
+            // Update the domains list in the modal
             this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());
+            
+            this.events.emit('message', {
+                text: `Successfully created domain ${domainData.name}`,
+                type: 'success'
+            });
         });
 
         this.domainSettingsModal.events.on('domainDelete', (domainId) => {
@@ -1335,6 +1379,32 @@ class App {
                 const domainId = domainCard.dataset.domainId;
                 this.domainSettingsModal.events.emit('domainSelected', domainId);
             }
+        });
+
+        this.domainSettingsModal.events.on('domainEdit', async ({ id, newName }) => {
+            const success = this.domainManager.renameDomain(id, newName);
+            if (success) {
+                // If this is the currently selected domain, update the sidebar
+                const selectedDomain = this.domainManager.getSelectedDomain();
+                if (selectedDomain && selectedDomain.data.id === id) {
+                    this.sidebar.updateDomainSelection(selectedDomain.data);
+                }
+                
+                // Update the domains list in the modal
+                this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());
+                
+                this.events.emit('message', {
+                    text: `Successfully renamed domain to ${newName}`,
+                    type: 'success'
+                });
+            }
+        });
+        
+        this.domainSettingsModal.events.on('warning', (message) => {
+            this.events.emit('message', {
+                text: message,
+                type: 'warning'
+            });
         });
 
         // File Upload Modal events

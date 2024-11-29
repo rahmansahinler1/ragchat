@@ -135,8 +135,8 @@ class Database:
                 if data[1] not in domain_info.keys():
                     domain_info[data[1]] = {
                         "domain_name": data[0],
-                        "file_names": [data[2]],
-                        "file_ids": [data[3]],
+                        "file_names": [data[2]] if data[2] else [],
+                        "file_ids": [data[3]] if data[3] else [],
                     }
                 else:
                     domain_info[data[1]]["file_names"].append(data[2])
@@ -239,6 +239,50 @@ class Database:
         self.cursor.execute(query_get_session, (session_id,))
         data = self.cursor.fetchone()
         return {"user_id": data[0], "created_at": data[1]} if data else None
+
+    def rename_domain(self, domain_id: str, new_name: str):
+        query = """
+        UPDATE domain_info 
+        SET domain_name = %s
+        WHERE domain_id = %s
+        """
+        try:
+            self.cursor.execute(query, (new_name, domain_id))
+            rows_affected = self.cursor.rowcount
+            return rows_affected > 0
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+
+    def create_domain(self, user_id: str, domain_name: str, domain_id: str):
+        # First check if user has reached domain limit
+        query_count_domains = """
+        SELECT COUNT(*)
+        FROM domain_info
+        WHERE user_id = %s
+        """
+
+        try:
+            self.cursor.execute(query_count_domains, (user_id,))
+            domain_count = self.cursor.fetchone()[0]
+
+            if domain_count >= 10:
+                return None
+
+            query_insert = """
+            INSERT INTO domain_info (user_id, domain_id, domain_name)
+            VALUES (%s, %s, %s)
+            RETURNING domain_id
+            """
+
+            self.cursor.execute(query_insert, (user_id, domain_id, domain_name))
+            created_domain_id = self.cursor.fetchone()[0]
+
+            return 1 if created_domain_id else None
+
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
 
     def insert_user_info(
         self,

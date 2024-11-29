@@ -41,6 +41,59 @@ async def get_user_info(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/db/rename_domain")
+async def rename_domain(request: Request):
+    try:
+        data = await request.json()
+        selected_domain_id = data.get("domain_id")
+        new_name = data.get("new_name")
+        with Database() as db:
+            success = db.rename_domain(domain_id=selected_domain_id, new_name=new_name)
+
+        if not success:
+            return JSONResponse(
+                content={"message": "error while renaming domain"},
+                status_code=400,
+            )
+
+        return JSONResponse(
+            content={"message": "success"},
+            status_code=200,
+        )
+    except Exception as e:
+        logger.error(f"Error renaming domain: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/db/create_domain")
+async def create_domain(
+    request: Request,
+    userID: str = Query(...),
+):
+    try:
+        data = await request.json()
+        domain_name = data.get("domain_name")
+        domain_id = str(uuid.uuid4())
+        with Database() as db:
+            success = db.create_domain(
+                user_id=userID, domain_id=domain_id, domain_name=domain_name
+            )
+
+        if not success:
+            return JSONResponse(
+                content={"message": "error while creating domain"},
+                status_code=400,
+            )
+
+        return JSONResponse(
+            content={"message": "success", "domain_id": domain_id},
+            status_code=200,
+        )
+    except Exception as e:
+        logger.error(f"Error renaming domain: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/db/insert_feedback")
 async def insert_feedback(
     userID: str = Query(...),
@@ -85,11 +138,16 @@ async def select_domain(
 ):
     try:
         data = await request.json()
-        selected_domain__id = data.get("domain_id")
-        update_selected_domain(user_id=userID, domain_id=selected_domain__id)
+        selected_domain_id = data.get("domain_id")
+        success = update_selected_domain(user_id=userID, domain_id=selected_domain_id)
+
+        if not success:
+            return JSONResponse(
+                content={"message": "error while updating selected domain"},
+                status_code=400,
+            )
 
         redis_manager.refresh_user_ttl(userID)
-
         return JSONResponse(
             content={"message": "success"},
             status_code=200,
