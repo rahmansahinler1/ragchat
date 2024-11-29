@@ -86,19 +86,21 @@ class DomainManager {
         this.events = new EventEmitter();
     }
 
+    getDomain(domainId) {
+        return this.domains.get(domainId);
+    }
+
     addDomain(domain) {
-        const domainCard = new DomainCard(domain);
-        this.domains.set(domain.id, {
-            data: domain,
-            component: domainCard
-        });
-
-        domainCard.events.on('selected', ({id, selected}) => {
-            if (selected) {
-                this.selectDomain(id);
-            }
-        });
-
+        const domainData = {
+            id: domain.id,
+            name: domain.name,
+            fileCount: domain.files?.length || 0,
+            files: domain.files || [],
+            fileIDS: domain.fileIDS || []
+        };
+    
+        const domainCard = new DomainCard(domainData);
+        this.domains.set(domain.id, { data: domainData, component: domainCard });
         return domainCard;
     }
 
@@ -107,8 +109,42 @@ class DomainManager {
             id: entry.data.id,
             name: entry.data.name,
             fileCount: entry.data.fileCount,
-            files: entry.data.files
+            files: entry.data.files,
+            fileIDS: entry.data.fileIDS
         }));
+    }
+
+    // Single method to handle selection state
+    selectDomain(domainId) {
+        // Deselect previous
+        if (this.selectedDomainId) {
+            const previous = this.domains.get(this.selectedDomainId);
+            if (previous) {
+                previous.component.setSelected(false);
+            }
+        }
+
+        // Select new
+        const domain = this.domains.get(domainId);
+        if (domain) {
+            domain.component.setSelected(true);
+            this.selectedDomainId = domainId;
+        }
+    }
+
+    getSelectedDomain() {
+        if (!this.selectedDomainId) return null;
+        return this.domains.get(this.selectedDomainId);
+    }
+
+    clearSelection() {
+        if (this.selectedDomainId) {
+            const previous = this.domains.get(this.selectedDomainId);
+            if (previous) {
+                previous.component.setSelected(false);
+            }
+            this.selectedDomainId = null;
+        }
     }
 }
 
@@ -121,6 +157,8 @@ class DomainSettingsModal extends Component {
         element.setAttribute('aria-hidden', 'true');
         super(element);
         
+        this.domainToDelete = null;
+        this.temporarySelectedId = null;
         this.render();
         this.setupEventListeners();
     }
@@ -205,10 +243,8 @@ class DomainSettingsModal extends Component {
         // Select button
         const selectButton = this.element.querySelector('.select-button');
         selectButton?.addEventListener('click', () => {
-            const selectedCheckbox = this.element.querySelector('.domain-checkbox:checked');
-            if (selectedCheckbox) {
-                const domainCard = selectedCheckbox.closest('.domain-card');
-                this.events.emit('domainSelected', domainCard.dataset.domainId);
+            if (this.temporarySelectedId) {
+                this.events.emit('domainSelected', this.temporarySelectedId);
                 this.hide();
             }
         });
@@ -218,6 +254,98 @@ class DomainSettingsModal extends Component {
         confirmDeleteBtn?.addEventListener('click', () => {
             this.events.emit('domainDelete', this.domainToDelete);
             this.hideDomainDeleteModal();
+        });
+
+        // Close button
+        const closeButton = this.element.querySelector('.close-button');
+        closeButton?.addEventListener('click', () => {
+            this.resetTemporarySelection();
+            this.hide();
+        });
+
+        // Handle modal hidden event
+        this.element.addEventListener('hidden.bs.modal', () => {
+            this.resetTemporarySelection();
+        });
+    }
+
+    createDomainCard(domain) {
+        return `
+            <div class="domain-card" data-domain-id="${domain.id}">
+                <div class="domain-content">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="domain-${domain.id}" class="domain-checkbox">
+                        <label for="domain-${domain.id}" class="checkbox-label"></label>
+                    </div>
+                    <div class="domain-info">
+                        <h6 title="${domain.name}">${domain.name}</h6>
+                        <span class="file-count">${domain.fileCount} files</span>
+                    </div>
+                </div>
+                <div class="domain-actions">
+                    <button class="edit-button">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="delete-button">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    setupDomainCardListeners() {
+        this.element.querySelectorAll('.domain-card').forEach(card => {
+            if (card.classList.contains('new-domain-input-card')) return;
+
+            const domainId = card.dataset.domainId;
+            const checkbox = card.querySelector('.domain-checkbox');
+            
+            // Handle entire card click for selection
+            card.addEventListener('click', (e) => {
+                if (!e.target.closest('.domain-actions') && !e.target.closest('.checkbox-wrapper')) {
+                    checkbox.checked = !checkbox.checked;
+                    this.handleDomainSelection(checkbox, domainId);
+                }
+            });
+
+            // Handle checkbox click
+            checkbox?.addEventListener('change', (e) => {
+                e.stopPropagation();
+                this.handleDomainSelection(checkbox, domainId);
+            });
+
+            // Delete button
+            card.querySelector('.delete-button')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.domainToDelete = domainId;
+                this.showDomainDeleteModal();
+            });
+
+            // Edit button
+            card.querySelector('.edit-button')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.enableDomainEditing(card);
+            });
+        });
+    }
+
+    handleDomainSelection(checkbox, domainId) {
+        // Uncheck all other checkboxes
+        this.element.querySelectorAll('.domain-checkbox').forEach(cb => {
+            if (cb !== checkbox) {
+                cb.checked = false;
+            }
+        });
+
+        // Update temporary selection
+        this.temporarySelectedId = checkbox.checked ? domainId : null;
+    }
+
+    resetTemporarySelection() {
+        this.temporarySelectedId = null;
+        this.element.querySelectorAll('.domain-checkbox').forEach(cb => {
+            cb.checked = false;
         });
     }
 
@@ -261,6 +389,52 @@ class DomainSettingsModal extends Component {
         });
     }
 
+    enableDomainEditing(card) {
+        const domainInfo = card.querySelector('.domain-info');
+        const domainNameElement = domainInfo.querySelector('h6');
+        const currentName = domainNameElement.getAttribute('title') || domainNameElement.textContent;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'domain-name-input-wrapper';
+        wrapper.innerHTML = `
+            <input type="text" class="domain-name-input" value="${currentName}" maxlength="30">
+            <div class="domain-edit-actions">
+                <button class="edit-confirm-button"><i class="bi bi-check"></i></button>
+                <button class="edit-cancel-button"><i class="bi bi-x"></i></button>
+            </div>
+        `;
+
+        const input = wrapper.querySelector('.domain-name-input');
+        const confirmBtn = wrapper.querySelector('.edit-confirm-button');
+        const cancelBtn = wrapper.querySelector('.edit-cancel-button');
+
+        const handleConfirm = () => {
+            const newName = input.value.trim();
+            if (newName && newName !== currentName) {
+                this.events.emit('domainEdit', {
+                    id: card.dataset.domainId,
+                    newName: newName
+                });
+            }
+            wrapper.replaceWith(domainNameElement);
+        };
+
+        confirmBtn.addEventListener('click', handleConfirm);
+        cancelBtn.addEventListener('click', () => wrapper.replaceWith(domainNameElement));
+        
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleConfirm();
+        });
+        
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') wrapper.replaceWith(domainNameElement);
+        });
+
+        domainNameElement.replaceWith(wrapper);
+        input.focus();
+        input.select();
+    }
+
     updateDomainsList(domains) {
         const container = this.element.querySelector('#domainsContainer');
         if (container) {
@@ -269,51 +443,9 @@ class DomainSettingsModal extends Component {
         }
     }
 
-    createDomainCard(domain) {
-        return `
-            <div class="domain-card" data-domain-id="${domain.id}">
-                <div class="domain-content">
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" id="${domain.id}" class="domain-checkbox">
-                        <label for="${domain.id}" class="checkbox-label"></label>
-                    </div>
-                    <div class="domain-info">
-                        <h6 title="${domain.name}">${domain.name}</h6>
-                        <span class="file-count">${domain.fileCount} files</span>
-                    </div>
-                </div>
-                <div class="domain-actions">
-                    <button class="edit-button">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="delete-button">
-                        <i class="bi bi-trash3"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    setupDomainCardListeners() {
-        // Add event listeners for domain cards
-        this.element.querySelectorAll('.domain-card').forEach(card => {
-            // Delete button
-            card.querySelector('.delete-button')?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.domainToDelete = card.dataset.domainId;
-                this.showDomainDeleteModal();
-            });
-
-            // Edit button
-            card.querySelector('.edit-button')?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.enableDomainEditing(card);
-            });
-        });
-    }
-
     show() {
         const modal = new bootstrap.Modal(this.element);
+        this.resetTemporarySelection();
         modal.show();
     }
 
@@ -878,23 +1010,62 @@ class Sidebar extends Component {
         }
     }
 
-    updateFileList(files = []) {
+    updateFileList(files, fileIDS) {
         const fileList = this.element.querySelector('#sidebarFileList');
+        if (!fileList) return;
+        
         fileList.innerHTML = '';
         
-        files.forEach(file => {
-            // Add file to sidebar list
-            const fileItem = this.createFileListItem(file);
-            fileList.appendChild(fileItem);
-        });
+        if (files.length > 0, fileIDS.length > 0) {
+            files.forEach((file, index) => {
+                const fileItem = this.createFileListItem(file, fileIDS[index]);
+                fileList.appendChild(fileItem);
+            });
+        }
 
         this.updateFileMenuVisibility();
     }
 
-    createFileListItem(file) {
+    createFileListItem(fileName, fileID) {
         const fileItem = document.createElement('li');
-        // File item HTML structure...
+        const extension = fileName.split('.').pop().toLowerCase();
+        const icon = this.getFileIcon(extension);
+        
+        fileItem.innerHTML = `
+            <div class="d-flex align-items-center w-100">
+                <div class="icon-container">
+                    <i class="bi ${icon} file-icon sidebar-file-list-icon" style="color:#10B981"></i>
+                    <button class="delete-file-btn">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    <div class="delete-confirm-actions">
+                        <button class="confirm-delete-btn" title="Confirm delete">
+                            <i class="bi bi-check"></i>
+                        </button>
+                        <button class="cancel-delete-btn" title="Cancel delete">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+                <span class="file-name" title="${fileName}">${fileName}</span>
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" class="file-checkbox" id="file-${fileID}">
+                    <label class="checkbox-label" for="file-${fileID}"></label>
+                </div>
+            </div>
+        `;
+
         return fileItem;
+    }
+
+    getFileIcon(extension) {
+        const iconMap = {
+            pdf: 'bi-file-pdf',
+            docx: 'bi-file-word',
+            doc: 'bi-file-word',
+            txt: 'bi-file-text'
+        };
+        return iconMap[extension] || 'bi-file';
     }
 
     updateFileMenuVisibility() {
@@ -1078,23 +1249,16 @@ class App {
         this.setupEventListeners();
     }
 
-    updateUserInterface(userData) {
+    updateUserInterface() {
         // Update user section in sidebar
         const userEmail = this.sidebar.element.querySelector('.user-email');
         const userAvatar = this.sidebar.element.querySelector('.user-avatar');
         
-        userEmail.textContent = userData.user_info.user_email;
-        userAvatar.textContent = userData.user_info.user_name[0].toUpperCase();
+        userEmail.textContent = this.userData.user_info.user_email;
+        userAvatar.textContent = this.userData.user_info.user_name[0].toUpperCase();
     }
 
     setupEventListeners() {
-        // Domain related events
-        this.domainManager.events.on('domainSelected', (domain) => {
-            this.sidebar.updateDomainSelection(domain);
-            const files = []; // Get files for selected domain
-            this.sidebar.updateFileList(files);
-        });
-
         // Sidebar events
         this.sidebar.events.on('settingsClick', () => {
             this.domainSettingsModal.show();
@@ -1134,6 +1298,45 @@ class App {
             this.domainSettingsModal.updateDomainsList(filteredDomains);
         });
 
+        this.domainSettingsModal.events.on('domainSelected', async (domainId) => {
+            try {
+                const success = await window.selectDomain(domainId, window.serverData.userId);
+                
+                if (success) {
+                    const domain = this.domainManager.getDomain(domainId);
+                    if (!domain) return;
+        
+                    // Update domain manager state and UI
+                    this.domainManager.selectDomain(domainId);
+                    this.sidebar.updateDomainSelection(domain.data);
+                    
+                    const files = domain.data.files || [];
+                    const fileIDS = domain.data.fileIDS || [];
+                    this.sidebar.updateFileList(files, fileIDS);
+                    
+                    this.events.emit('message', {
+                        text: `Successfully switched to domain ${domain.data.name}`,
+                        type: 'success'
+                    });
+                }
+            } catch (error) {
+                this.events.emit('message', {
+                    text: 'Failed to select domain',
+                    type: 'error'
+                });
+            }
+        });
+
+        const selectButton = this.domainSettingsModal.element.querySelector('.select-button');
+        selectButton?.addEventListener('click', () => {
+            const selectedCheckbox = this.domainSettingsModal.element.querySelector('.domain-checkbox:checked');
+            if (selectedCheckbox) {
+                const domainCard = selectedCheckbox.closest('.domain-card');
+                const domainId = domainCard.dataset.domainId;
+                this.domainSettingsModal.events.emit('domainSelected', domainId);
+            }
+        });
+
         // File Upload Modal events
         this.fileUploadModal.events.on('filesUploaded', (files) => {
             // Later this will handle actual file upload to backend
@@ -1152,45 +1355,35 @@ class App {
         this.feedbackModal.events.on('feedbackError', (error) => {
             console.error(error);
         });
+        
     }
 
     // In App class initialization
     async init() {
         // Initialize
         await window.checkVersion();
-        const userData = await window.fetchUserInfo(window.serverData.userId);
-        if (!userData) {
+        this.userData = await window.fetchUserInfo(window.serverData.userId);
+        if (!this.userData) {
             throw new Error('Failed to load user data');
         }
 
         // Update user interface with user data
-        this.updateUserInterface(userData)
+        this.updateUserInterface()
 
-        // Organize fetched domain data
-        const domainMap = new Map();
-        
-        userData.domain_info.forEach(([domainName, domainId, fileName]) => {
-            if (!domainMap.has(domainId)) {
-                domainMap.set(domainId, {
-                    id: domainId,
-                    name: domainName,
-                    files: []
-                });
-            }
-            domainMap.get(domainId).files.push(fileName);
-        });
-
-        domainMap.forEach(domainData => {
+        // Store domain data
+        Object.keys(this.userData.domain_info).forEach(key => {
+            const domainData = this.userData.domain_info[key];
             const domain = {
-                id: domainData.id,
-                name: domainData.name,
-                fileCount: domainData.files.length,
-                files: domainData.files
+              id: key,
+              name: domainData.domain_name,
+              fileCount: domainData.file_names.length,
+              files: domainData.file_names,
+              fileIDS: domainData.file_ids
             };
             this.domainManager.addDomain(domain);
-        });
+          });
 
-        // Update UI with fetched and organized domain data
+        // Update UI with domain data
         this.domainSettingsModal.updateDomainsList(
             this.domainManager.getAllDomains()
         );

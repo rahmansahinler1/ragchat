@@ -100,7 +100,7 @@ class Database:
         WHERE user_id = %s
         """
         query_get_domain_info = """
-        SELECT t1.domain_name, t1.domain_id, t2.file_name
+        SELECT t1.domain_name, t1.domain_id, t2.file_name, t2.file_id
         FROM domain_info t1
         LEFT JOIN file_info t2 ON t1.domain_id = t2.domain_id
         WHERE t1.domain_id IN %s
@@ -130,8 +130,19 @@ class Database:
             domain_ids = [data[0] for data in domain_id_data]
             self.cursor.execute(query_get_domain_info, (tuple(domain_ids),))
             domain_info_data = self.cursor.fetchall()
+            domain_info = {}
+            for data in domain_info_data:
+                if data[1] not in domain_info.keys():
+                    domain_info[data[1]] = {
+                        "domain_name": data[0],
+                        "file_names": [data[2]],
+                        "file_ids": [data[3]],
+                    }
+                else:
+                    domain_info[data[1]]["file_names"].append(data[2])
+                    domain_info[data[1]]["file_ids"].append(data[3])
 
-            return user_info, domain_info_data
+            return user_info, domain_info
 
         except DatabaseError as e:
             self.conn.rollback()
@@ -169,22 +180,22 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def get_domain_info(self, user_id: str, selected_domain_number: int):
+    def get_domain_info(self, user_id: str, domain_id: int):
         query = """
-        SELECT DISTINCT domain_id, domain_name
+        SELECT DISTINCT domain_name
         FROM domain_info
-        WHERE user_id = %s AND domain_number = %s
+        WHERE user_id = %s AND domain_id = %s
         """
         try:
             self.cursor.execute(
                 query,
                 (
                     user_id,
-                    selected_domain_number,
+                    domain_id,
                 ),
             )
             data = self.cursor.fetchone()
-            return {"domain_id": data[0], "domain_name": data[1]} if data else None
+            return {"domain_name": data[0]} if data else None
         except DatabaseError as e:
             self.conn.rollback()
             raise e
@@ -210,7 +221,7 @@ class Database:
                 embeddings = self._bytes_to_embeddings(np.array(byte_embeddings[0]))
                 return content, embeddings
             else:
-                return None
+                return None, None
         except DatabaseError as e:
             self.conn.rollback()
             print(f"Database error occurred: {e}")

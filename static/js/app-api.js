@@ -45,3 +45,35 @@ window.fetchUserInfo = async function(userID) {
         return null;
     }
 };
+
+window.selectDomain = async function selectDomain(domainId, userID) {
+    try {
+        const url = `/api/v1/qa/select_domain?userID=${encodeURIComponent(userID)}`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                domain_id: domainId
+            })
+        });
+
+        if (!response.ok) {
+            return 0;
+        }
+
+        const data = await response.json();
+        
+        if (data["message"] !== "success") {
+            return 0;
+        }
+
+        return 1;
+
+    } catch (error) {
+        console.error('Error selecting domain', error);
+        return 0;
+    }
+}

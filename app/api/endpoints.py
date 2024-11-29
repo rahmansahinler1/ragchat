@@ -85,15 +85,13 @@ async def select_domain(
 ):
     try:
         data = await request.json()
-        selected_domain_number = data.get("currentDomain")
-        file_names, domain_name = update_selected_domain(
-            user_id=userID, selected_domain=selected_domain_number
-        )
+        selected_domain__id = data.get("domain_id")
+        update_selected_domain(user_id=userID, domain_id=selected_domain__id)
 
         redis_manager.refresh_user_ttl(userID)
 
         return JSONResponse(
-            content={"file_names": file_names, "domain_name": domain_name},
+            content={"message": "success"},
             status_code=200,
         )
     except RedisConnectionError as e:
@@ -476,13 +474,12 @@ async def signup(
 
 
 # local functions
-def update_selected_domain(user_id: str, selected_domain: int):
+def update_selected_domain(user_id: str, domain_id: str):
     try:
-        redis_manager.set_data(f"user:{user_id}:selected_domain", selected_domain)
+        redis_manager.set_data(f"user:{user_id}:selected_domain", domain_id)
 
         with Database() as db:
-            domain_info = db.get_domain_info(user_id, selected_domain)
-            file_info = db.get_file_info_with_domain(user_id, domain_info["domain_id"])
+            file_info = db.get_file_info_with_domain(user_id, domain_id)
 
             if not file_info:
                 # Clear any existing domain data
@@ -490,11 +487,19 @@ def update_selected_domain(user_id: str, selected_domain: int):
                 redis_manager.delete_data(f"user:{user_id}:index")
                 redis_manager.delete_data(f"user:{user_id}:index_header")
                 redis_manager.delete_data(f"user:{user_id}:boost_info")
-                return None, domain_info["domain_name"]
+                return 1
 
             content, embeddings = db.get_file_content(
                 file_ids=[info["file_id"] for info in file_info]
             )
+
+            if not content or not embeddings:
+                # Clear any existing domain data
+                redis_manager.delete_data(f"user:{user_id}:domain_content")
+                redis_manager.delete_data(f"user:{user_id}:index")
+                redis_manager.delete_data(f"user:{user_id}:index_header")
+                redis_manager.delete_data(f"user:{user_id}:boost_info")
+                return 1
 
             # Store domain content in Redis
             redis_manager.set_data(f"user:{user_id}:domain_content", content)
@@ -518,10 +523,7 @@ def update_selected_domain(user_id: str, selected_domain: int):
             except IndexError:
                 redis_manager.delete_data(f"user:{user_id}:index_header")
 
-            file_names = [info["file_name"] for info in file_info]
-            domain_name = domain_info["domain_name"]
-
-            return file_names, domain_name
+            return 1
 
     except Exception as e:
         logger.error(f"Error in update_selected_domain: {str(e)}")
