@@ -28,14 +28,12 @@ async def get_user_info(request: Request):
         data = await request.json()
         user_id = data.get("user_id")
         with Database() as db:
-            user_info = db.get_user_info_w_id(user_id)
+            user_info, domain_info = db.get_user_info_w_id(user_id)
 
         return JSONResponse(
             content={
-                "user_id": user_id,
-                "user_name": user_info["user_name"],
-                "user_surname": user_info["user_surname"],
-                "user_type": user_info["user_type"],
+                "user_info": user_info,
+                "domain_info": domain_info,
             },
             status_code=200,
         )
@@ -453,12 +451,11 @@ async def signup(
                     user_type="trial",
                     is_active=True,
                 )
-                for i in range(5):
+                for i in range(2):
                     db.insert_domain_info(
                         user_id=user_id,
                         domain_id=str(uuid.uuid4()),
                         domain_name=f"Domain {i+1}",
-                        domain_number=i + 1,
                     )
                 db.conn.commit()
                 message = "Successfully Signed Up!"

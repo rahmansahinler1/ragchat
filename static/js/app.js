@@ -233,7 +233,13 @@ class DomainManager {
     }
 
     getAllDomains() {
-        return Array.from(this.domains.values());
+        // Convert Map values to array and return domain data
+        return Array.from(this.domains.values()).map(entry => ({
+            id: entry.data.name, // Using name as id since we're not using database ids
+            name: entry.data.name,
+            fileCount: entry.data.fileCount,
+            files: entry.data.files
+        }));
     }
 }
 

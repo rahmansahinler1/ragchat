@@ -94,20 +94,45 @@ class Database:
         FROM user_info
         WHERE user_id = %s
         """
+        query_get_domain_ids = """
+        SELECT DISTINCT domain_id
+        FROM domain_info
+        WHERE user_id = %s
+        """
+        query_get_domain_info = """
+        SELECT t1.domain_name, t1.domain_id, t2.file_name
+        FROM domain_info t1
+        LEFT JOIN file_info t2 ON t1.domain_id = t2.domain_id
+        WHERE t1.domain_id IN %s
+        """
+
         try:
             self.cursor.execute(query_get_user_info, (user_id,))
-            data = self.cursor.fetchone()
-            return (
-                {
-                    "user_name": data[0],
-                    "user_surname": data[1],
-                    "user_email": data[2],
-                    "user_type": data[3],
-                    "user_created_at": str(data[4]),
-                }
-                if data
-                else None
-            )
+            user_info_data = self.cursor.fetchone()
+
+            if not user_info_data:
+                return None, None
+
+            user_info = {
+                "user_name": user_info_data[0],
+                "user_surname": user_info_data[1],
+                "user_email": user_info_data[2],
+                "user_type": user_info_data[3],
+                "user_created_at": str(user_info_data[4]),
+            }
+
+            self.cursor.execute(query_get_domain_ids, (user_id,))
+            domain_id_data = self.cursor.fetchall()
+
+            if not domain_id_data:
+                return user_info, None
+
+            domain_ids = [data[0] for data in domain_id_data]
+            self.cursor.execute(query_get_domain_info, (tuple(domain_ids),))
+            domain_info_data = self.cursor.fetchall()
+
+            return user_info, domain_info_data
+
         except DatabaseError as e:
             self.conn.rollback()
             raise e
@@ -262,12 +287,10 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def insert_domain_info(
-        self, user_id: str, domain_id: str, domain_name: str, domain_number: int
-    ):
+    def insert_domain_info(self, user_id: str, domain_id: str, domain_name: str):
         query_insert_domain_info = """
-        INSERT INTO domain_info (user_id, domain_id, domain_name, domain_number)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO domain_info (user_id, domain_id, domain_name)
+        VALUES (%s, %s, %s)
         """
         try:
             self.cursor.execute(
@@ -276,7 +299,6 @@ class Database:
                     user_id,
                     domain_id,
                     domain_name,
-                    domain_number,
                 ),
             )
         except DatabaseError as e:

@@ -23,7 +23,6 @@ CREATE TABLE IF NOT EXISTS domain_info (
     user_id UUID NOT NULL,
     domain_id UUID PRIMARY KEY,
     domain_name VARCHAR(30) NOT NULL,
-    domain_number INTEGER,
     FOREIGN KEY (user_id) REFERENCES user_info(user_id)
 );
 

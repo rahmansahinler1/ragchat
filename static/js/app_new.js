@@ -102,22 +102,13 @@ class DomainManager {
         return domainCard;
     }
 
-    selectDomain(domainId) {
-        // Deselect previous
-        if (this.selectedDomainId) {
-            const previous = this.domains.get(this.selectedDomainId);
-            if (previous) {
-                previous.component.setSelected(false);
-            }
-        }
-
-        // Select new
-        const domain = this.domains.get(domainId);
-        if (domain) {
-            domain.component.setSelected(true);
-            this.selectedDomainId = domainId;
-            this.events.emit('domainSelected', domain.data);
-        }
+    getAllDomains() {
+        return Array.from(this.domains.values()).map(entry => ({
+            id: entry.data.id,
+            name: entry.data.name,
+            fileCount: entry.data.fileCount,
+            files: entry.data.files
+        }));
     }
 }
 
@@ -1082,8 +1073,18 @@ class App {
         this.domainSettingsModal = new DomainSettingsModal();
         this.fileUploadModal = new FileUploadModal();
         this.events = new EventEmitter();
+        this.userData = null;
         
         this.setupEventListeners();
+    }
+
+    updateUserInterface(userData) {
+        // Update user section in sidebar
+        const userEmail = this.sidebar.element.querySelector('.user-email');
+        const userAvatar = this.sidebar.element.querySelector('.user-avatar');
+        
+        userEmail.textContent = userData.user_info.user_email;
+        userAvatar.textContent = userData.user_info.user_name[0].toUpperCase();
     }
 
     setupEventListeners() {
@@ -1153,7 +1154,47 @@ class App {
         });
     }
 
-    init() {
+    // In App class initialization
+    async init() {
+        // Initialize
+        await window.checkVersion();
+        const userData = await window.fetchUserInfo(window.serverData.userId);
+        if (!userData) {
+            throw new Error('Failed to load user data');
+        }
+
+        // Update user interface with user data
+        this.updateUserInterface(userData)
+
+        // Organize fetched domain data
+        const domainMap = new Map();
+        
+        userData.domain_info.forEach(([domainName, domainId, fileName]) => {
+            if (!domainMap.has(domainId)) {
+                domainMap.set(domainId, {
+                    id: domainId,
+                    name: domainName,
+                    files: []
+                });
+            }
+            domainMap.get(domainId).files.push(fileName);
+        });
+
+        domainMap.forEach(domainData => {
+            const domain = {
+                id: domainData.id,
+                name: domainData.name,
+                fileCount: domainData.files.length,
+                files: domainData.files
+            };
+            this.domainManager.addDomain(domain);
+        });
+
+        // Update UI with fetched and organized domain data
+        this.domainSettingsModal.updateDomainsList(
+            this.domainManager.getAllDomains()
+        );
+
         // Add sidebar to DOM
         document.body.appendChild(this.sidebar.element);
 
@@ -1163,23 +1204,6 @@ class App {
             menuTrigger.addEventListener('click', () => {
                 this.sidebar.events.emit('menuTrigger');
             });
-        }
-
-        // Initialize with test data
-        const testDomain = {
-            id: '1',
-            name: 'Test Domain',
-            fileCount: 0
-        };
-
-        // Add to domain manager and update UI
-        const domainCard = this.domainManager.addDomain(testDomain);
-        this.domainSettingsModal.updateDomainsList([testDomain]);
-        
-        // Add to container if it exists
-        const domainContainer = document.getElementById('domainsContainer');
-        if (domainContainer) {
-            domainContainer.appendChild(domainCard.element);
         }
     }
 }
