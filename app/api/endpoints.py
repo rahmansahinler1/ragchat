@@ -94,6 +94,29 @@ async def create_domain(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/db/delete_domain")
+async def delete_domain(request: Request):
+    try:
+        data = await request.json()
+        domain_id = data.get("domain_id")
+        with Database() as db:
+            success = db.delete_domain(domain_id=domain_id)
+
+        if not success:
+            return JSONResponse(
+                content={"message": "error while renaming domain"},
+                status_code=400,
+            )
+
+        return JSONResponse(
+            content={"message": "success"},
+            status_code=200,
+        )
+    except Exception as e:
+        logger.error(f"Error renaming domain: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/db/insert_feedback")
 async def insert_feedback(
     userID: str = Query(...),

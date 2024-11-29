@@ -284,6 +284,19 @@ class Database:
             self.conn.rollback()
             raise e
 
+    def delete_domain(self, domain_id: str):
+        query = """
+        DELETE FROM domain_info 
+        WHERE domain_id = %s
+        """
+        try:
+            self.cursor.execute(query, (domain_id,))
+            rows_affected = self.cursor.rowcount
+            return rows_affected > 0
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+
     def insert_user_info(
         self,
         user_id: str,

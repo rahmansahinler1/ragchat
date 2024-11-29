@@ -155,6 +155,15 @@ class DomainManager {
         }
         return false;
     }
+
+    deleteDomain(domainId) {
+        const wasSelected = this.selectedDomainId === domainId;
+        const success = this.domains.delete(domainId);
+        if (success && wasSelected) {
+            this.selectedDomainId = null;
+        }
+        return success;
+    }
 }
 
 class DomainSettingsModal extends Component {
@@ -167,6 +176,7 @@ class DomainSettingsModal extends Component {
         super(element);
         
         this.domainToDelete = null;
+        this.deleteModal = null;
         this.temporarySelectedId = null;
         this.render();
         this.setupEventListeners();
@@ -259,10 +269,12 @@ class DomainSettingsModal extends Component {
         });
 
         // Delete confirmation
-        const confirmDeleteBtn = this.element.querySelector('#confirmDeleteBtn');
-        confirmDeleteBtn?.addEventListener('click', () => {
-            this.events.emit('domainDelete', this.domainToDelete);
-            this.hideDomainDeleteModal();
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        confirmDeleteBtn?.addEventListener('click', async () => {
+            if (this.domainToDelete) {
+                await this.handleDomainDelete(this.domainToDelete);
+                this.domainToDelete = null;
+            }
         });
 
         // Close button
@@ -496,14 +508,26 @@ class DomainSettingsModal extends Component {
     }
 
     showDomainDeleteModal() {
-        const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-        modal.show();
+        if (!this.deleteModal) {
+            this.deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        }
+        this.deleteModal.show();
     }
 
     hideDomainDeleteModal() {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
-        if (modal) {
-            modal.hide();
+        if (this.deleteModal) {
+            this.deleteModal.hide();
+        }
+    }
+
+    async handleDomainDelete(domainId) {
+        const success = await window.deleteDomain(domainId);
+        
+        if (success) {
+            this.events.emit('domainDelete', domainId);
+            this.hideDomainDeleteModal();
+        } else {
+            this.events.emit('warning', 'Failed to delete domain');
         }
     }
 }
@@ -1412,6 +1436,26 @@ class App {
                 text: message,
                 type: 'warning'
             });
+        });
+
+        this.domainSettingsModal.events.on('domainDelete', async (domainId) => {
+            const wasSelected = this.domainManager.getSelectedDomain()?.data.id === domainId;
+            
+            if (this.domainManager.deleteDomain(domainId)) {
+                if (wasSelected) {
+                    // Reset sidebar to default state
+                    this.sidebar.updateDomainSelection(null);
+                    this.sidebar.updateFileList([], []);
+                }
+                
+                // Update the domains list in the modal
+                this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());
+                
+                this.events.emit('message', {
+                    text: 'Domain successfully deleted',
+                    type: 'success'
+                });
+            }
         });
 
         // File Upload Modal events

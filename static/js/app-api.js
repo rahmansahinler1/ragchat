@@ -139,3 +139,33 @@ window.createDomain = async function createDomain(userId, domainName) {
         return { success: 0, domain_id: null };
     }
 };
+
+window.deleteDomain = async function deleteDomain(domainId) {
+    try {
+        const response = await fetch('/api/v1/db/delete_domain', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                domain_id: domainId
+            })
+        });
+
+        if (!response.ok) {
+            return 0;
+        }
+
+        const data = await response.json();
+        
+        if (data.message !== "success") {
+            return 0;
+        }
+
+        return 1;
+
+    } catch (error) {
+        console.error('Error deleting domain:', error);
+        return 0;
+    }
+};
