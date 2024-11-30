@@ -21,8 +21,14 @@ class ChatbotFunctions:
             Ardından, Düzeltmiş soruyla aynı anlamı koruyan 3 semantik olarak benzer sorgu oluşturun.
             Orijinal soruyu farklı açılardan ele alan, ancak yine de ilgili kalan 3 farklı soru oluşturun.
             Son 3 soruya, her biri 1-2 cümlelik kısa cevaplarla yanıt verin.
+            Ardından düzeltilmiş kullanıcı sorgusunu analiz edin ve niyetini belirleyin. Olası niyet listesi aşağıdadır:
+                                   
+            Olası niyetler:
+            1.Bilgi Edinme: Gerçek bilgileri, tanımları veya açıklamaları öğrenme talebi.
+            2.Özetleme: Karmaşık bilgilerin kısa bir özetini isteme.
+            3.Karşılaştırma: Seçenekleri, yöntemleri veya teknolojileri değerlendirme.
+                                   
             Çıktıyı **kesinlikle** şu formatta döndürün:
-
             [düzeltilmiş sorgu]  
             [birinci semantik olarak benzer sorgu]  
             [ikinci semantik olarak benzer sorgu]  
@@ -32,7 +38,8 @@ class ChatbotFunctions:
             [üçüncü farklı-açıdan soru]  
             [birinci farklı-açıdan cevap]  
             [ikinci farklı-açıdan cevap]  
-            [üçüncü farklı-açıdan cevap] 
+            [üçüncü farklı-açıdan cevap]  
+            [kullanıcı niyeti]   
                                    
             Kullanıcı Sorgusu: {query}
 
@@ -50,6 +57,7 @@ class ChatbotFunctions:
             RAG, yapay zekayı dış verileri getirerek daha doğru yanıtlar sağlamada geliştirir.
             RAG, geleneksel modellerden farklı olarak çıkarım sırasında harici bilgilere erişim sağlar.
             Başlıca zorluklar arasında getirme gecikmesi, getirilen verilerin uygunluğu ve bilgilerin güncel tutulması yer alır.
+            Bilgi Edinme
             
             Kullanıcı sorusu: {query}
             """)
@@ -64,6 +72,13 @@ class ChatbotFunctions:
             Generate 3 semantically similar queries that retain the same meaning as the corrected query.
             Create 3 different questions that approach the original query from different angles but stay related.
             Answer last 3 questions with concise responses, 1-2 sentences max each.
+            Then, analyze the corrected user query and determine its intent, intention list is given below. 
+                                                         
+            The possible intents are:
+            1. Informational: Seeking factual knowledge, definitions, or explanations.
+            2. Summarization: Requesting a concise overview of complex information. 
+            3. Comparison: Evaluating options, methods, or technologies. 
+
             Return the output **strictly** in the following format:
             [corrected query]  
             [first semantically similar query]  
@@ -74,7 +89,8 @@ class ChatbotFunctions:
             [third different-angle question]  
             [first different-angle answer]  
             [second different-angle answer]  
-            [third different-angle answer]  
+            [third different-angle answer]
+	        [user intention] 
 
             User query: {query}
 
@@ -92,6 +108,7 @@ class ChatbotFunctions:
             RAG enhances AI by providing more accurate responses by retrieving relevant external data.
             Unlike traditional models, RAG integrates search capabilities to access external knowledge during inference.
             Major challenges include latency in retrieval, ensuring relevance of fetched data, and maintaining up-to-date information.
+	        Informational
             """)
 
     def _prompt_answer_generation(self, query, context, lang):
@@ -189,9 +206,9 @@ class ChatbotFunctions:
             {query}
             """)
 
-    def response_generation(self, query, context):
+    def response_generation(self, query, context, intention):
         lang = self.detect_language(query=query)
-        prompt = self._prompt_answer_generation(query=query, context=context, lang=lang)
+        prompt = self._prompt_answer_generation(query=query, context=context, lang=lang, intention=intention)
         response = self.client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
