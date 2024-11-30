@@ -164,7 +164,9 @@ async def select_domain(
     try:
         data = await request.json()
         selected_domain_id = data.get("domain_id")
-        success = update_selected_domain(user_id=userID, domain_id=selected_domain_id)
+        _, _, success = update_selected_domain(
+            user_id=userID, domain_id=selected_domain_id
+        )
 
         if not success:
             return JSONResponse(
@@ -300,7 +302,7 @@ async def store_file(
         redis_manager.set_data(redis_key, upload_data, expiry=3600)
 
         return JSONResponse(
-            content={"message": "File stored successfully", "file_name": file.filename},
+            content={"message": "success", "file_name": file.filename},
             status_code=200,
         )
 
@@ -315,13 +317,11 @@ async def store_file(
 async def upload_files(userID: str = Query(...)):
     try:
         # Get domain info
-        selected_domain_number = redis_manager.get_data(
-            f"user:{userID}:selected_domain"
-        )
+        selected_domain_id = redis_manager.get_data(f"user:{userID}:selected_domain")
 
         with Database() as db:
             domain_info = db.get_domain_info(
-                user_id=userID, selected_domain_number=selected_domain_number
+                user_id=userID, domain_id=selected_domain_id
             )
 
             if not domain_info:
@@ -352,7 +352,7 @@ async def upload_files(userID: str = Query(...)):
                     (
                         userID,
                         file_id,
-                        domain_info["domain_id"],
+                        selected_domain_id,
                         upload_data["file_name"],
                         upload_data["last_modified"],
                     )
@@ -382,15 +382,24 @@ async def upload_files(userID: str = Query(...)):
             db.conn.commit()
 
         # Update domain info
-        file_names, domain_name = update_selected_domain(
-            user_id=userID, selected_domain=selected_domain_number
+        file_names, file_ids, success = update_selected_domain(
+            user_id=userID, domain_id=selected_domain_id
         )
+        if not success:
+            return JSONResponse(
+                content={
+                    "message": "Files uploaded but, domain could not be updated",
+                    "file_names": None,
+                    "file_ids": None,
+                },
+                status_code=400,
+            )
 
         return JSONResponse(
             content={
-                "message": "Files uploaded successfully",
+                "message": "success",
                 "file_names": file_names,
-                "domain_name": domain_name,
+                "file_ids": file_ids,
             },
             status_code=200,
         )
@@ -402,25 +411,18 @@ async def upload_files(userID: str = Query(...)):
         )
 
 
-@router.post("/io/remove_file_upload")
+@router.post("/db/remove_file_upload")
 async def remove_file_upload(
     request: Request,
     userID: str = Query(...),
 ):
     try:
-        selected_domain_number = redis_manager.get_data(
-            f"user:{userID}:selected_domain"
-        )
         data = await request.json()
-        files = data.get("files_to_remove", [])
+        file_id = data.get("file_id")
+        domain_id = data.get("domain_id")
 
         with Database() as db:
-            file_ids = db.clear_file_content(
-                user_id=userID,
-                files_to_remove=files,
-                domain_number=selected_domain_number,
-            )
-            success = db.clear_file_info(user_id=userID, file_ids=file_ids)
+            success = db.clear_file_content(file_id=file_id)
             if not success:
                 return JSONResponse(
                     content={
@@ -429,15 +431,17 @@ async def remove_file_upload(
                     status_code=400,
                 )
             db.conn.commit()
-        file_names, domain_name = update_selected_domain(
-            user_id=userID, selected_domain=selected_domain_number
-        )
+
+        _, _, success = update_selected_domain(user_id=userID, domain_id=domain_id)
+        if not success:
+            return JSONResponse(
+                content={"message": "error"},
+                status_code=200,
+            )
 
         return JSONResponse(
             content={
-                "message": "Files deleted successfully!",
-                "domain_name": domain_name,
-                "file_names": file_names,
+                "message": "success",
             },
             status_code=200,
         )
@@ -570,19 +574,19 @@ def update_selected_domain(user_id: str, domain_id: str):
                 redis_manager.delete_data(f"user:{user_id}:index")
                 redis_manager.delete_data(f"user:{user_id}:index_header")
                 redis_manager.delete_data(f"user:{user_id}:boost_info")
-                return 1
+                return None, None, 1
 
             content, embeddings = db.get_file_content(
                 file_ids=[info["file_id"] for info in file_info]
             )
 
-            if not content or not embeddings:
+            if not content or not len(embeddings):
                 # Clear any existing domain data
                 redis_manager.delete_data(f"user:{user_id}:domain_content")
                 redis_manager.delete_data(f"user:{user_id}:index")
                 redis_manager.delete_data(f"user:{user_id}:index_header")
                 redis_manager.delete_data(f"user:{user_id}:boost_info")
-                return 1
+                return None, None, 0
 
             # Store domain content in Redis
             redis_manager.set_data(f"user:{user_id}:domain_content", content)
@@ -606,7 +610,10 @@ def update_selected_domain(user_id: str, domain_id: str):
             except IndexError:
                 redis_manager.delete_data(f"user:{user_id}:index_header")
 
-            return 1
+            file_names = [info["file_name"] for info in file_info]
+            file_ids = [info["file_id"] for info in file_info]
+
+            return file_names, file_ids, 1
 
     except Exception as e:
         logger.error(f"Error in update_selected_domain: {str(e)}")

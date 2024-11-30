@@ -30,6 +30,66 @@ body {
   background: transparent;
 }
 
+.upload-container {
+  position: relative;
+  padding: 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Updated loading overlay styles */
+.upload-loading-overlay {
+  margin-top: 16px;
+  background: rgba(33, 33, 33, 0.95);
+  border-radius: 12px;
+  padding: 24px;
+  display: none; /* Will be changed to flex when active */
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.loading-content {
+  text-align: center;
+  color: white;
+}
+
+.loading-content h5 {
+  margin: 16px 0 8px 0;
+  font-size: 18px;
+}
+
+.loading-content p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.loading-content p.text-secondary {
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Adjust spinner size */
+.spinner-border {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-width: 0.25em;
+}
+
+/* Ensure file list remains visible */
+.file-list {
+  position: relative;
+  z-index: 2;
+}
+
+/* Adjust the upload button to ensure it's above the loading overlay */
+.upload-btn {
+  position: relative;
+  z-index: 2;
+}
+
 .section-divider {
   width: 1px;
   background-color: rgba(255, 255, 255, 0.1);

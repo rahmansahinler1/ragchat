@@ -182,10 +182,13 @@ window.storeFile = async function(userID, formData) {
         }
 
         const data = await response.json();
-        return {
-            success: true,
-            data: data
-        };
+        
+        if (data.message !== "success") {
+            return 0;
+        }
+
+        return 1;
+
     } catch (error) {
         console.error('Error storing file:', error);
         return {
@@ -206,10 +209,23 @@ window.uploadFiles = async function(userID) {
         }
 
         const data = await response.json();
+        
+        if (data.message !== "success") {
+            return {
+                success: false,
+                error: data.message || 'Upload process failed'
+            };
+        }
+
         return {
             success: true,
-            data: data
+            data: {
+                file_names: data.file_names,
+                file_ids: data.file_ids,
+                message: data.message
+            }
         };
+
     } catch (error) {
         console.error('Error uploading files:', error);
         return {
@@ -219,14 +235,19 @@ window.uploadFiles = async function(userID) {
     }
 };
 
-window.removeFiles = async function(userID, filesToRemove) {
+window.removeFile = async function(fileId, domainId, userId) {
     try {
-        const response = await fetch(`/api/v1/io/remove_file_upload?userID=${encodeURIComponent(userID)}`, {
+        const url = `/api/v1/db/remove_file_upload?userID=${encodeURIComponent(userId)}`;
+        
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ files_to_remove: filesToRemove })
+            body: JSON.stringify({ 
+                file_id: fileId,
+                domain_id: domainId
+            })
         });
 
         if (!response.ok) {
@@ -234,10 +255,13 @@ window.removeFiles = async function(userID, filesToRemove) {
         }
 
         const data = await response.json();
-        return {
-            success: true,
-            data: data
-        };
+        
+        if (data.message !== "success") {
+            return 0;
+        }
+
+        return 1;
+
     } catch (error) {
         console.error('Error removing files:', error);
         return {

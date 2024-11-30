@@ -480,46 +480,30 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def clear_file_content(
-        self, user_id: str, files_to_remove: list, domain_number: int
-    ):
-        get_domain_id_query = """
-        SELECT domain_id
-        FROM domain_info
-        WHERE user_id = %s AND domain_number = %s
-        """
-        get_file_ids_query = """
-        SELECT DISTINCT file_id
-        FROM file_info
-        WHERE user_id = %s AND file_name IN %s AND domain_id = %s
-        """
+    def clear_file_content(self, file_id: list):
         clear_content_query = """
         DELETE FROM file_content
-        WHERE file_id IN %s
+        WHERE file_id = %s
+        """
+        clear_file_info_query = """
+        DELETE FROM file_info
+        WHERE file_id = %s
         """
         try:
             self.cursor.execute(
-                get_domain_id_query,
-                (
-                    user_id,
-                    domain_number,
-                ),
+                clear_content_query,
+                (file_id,),
             )
-            data = self.cursor.fetchone()
-            if data:
-                self.cursor.execute(
-                    get_file_ids_query,
-                    (
-                        user_id,
-                        tuple(files_to_remove),
-                        data[0],
-                    ),
-                )
-                file_ids = [row[0] for row in self.cursor.fetchall()]
-                self.cursor.execute(clear_content_query, (tuple(file_ids),))
-                return file_ids
-            else:
-                return 0
+
+            self.cursor.execute(
+                clear_file_info_query,
+                (file_id,),
+            )
+
+            rows_affected = self.cursor.rowcount
+
+            return 1 if rows_affected else 0
+
         except DatabaseError as e:
             self.conn.rollback()
             raise e

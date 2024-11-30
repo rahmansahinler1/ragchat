@@ -712,6 +712,17 @@ class FileUploadModal extends Component {
                                     <div class="progress-bar"></div>
                                 </div>
                             </button>
+
+                            <div class="upload-loading-overlay" style="display: none">
+                                <div class="loading-content">
+                                    <div class="spinner-border text-primary-green mb-3" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <h5 class="mb-2">Uploading Files...</h5>
+                                    <p class="text-center mb-0">Please wait while we process your files.</p>
+                                    <p class="text-center text-secondary">This might take a moment depending on file size.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -834,12 +845,34 @@ class FileUploadModal extends Component {
         return fileItem;
     }
 
+    setLoadingState(isLoading) {
+        const loadingOverlay = this.element.querySelector('.upload-loading-overlay');
+        const closeButton = this.element.querySelector('.close-button');
+        const uploadBtn = this.element.querySelector('#uploadBtn');
+        const modal = bootstrap.Modal.getInstance(this.element);
+    
+        if (isLoading) {
+            loadingOverlay.style.display = 'flex';
+            closeButton.style.display = 'none';
+            uploadBtn.disabled = true;
+            modal._config.backdrop = 'static';
+            modal._config.keyboard = false;
+        } else {
+            loadingOverlay.style.display = 'none';
+            closeButton.style.display = 'block';
+            uploadBtn.disabled = false;
+            modal._config.backdrop = true;
+            modal._config.keyboard = true;
+        }
+    }
+
     async startUpload() {
         if (!this.fileBasket.hasFilesToUpload() || this.isUploading) return;
 
         this.isUploading = true;
         const uploadBtn = this.element.querySelector('#uploadBtn');
         uploadBtn.disabled = true;
+        this.setLoadingState(true); 
         let successCount = 0;
 
         try {
@@ -861,6 +894,11 @@ class FileUploadModal extends Component {
                 
                 if (uploadResult.success) {
                     this.events.emit('filesUploaded', uploadResult.data);
+                    this.resetUploadUI();
+                    this.events.emit('message', {
+                        text: `Successfully uploaded ${successCount} files`,
+                        type: 'success'
+                    });
                     setTimeout(() => this.hide(), 500);
                 } else {
                     throw new Error(uploadResult.error);
@@ -874,7 +912,27 @@ class FileUploadModal extends Component {
             this.isUploading = false;
             this.fileBasket.clear();
             uploadBtn.disabled = false;
+            this.setLoadingState(false);
         }
+    }
+
+    resetUploadUI() {
+        const fileList = this.element.querySelector('#fileList');
+        const uploadBtn = this.element.querySelector('#uploadBtn');
+        const uploadArea = this.element.querySelector('#dropZone');
+        
+        // Clear file list
+        fileList.innerHTML = '';
+        
+        // Reset upload area
+        uploadArea.style.display = 'flex';
+        uploadBtn.disabled = true;
+        
+        // Remove "Add More Files" button
+        this.removeAddMoreFilesButton();
+        
+        // Clear FileBasket
+        this.fileBasket.clear();
     }
 
     async uploadFile(fileName) {
@@ -888,9 +946,9 @@ class FileUploadModal extends Component {
             fileItem.classList.remove('pending-upload');
             fileItem.classList.add('uploading');
             
-            const result = await window.storeFile(window.serverData.userId, formData);
+            const success = await window.storeFile(window.serverData.userId, formData);
             
-            if (result.success) {
+            if (success) {
                 progressBar.style.width = '100%';
                 fileItem.classList.remove('uploading');
                 fileItem.classList.add('uploaded');
@@ -969,18 +1027,19 @@ class FileUploadModal extends Component {
         const modal = bootstrap.Modal.getInstance(this.element);
         if (modal) {
             modal.hide();
+            this.resetUploadUI();
         }
-        this.fileBasket.clear();
     }
 }
 
 // Sidebar Component
 class Sidebar extends Component {
-    constructor() {
+    constructor(domainManager) {
         const element = document.createElement('div');
         element.className = 'sidebar-container';
         super(element);
         
+        this.domainManager = domainManager;
         this.isOpen = false;
         this.timeout = null;
         this.render();
@@ -1259,7 +1318,57 @@ class Sidebar extends Component {
             </div>
         `;
 
+        const deleteBtn = fileItem.querySelector('.delete-file-btn');
+        const confirmActions = fileItem.querySelector('.delete-confirm-actions');
+
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Show confirmation actions
+            confirmActions.classList.add('show');
+            deleteBtn.style.display = 'none';
+        });
+    
+        // Add confirm/cancel handlers
+        const confirmBtn = fileItem.querySelector('.confirm-delete-btn');
+        const cancelBtn = fileItem.querySelector('.cancel-delete-btn');
+    
+        confirmBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const selectedDomain = this.domainManager.getSelectedDomain();
+            if (!selectedDomain) return;
+    
+            const success = await window.removeFile(fileID, selectedDomain.data.id, window.serverData.userId);
+    
+            if (success) {
+                // Remove file from UI
+                fileItem.remove();
+                
+                // Update domain file count
+                selectedDomain.data.files = selectedDomain.data.files.filter(f => f !== fileName);
+                selectedDomain.data.fileIDS = selectedDomain.data.fileIDS.filter(id => id !== fileID);
+                
+                // Update sources count
+                const sourcesCount = selectedDomain.data.files.length;
+                window.app.updateSourcesCount(sourcesCount);
+            }
+        });
+    
+        cancelBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            confirmActions.classList.remove('show');
+            deleteBtn.style.display = 'flex';
+        });
+
         return fileItem;
+    }
+
+    hideDeleteConfirmations() {
+        this.element.querySelectorAll('.delete-confirm-actions').forEach(actions => {
+            actions.classList.remove('show');
+        });
+        this.element.querySelectorAll('.delete-file-btn').forEach(btn => {
+            btn.style.display = 'flex';
+        });
     }
 
     getFileIcon(extension) {
@@ -1443,7 +1552,7 @@ class FeedbackModal extends Component {
 class App {
     constructor() {
         this.domainManager = new DomainManager();
-        this.sidebar = new Sidebar();
+        this.sidebar = new Sidebar(this.domainManager);
         this.feedbackModal = new FeedbackModal();
         this.domainSettingsModal = new DomainSettingsModal();
         this.fileUploadModal = new FileUploadModal();
@@ -1606,9 +1715,10 @@ class App {
         this.fileUploadModal.events.on('filesUploaded', (data) => {
             const selectedDomain = this.domainManager.getSelectedDomain();
             if (selectedDomain) {
+                // Access the nested data object
                 selectedDomain.data.files = data.file_names;
-                selectedDomain.data.fileIDS = data.file_ids;  // Add this line
-                this.sidebar.updateFileList(data.file_names, data.file_ids);  // Update this line
+                selectedDomain.data.fileIDS = data.file_ids;
+                this.sidebar.updateFileList(data.file_names, data.file_ids);
                 this.updateSourcesCount(data.file_names.length);
             }
         });
