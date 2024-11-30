@@ -1085,7 +1085,13 @@ class ChatManager extends Component {
         const loadingMessage = this.addLoadingMessage();
     
         try {
-            const response = await window.sendMessage(message, window.serverData.userId);
+            const selectedFileIds = window.app.sidebar.getSelectedFileIds();
+
+            const response = await window.sendMessage(
+                message, 
+                window.serverData.userId,
+                selectedFileIds
+            );
     
             // Remove loading message
             loadingMessage.remove();
@@ -1246,6 +1252,7 @@ class Sidebar extends Component {
         this.domainManager = domainManager;
         this.isOpen = false;
         this.timeout = null;
+        this.selectedFiles = new Set();
         this.render();
         this.setupEventListeners();
     }
@@ -1516,11 +1523,27 @@ class Sidebar extends Component {
                 </div>
                 <span class="file-name" title="${fileName}">${fileName}</span>
                 <div class="checkbox-wrapper">
-                    <input type="checkbox" class="file-checkbox" id="file-${fileID}">
+                    <input type="checkbox" class="file-checkbox" id="file-${fileID}" data-file-id="${fileID}">
                     <label class="checkbox-label" for="file-${fileID}"></label>
                 </div>
             </div>
         `;
+
+        this.selectedFiles.add(fileID);
+
+        const checkbox = fileItem.querySelector('.file-checkbox');
+        checkbox.checked = true;
+
+        // Handle checkbox changes
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                this.selectedFiles.add(fileID);
+            } else {
+                this.selectedFiles.delete(fileID);
+            }
+            // Update sources count
+            window.app.updateSourcesCount(this.selectedFiles.size);
+        });
 
         const deleteBtn = fileItem.querySelector('.delete-file-btn');
         const confirmActions = fileItem.querySelector('.delete-confirm-actions');
@@ -1566,6 +1589,29 @@ class Sidebar extends Component {
         return fileItem;
     }
 
+    getSelectedFileIds() {
+        return Array.from(this.selectedFiles);
+    }
+
+    updateFileList(files, fileIDS) {
+        const fileList = this.element.querySelector('#sidebarFileList');
+        if (!fileList) return;
+        
+        fileList.innerHTML = '';
+        this.selectedFiles.clear(); // Clear existing selections
+        
+        if (files.length > 0 && fileIDS.length > 0) {
+            files.forEach((file, index) => {
+                const fileItem = this.createFileListItem(file, fileIDS[index]);
+                fileList.appendChild(fileItem);
+            });
+        }
+    
+        this.updateFileMenuVisibility();
+        // Update initial sources count
+        window.app.updateSourcesCount(this.selectedFiles.size);
+    }
+
     hideDeleteConfirmations() {
         this.element.querySelectorAll('.delete-confirm-actions').forEach(actions => {
             actions.classList.remove('show');
@@ -1573,6 +1619,11 @@ class Sidebar extends Component {
         this.element.querySelectorAll('.delete-file-btn').forEach(btn => {
             btn.style.display = 'flex';
         });
+    }
+
+    clearFileSelections() {
+        this.selectedFiles.clear();
+        window.app.updateSourcesCount(0);
     }
 
     getFileIcon(extension) {

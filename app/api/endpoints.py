@@ -194,22 +194,32 @@ async def generate_answer(
     try:
         data = await request.json()
         user_message = data.get("user_message")
+        file_ids = data.get("file_ids")
 
         # Check if domain is selected
         selected_domain_id = redis_manager.get_data(f"user:{userID}:selected_domain")
         if not selected_domain_id:
             return JSONResponse(
-                content={"message": "Please select a domain first"},
+                content={"message": "Please select a domain first..."},
+                status_code=400,
+            )
+
+        if not file_ids:
+            return JSONResponse(
+                content={"message": "You didn't select any files..."},
                 status_code=400,
             )
 
         # Get required data from Redis
-        index = redis_manager.get_data(f"user:{userID}:index")
-        domain_content = redis_manager.get_data(f"user:{userID}:domain_content")
-        boost_info = redis_manager.get_data(f"user:{userID}:boost_info")
-        index_header = redis_manager.get_data(f"user:{userID}:index_header")
+        index, filtered_content, boost_info, index_header = processor.filter_search(
+            domain_content=redis_manager.get_data(f"user:{userID}:domain_content"),
+            domain_embeddings=redis_manager.get_data(
+                f"user:{userID}:domain_embeddings"
+            ),
+            file_ids=file_ids,
+        )
 
-        if not index or not domain_content:
+        if not index or not filtered_content:
             return JSONResponse(
                 content={"message": "Nothing in here..."},
                 status_code=400,
@@ -218,7 +228,7 @@ async def generate_answer(
         # Process search
         answer, resources, resource_sentences = processor.search_index(
             user_query=user_message,
-            domain_content=domain_content,
+            domain_content=filtered_content,
             boost_info=boost_info,
             index=index,
             index_header=index_header,
@@ -589,25 +599,7 @@ def update_selected_domain(user_id: str, domain_id: str):
 
             # Store domain content in Redis
             redis_manager.set_data(f"user:{user_id}:domain_content", content)
-
-            # Process and store boost info
-            boost_info = processor.extract_boost_info(
-                domain_content=content, embeddings=embeddings
-            )
-            redis_manager.set_data(f"user:{user_id}:boost_info", boost_info)
-
-            # Create and store main index
-            index = processor.create_index(embeddings=embeddings)
-            redis_manager.set_data(f"user:{user_id}:index", index)
-
-            # Create and store header index if possible
-            try:
-                index_header = processor.create_index(
-                    embeddings=boost_info["header_embeddings"]
-                )
-                redis_manager.set_data(f"user:{user_id}:index_header", index_header)
-            except IndexError:
-                redis_manager.delete_data(f"user:{user_id}:index_header")
+            redis_manager.set_data(f"user:{user_id}:domain_embeddings", embeddings)
 
             file_names = [info["file_name"] for info in file_info]
             file_ids = [info["file_id"] for info in file_info]

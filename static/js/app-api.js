@@ -271,7 +271,7 @@ window.removeFile = async function(fileId, domainId, userId) {
     }
 };
 
-window.sendMessage = async function(message, userId) {
+window.sendMessage = async function(message, userId, fileIds) {
     if (!message) {
         return {
             message: "Please enter your sentence!",
@@ -284,7 +284,10 @@ window.sendMessage = async function(message, userId) {
         const response = await fetch(url, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ user_message: message })
+            body: JSON.stringify({ 
+                user_message: message,
+                file_ids: fileIds
+            })
         });
 
         const data = await response.json();

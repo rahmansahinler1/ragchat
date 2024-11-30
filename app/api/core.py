@@ -36,6 +36,31 @@ class Processor:
             index = self.indf.create_flat_index(embeddings=embeddings)
         return index
 
+    def filter_search(
+        self, domain_content: dict, domain_embeddings: np.ndarray, file_ids: list
+    ):
+        filtered_indexes = []
+        filtered_content = []
+
+        for i, content in enumerate(domain_content):
+            if content[4] in file_ids:
+                filtered_indexes.append(i)
+                filtered_content.append(content)
+
+        filtered_embeddings = domain_embeddings[filtered_indexes]
+
+        index = self.create_index(embeddings=filtered_embeddings)
+        boost_info = self.extract_boost_info(
+            domain_content=filtered_content, embeddings=filtered_embeddings
+        )
+
+        try:
+            index_header = self.create_index(embeddings=boost_info["header_embeddings"])
+        except IndexError:
+            index_header = None
+
+        return index, filtered_content, boost_info, index_header
+
     def search_index(
         self,
         user_query: str,
