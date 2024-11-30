@@ -92,7 +92,7 @@ class DomainManager {
 
     async addDomain(domain) {
         const domainData = {
-            id: domain["domain_id"],
+            id: domain.id,
             name: domain.name,
             fileCount: domain.files?.length || 0,
             files: domain.files || [],
@@ -394,7 +394,7 @@ class DomainSettingsModal extends Component {
                 
                 if (result.success) {
                     this.events.emit('domainCreate', {
-                        domain_id: result.domain_id,
+                        id: result.id,
                         name: name
                     });
                     inputCard.remove();
@@ -1375,7 +1375,7 @@ class App {
         // Domain Settings Modal events
         this.domainSettingsModal.events.on('domainCreate', async (domainData) => {
             const domainCard = this.domainManager.addDomain({
-                domain_id: domainData.domain_id,
+                id: domainData.id,
                 name: domainData.name
             });
         

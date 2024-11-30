@@ -130,13 +130,13 @@ window.createDomain = async function createDomain(userId, domainName) {
         const data = await response.json();
         
         if (data.message !== "success") {
-            return { success: 0, domain_id: null };
+            return { success: 0, id: null };
         }
 
-        return { success: 1, domain_id: data.domain_id };
+        return { success: 1, id: data.domain_id };
     } catch (error) {
         console.error('Error creating domain:', error);
-        return { success: 0, domain_id: null };
+        return { success: 0, id: null };
     }
 };
 
