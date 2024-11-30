@@ -312,3 +312,32 @@ window.sendMessage = async function(message, userId, fileIds) {
         };
     }
 };
+
+window.sendFeedback = async function(formData, userId) {
+    try {
+        const url = `/api/v1/db/insert_feedback?userID=${encodeURIComponent(userId)}`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to submit feedback');
+        }
+
+        const data = await response.json();
+        
+        return {
+            success: true,
+            message: data.message || 'Thank you for your feedback!'
+        };
+
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        return {
+            success: false,
+            message: 'Failed to submit feedback. Please try again.'
+        };
+    }
+}

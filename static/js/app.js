@@ -35,9 +35,6 @@ class Component {
     }
 }
 
-
-
-
 class FileBasket {
     constructor() {
         this.files = new Map();
@@ -1271,7 +1268,7 @@ class Sidebar extends Component {
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-folder empty-folder"></i>
-                            <span class="d-xl-block selected-domain-text">Select Domain</span>
+                            <span class="d-xl-block selected-domain-text">Unselected</span>
                         </div>
                         <i class="bi bi-gear settings-icon"></i>
                     </div>
@@ -1285,7 +1282,7 @@ class Sidebar extends Component {
                             Open File Menu
                         </button>
                         <p class="helper-text">
-                            Select your domain and start adding files with file menu
+                            Select domain first on ⚙️
                         </p>
                     </div>
                 </div>
@@ -1684,7 +1681,6 @@ class PremiumModal extends Component {
 class FeedbackModal extends Component {
     constructor() {
         const element = document.createElement('div');
-        element.id = 'feedback-modal';
         element.className = 'feedback-modal';
         super(element);
         
@@ -1710,43 +1706,42 @@ class FeedbackModal extends Component {
                         <li>If it helps explain better, attach a screenshot</li>
                     </ol>
                 </div>
-                <div class="feedback-modal-body">
-                    <form id="feedback-form" enctype="multipart/form-data">
-                        <div class="form-group">
-                            <label for="feedback-type">Type</label>
-                            <select id="feedback-type" name="feedback_type" class="form-control">
-                                <option value="general">General Feedback</option>
-                                <option value="bug">Bug Report</option>
-                                <option value="feature">Feature Request</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="feedback-description">Description</label>
-                            <textarea 
-                                id="feedback-description"
-                                name="feedback_description"
-                                class="form-control" 
-                                rows="4" 
-                                placeholder="Please describe your feedback or issue..."
-                            ></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="feedback-screenshot">Screenshot (Optional)</label>
-                            <input 
-                                type="file" 
-                                id="feedback-screenshot"
-                                name="feedback_screenshot"
-                                class="form-control" 
-                                accept="image/*"
-                            >
-                            <small class="form-text">Max size: 2MB</small>
-                        </div>
-                        <div class="feedback-modal-footer">
-                            <button type="button" class="btn-cancel close-modal">Cancel</button>
-                            <button type="submit" class="btn-submit">Submit Feedback</button>
-                        </div>
-                    </form>
-                </div>
+                <form id="feedback-form" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="feedback-type">Type</label>
+                        <select id="feedback-type" name="feedback_type" class="form-control">
+                            <option value="general">General Feedback</option>
+                            <option value="bug">Bug Report</option>
+                            <option value="feature">Feature Request</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback-description">Description</label>
+                        <textarea 
+                            id="feedback-description" 
+                            name="feedback_description"
+                            class="form-control" 
+                            rows="4" 
+                            placeholder="Please describe your feedback or issue..."
+                            required
+                        ></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback-screenshot">Screenshot (Optional)</label>
+                        <input 
+                            type="file" 
+                            id="feedback-screenshot"
+                            name="feedback_screenshot"
+                            class="form-control" 
+                            accept="image/*"
+                        >
+                        <small class="form-text">Max size: 2MB</small>
+                    </div>
+                    <div class="feedback-modal-footer">
+                        <button type="button" class="btn-cancel">Cancel</button>
+                        <button type="submit" class="btn-submit">Submit Feedback</button>
+                    </div>
+                </form>
             </div>
         `;
 
@@ -1754,26 +1749,29 @@ class FeedbackModal extends Component {
     }
 
     setupEventListeners() {
-        // DOM Event Handlers
-        const closeButtons = this.element.querySelectorAll('.close-modal');
+        // Close button handlers
+        const closeButtons = this.element.querySelectorAll('.close-modal, .btn-cancel');
         closeButtons.forEach(button => {
             button.addEventListener('click', () => this.hide());
         });
-    
+
+        // Click outside to close
         this.element.addEventListener('click', (e) => {
             if (e.target === this.element) {
                 this.hide();
             }
         });
-    
+
+        // Form submission
         const form = this.element.querySelector('#feedback-form');
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             await this.handleSubmit(e);
         });
-    
-        const screenshotInput = this.element.querySelector('#feedback-screenshot');
-        screenshotInput.addEventListener('change', (e) => {
+
+        // File size validation
+        const fileInput = this.element.querySelector('#feedback-screenshot');
+        fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file && file.size > 2 * 1024 * 1024) {
                 alert('File size must be less than 2MB');
@@ -1789,24 +1787,17 @@ class FeedbackModal extends Component {
 
         try {
             const formData = new FormData(form);
-            const userID = 'current-user-id'; // This should come from app state
+            const result = await window.sendFeedback(formData, window.serverData.userId);
 
-            const response = await fetch(`/api/v1/db/insert_feedback?userID=${encodeURIComponent(userID)}`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to submit feedback');
+            if (result.success) {
+                this.hide();
+                this.events.emit('success', result.message);
+            } else {
+                this.events.emit('error', result.message);
             }
-
-            this.hide();
-            // Emit success event for parent components to handle
-            this.events.emit('feedbackSubmitted', 'Thank you for your feedback!');
-
         } catch (error) {
-            console.error('Error submitting feedback:', error);
-            this.events.emit('feedbackError', 'Failed to submit feedback. Please try again.');
+            console.error('Error in feedback submission:', error);
+            this.events.emit('error', 'An unexpected error occurred');
         } finally {
             submitButton.disabled = false;
             form.reset();
@@ -1821,8 +1812,70 @@ class FeedbackModal extends Component {
     hide() {
         this.element.classList.remove('show');
         document.body.style.overflow = '';
-        // Reset form
         this.element.querySelector('#feedback-form').reset();
+    }
+}
+
+class SuccessAlert extends Component {
+    constructor() {
+        const element = document.getElementById('feedbackSuccessAlert');
+        super(element);
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        const closeButton = this.element.querySelector('.alert-button');
+        closeButton?.addEventListener('click', () => this.hide());
+    }
+
+    show() {
+        this.element.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    hide() {
+        this.element.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
+// Logout
+class LogoutModal extends Component {
+    constructor() {
+        const element = document.getElementById('logoutConfirmModal');
+        super(element);
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        const logoutButton = this.element.querySelector('.alert-button');
+        const cancelButton = this.element.querySelector('.btn-cancel');
+
+        logoutButton?.addEventListener('click', () => {
+            this.handleLogout();
+        });
+
+        cancelButton?.addEventListener('click', () => {
+            this.hide();
+        });
+    }
+
+    handleLogout() {
+        // Clear any stored session data
+        localStorage.removeItem('sessionId');
+        
+        // Redirect to landing page
+        window.location.href = '/';
+    }
+
+    show() {
+        this.element.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    hide() {
+        this.element.classList.remove('show');
+        document.body.style.overflow = '';
     }
 }
 
@@ -1841,6 +1894,8 @@ class App {
         this.sourcesNumber = document.querySelector('.sources-number');
         this.chatManager = new ChatManager();
         this.premiumModal = new PremiumModal();
+        this.successAlert = new SuccessAlert();
+        this.logoutModal = new LogoutModal();
         this.chatManager.disableChat();
         
         this.setupEventListeners();
@@ -2032,11 +2087,22 @@ class App {
             console.error(error);
         });
 
+        this.feedbackModal.events.on('success', (message) => {
+            this.successAlert.show();
+        });
+
         // Premium Modal Events
         const premiumLink = this.sidebar.element.querySelector('.premium-link');
         premiumLink?.addEventListener('click', (e) => {
             e.preventDefault();
             this.premiumModal.show();
+        });
+
+        // Logout event
+        const logoutItem = this.sidebar.element.querySelector('.logout-item');
+        logoutItem?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.logoutModal.show();
         });
         
     }
