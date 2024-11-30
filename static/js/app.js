@@ -1657,6 +1657,29 @@ class Sidebar extends Component {
     
 }
 
+class PremiumModal extends Component {
+    constructor() {
+        const element = document.getElementById('premiumAlert');
+        super(element);
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        const closeButton = this.element.querySelector('.alert-button');
+        closeButton?.addEventListener('click', () => this.hide());
+    }
+
+    show() {
+        this.element.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    hide() {
+        this.element.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
 // Feedback Modal Component
 class FeedbackModal extends Component {
     constructor() {
@@ -1817,6 +1840,7 @@ class App {
         this.sourcesBox = document.querySelector('.sources-box');
         this.sourcesNumber = document.querySelector('.sources-number');
         this.chatManager = new ChatManager();
+        this.premiumModal = new PremiumModal();
         this.chatManager.disableChat();
         
         this.setupEventListeners();
@@ -2006,6 +2030,13 @@ class App {
     
         this.feedbackModal.events.on('feedbackError', (error) => {
             console.error(error);
+        });
+
+        // Premium Modal Events
+        const premiumLink = this.sidebar.element.querySelector('.premium-link');
+        premiumLink?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.premiumModal.show();
         });
         
     }
