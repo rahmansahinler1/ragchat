@@ -1049,24 +1049,25 @@ class ChatManager extends Component {
         container.innerHTML = `
             <textarea 
                 class="message-input" 
-                placeholder="Find your answer..." 
+                placeholder="Please select your domain from settings ⚙️ to start chat!"
                 rows="1"
+                disabled
             ></textarea>
-            <button class="send-button">
+            <button class="send-button" disabled>
                 <i class="bi bi-send send-icon"></i>
             </button>
         `;
-
+    
         const input = container.querySelector('.message-input');
         const sendButton = container.querySelector('.send-button');
-
+        
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 this.handleSendMessage(input);
             }
         });
-
+    
         sendButton.addEventListener('click', () => {
             this.handleSendMessage(input);
         });
@@ -1149,6 +1150,19 @@ class ChatManager extends Component {
         return message;
     }
 
+    showDefaultMessage() {
+        this.messageContainer.innerHTML = `
+            <div class="chat-message ai">
+                <div class="message-bubble ai-bubble">
+                    <div class="message-text">
+                        Please select a domain to start chatting with your documents.
+                        Click the settings icon <i class="bi bi-gear"></i> to select a domain.
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     formatMessage(text) {
         return text
             .replace(/\[header\](.*?)\[\/header\]/g, '<h4>$1</h4>')
@@ -1197,6 +1211,28 @@ class ChatManager extends Component {
 
     scrollToBottom() {
         this.element.scrollTop = this.element.scrollHeight;
+    }
+
+    enableChat() {
+        this.element.classList.remove('chat-disabled');
+        const input = document.querySelector('.message-input');
+        const button = document.querySelector('.send-button');
+        input.disabled = false;
+        button.disabled = false;
+        input.placeholder = "Find your answer...";
+    }
+
+    disableChat() {
+        this.element.classList.add('chat-disabled'); 
+        const input = document.querySelector('.message-input');
+        const button = document.querySelector('.send-button');
+        input.disabled = true;
+        button.disabled = true;
+        input.placeholder = "Select your domain to start chat...";
+    }
+
+    clearDefaultMessage() {
+        this.messageContainer.innerHTML = '';
     }
 }
 
@@ -1730,6 +1766,7 @@ class App {
         this.sourcesBox = document.querySelector('.sources-box');
         this.sourcesNumber = document.querySelector('.sources-number');
         this.chatManager = new ChatManager();
+        this.chatManager.disableChat();
         
         this.setupEventListeners();
     }
@@ -1810,6 +1847,9 @@ class App {
                     // Update sources count
                     this.updateSourcesCount(files.length);
                     
+                    // Enabble chat
+                    this.chatManager.enableChat();
+                    
                     this.events.emit('message', {
                         text: `Successfully switched to domain ${domain.data.name}`,
                         type: 'success'
@@ -1869,6 +1909,8 @@ class App {
                     this.sidebar.updateFileList([], []);
                     // Reset sources count
                     this.updateSourcesCount(0);
+                    // Disable chat
+                    this.chatManager.disableChat();
                 }
                 
                 this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());

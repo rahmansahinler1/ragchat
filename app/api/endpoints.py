@@ -211,7 +211,7 @@ async def generate_answer(
 
         if not index or not domain_content:
             return JSONResponse(
-                content={"message": "Selected domain is empty!"},
+                content={"message": "Nothing in here..."},
                 status_code=400,
             )
 

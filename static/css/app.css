@@ -673,6 +673,15 @@ body {
   display: inline-block;
 }
 
+.chat-disabled .message-input-container {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.chat-disabled .message-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
 .d-flex.justify-content-between.align-items-center.mb-3 {
   overflow: hidden;
   /* Ensures the container doesn't grow */
