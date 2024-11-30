@@ -1,7 +1,6 @@
 from fastapi import APIRouter, UploadFile, HTTPException, Request, Query, File, Form
 from fastapi.responses import JSONResponse
 from datetime import datetime
-import numpy as np
 import logging
 import uuid
 import base64
