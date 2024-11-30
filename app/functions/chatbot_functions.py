@@ -21,12 +21,12 @@ class ChatbotFunctions:
             Ardından, Düzeltmiş soruyla aynı anlamı koruyan 3 semantik olarak benzer sorgu oluşturun.
             Orijinal soruyu farklı açılardan ele alan, ancak yine de ilgili kalan 3 farklı soru oluşturun.
             Son 3 soruya, her biri 1-2 cümlelik kısa cevaplarla yanıt verin.
-            Ardından düzeltilmiş kullanıcı sorgusunu analiz edin ve niyetini belirleyin. Olası niyet listesi aşağıdadır:
+            Ardından düzeltilmiş kullanıcı sorgusunu analiz edin ve niyetini belirleyin. Olası niyet listesi aşağıdadır. Eğer niyet tam olarak anlaşılmaz ise boş bir string '' döndür.
                                    
             Olası niyetler:
-            1.Bilgi Edinme: Gerçek bilgileri, tanımları veya açıklamaları öğrenme talebi.
-            2.Özetleme: Karmaşık bilgilerin kısa bir özetini isteme.
-            3.Karşılaştırma: Seçenekleri, yöntemleri veya teknolojileri değerlendirme.
+            1. Bilgi Edinme: Gerçek bilgileri, tanımları veya açıklamaları öğrenme talebi.
+            2. Özetleme: Karmaşık bilgilerin kısa bir özetini isteme.
+            3. Karşılaştırma: Seçenekleri, yöntemleri veya teknolojileri değerlendirme.
                                    
             Çıktıyı **kesinlikle** şu formatta döndürün:
             [düzeltilmiş sorgu]  
@@ -72,7 +72,7 @@ class ChatbotFunctions:
             Generate 3 semantically similar queries that retain the same meaning as the corrected query.
             Create 3 different questions that approach the original query from different angles but stay related.
             Answer last 3 questions with concise responses, 1-2 sentences max each.
-            Then, analyze the corrected user query and determine its intent, intention list is given below. 
+            Then, analyze the corrected user query and determine its intent, intention list is given below. If intent can't be determined return empty '' string.
                                                          
             The possible intents are:
             1. Informational: Seeking factual knowledge, definitions, or explanations.
@@ -111,8 +111,8 @@ class ChatbotFunctions:
 	        Informational
             """)
 
-    def _prompt_answer_generation(self, query, context, lang):
-        if lang == "tr":
+    def _prompt_answer_generation(self, query, context, lang, intention):
+        if lang == "tr" and intention == '':
             return textwrap.dedent(f"""
             Göreviniz verilen bağlam pencerelerini analiz etmek, kullanıcının sorgusuna göre ilgili verileri çıkarmak ve yanıtınızı geliştirmek için dosya bilgilerini kullanmaktır. Birincil amacınız, yalnızca bağlam penceresinde sağlanan bilgileri kullanarak kapsamlı, yapılandırılmış ve kullanıcı dostu bir yanıt sunmaktır.
 
@@ -158,7 +158,7 @@ class ChatbotFunctions:
             Kullanıcı Sorgusu:
             {query}
             """)
-        else:
+        elif lang == "en" and intention == '':
             return textwrap.dedent(f"""
             Your task is to analyze the given context windows, extract relevant data based on the user's query, and use file information to enhance your response. Your primary goal is to provide a comprehensive, structured, and user-friendly answer using solely the information provided in the context window.
 
@@ -167,6 +167,315 @@ class ChatbotFunctions:
             File: Specifies source of each context. 
             Confidence coefficient: A number between 0 and 1, indicating the priority of the context (higher numbers mean higher priority).
 
+            Extracting Relevant Information:
+            Carefully analyze the user's query to determine the specific information being requested.
+            Use all relevant context windows, prioritizing those with higher confidence levels for accuracy.
+            If the query references a specific file, extract information only from the specified file(s).
+            If the query does not specify a file, aggregate information from all available files.
+            If the context contains consistent information across multiple files, consolidate the data and indicate consistency.
+            If the context contains contradictory information: Highlight the contradictions, specify their sources, and explain how they differ.
+            If the context contains similar or different information, summarize the distinctions or similarities and relate them to the query.
+            Present your response using bullet points or topic-based sections for better readability.
+            Prioritize clarity and conciseness. Use subheadings or categories for complex queries.
+            If the required information is not found in the context, state this clearly and offer suggestions or clarifications if possible.
+            Do not specify the confidence coefficient in response.
+
+            Respond *strictly* in the following format:
+
+            Extracted Information: 
+
+            [header]Section Name[/header]
+            \n- Content with [b]bold terms[/b] when needed
+
+            [header]Another Section[/header]
+            \n- More content with [b]important terms[/b]
+
+            Rules:
+            1. Each major section must start with [header]...[/header]
+            2. Use [b]...[/b] for important terms or emphasis within content
+            3. Each point starts with \n- 
+            4. Leave an empty line between sections (\n\n)
+            5. Headers should be one of: Definition, Purpose, Key Features, Operation, Context, etc.
+
+            Confidence Level: [High/Medium/Low]                                 
+                                   
+            Context Windows:
+            {context}
+
+            User Query:
+            {query}
+            """)
+        elif lang == "tr" and intention == 'Bilgi Edinme':
+            return textwrap.dedent(f"""
+            Göreviniz, verilen bağlam pencerelerini analiz etmek, kullanıcı sorgusuna dayanarak ilgili verileri çıkarmak ve yanıtınızı geliştirmek için dosya bilgilerini kullanmaktır. Birincil amacınız, yalnızca bağlam penceresinde sağlanan bilgileri kullanarak kapsamlı, yapılandırılmış ve kullanıcı dostu bir yanıt sağlamaktır.
+
+            Talimatlar:
+            Size her biri birkaç cümle içeren bağlam pencereleri sunulacaktır ve şu iki ek meta veriyi içerecektir:
+            Dosya: Her bağlamın kaynağını belirtir.
+            Güven katsayısı: Bağlamın önceliğini gösteren, 0 ile 1 arasında bir sayı (daha yüksek sayılar daha yüksek öncelik anlamına gelir).
+            
+            1. Sorguda talep edilen gerçek bilgilere, tanımlara veya açıklamalara odaklanın.
+            2. Kısa, net ve spesifik bilgiler sunmaya odaklanın.
+            3. Açıklık için [b]önemli terimler[/b] ve tanımları ekleyin ve ilgili ayrıntıları vurgulayın.
+            4. Genellemelerden kaçının; bağlamdan tam eşleşmeleri veya ilgili bilgileri çıkarmayı önceliklendirin.
+                                   
+            İlgili Bilgileri Çıkarmak:
+            Kullanıcının sorgusunu dikkatlice analiz ederek talep edilen spesifik bilgiyi belirleyin.
+            Daha yüksek güven seviyelerine sahip bağlam pencerelerini doğruluk açısından önceliklendirin.
+            Eğer sorgu belirli bir dosyayı referans alıyorsa, yalnızca belirtilen dosyadan bilgi çıkarın.
+            Eğer sorgu herhangi bir dosya belirtmiyorsa, tüm mevcut dosyalardan bilgileri bir araya getirin.
+            Bağlam birden fazla dosyada tutarlı bilgiler içeriyorsa, verileri birleştirin ve tutarlılığı belirtin.
+            Bağlam çelişkili bilgiler içeriyorsa: Çelişkileri vurgulayın, kaynaklarını belirtin ve nasıl farklılaştıklarını açıklayın.
+            Bağlam benzer veya farklı bilgiler içeriyorsa, farklılıkları ya da benzerlikleri özetleyin ve bunları sorguyla ilişkilendirin.
+            Yanıtınızı daha iyi okunabilirlik için madde işaretleri veya konu bazlı bölümler halinde sunun.
+            Netlik ve özlülüğü önceliklendirin. Karmaşık sorgular için alt başlıklar veya kategoriler kullanın.
+            Eğer bağlamda gerekli bilgi bulunmuyorsa, bunu açıkça belirtin ve mümkünse öneriler veya açıklamalar sunun.
+            Yanıtınızda güven katsayısını belirtmeyin.
+            Çıktıyı kesinlikle aşağıdaki formatta verin:
+
+            Çıkarılan Bilgiler:
+
+            [header]Bölüm Adı[/header]
+            \n- Gerekirse [b]önemli terimlerle[/b] içerik
+
+            [header]Başka Bir Bölüm[/header]
+            \n- Daha fazla içerik, [b]önemli terimler[/b] ile
+
+            Kurallar:
+
+            1. Her ana bölüm [header]...[/header] ile başlamalıdır.
+            2. İçerikte önemli terimler veya vurgular için [b]...[/b] kullanın.
+            3. Her madde \n- ile başlamalıdır.
+            4. Bölümler arasında bir boş satır bırakın (\n\n).
+            5. Başlıklar şunlardan biri olmalıdır: Definition, Purpose, Key Features, Operation, Context, vb.
+            Güven Seviyesi: [Yüksek/Orta/Düşük]
+
+            Bağlam Pencereleri:
+            {context}
+
+            Kullanıcı Sorgusu:
+            {query}
+            """)
+        elif lang == "en" and intention == 'Informational':
+            return textwrap.dedent(f"""
+            Your task is to analyze the given context windows, extract relevant data based on the user's query, and use file information to enhance your response. Your primary goal is to provide a comprehensive, structured, and user-friendly answer using solely the information provided in the context window.
+
+            Instructions:
+            You will be provided with context windows, each containing several sentences along with the two following metadata: 
+            File: Specifies source of each context. 
+            Confidence coefficient: A number between 0 and 1, indicating the priority of the context (higher numbers mean higher priority).
+
+            1. Identify factual knowledge, definitions, or explanations requested in the query.
+            2. Focus on delivering concise, clear, and specific information.
+            3. Include [b]key terms[/b] and definitions for clarity and emphasize relevant details.
+            4. Avoid generalizations; prioritize extracting exact matches or relevant information from the context.
+                                   
+            Extracting Relevant Information:
+            Carefully analyze the user's query to determine the specific information being requested.
+            Use all relevant context windows, prioritizing those with higher confidence levels for accuracy.
+            If the query references a specific file, extract information only from the specified file(s).
+            If the query does not specify a file, aggregate information from all available files.
+            If the context contains consistent information across multiple files, consolidate the data and indicate consistency.
+            If the context contains contradictory information: Highlight the contradictions, specify their sources, and explain how they differ.
+            If the context contains similar or different information, summarize the distinctions or similarities and relate them to the query.
+            Present your response using bullet points or topic-based sections for better readability.
+            Prioritize clarity and conciseness. Use subheadings or categories for complex queries.
+            If the required information is not found in the context, state this clearly and offer suggestions or clarifications if possible.
+            Do not specify the confidence coefficient in response.
+
+            Respond *strictly* in the following format:
+
+            Extracted Information: 
+
+            [header]Section Name[/header]
+            \n- Content with [b]bold terms[/b] when needed
+
+            [header]Another Section[/header]
+            \n- More content with [b]important terms[/b]
+
+            Rules:
+            1. Each major section must start with [header]...[/header]
+            2. Use [b]...[/b] for important terms or emphasis within content
+            3. Each point starts with \n- 
+            4. Leave an empty line between sections (\n\n)
+            5. Headers should be one of: Definition, Purpose, Key Features, Operation, Context, etc.
+
+            Confidence Level: [High/Medium/Low]                                 
+                                   
+            Context Windows:
+            {context}
+
+            User Query:
+            {query}
+            """)
+        elif lang == "tr" and intention == 'Özetleme':
+            return textwrap.dedent(f"""
+            Göreviniz, verilen bağlam pencerelerini analiz etmek, kullanıcı sorgusuna dayanarak ilgili verileri çıkarmak ve yanıtınızı geliştirmek için dosya bilgilerini kullanmaktır. Birincil amacınız, yalnızca bağlam penceresinde sağlanan bilgileri kullanarak kapsamlı, yapılandırılmış ve kullanıcı dostu bir yanıt sağlamaktır.
+
+            Talimatlar:
+            Size her biri birkaç cümle içeren bağlam pencereleri sunulacaktır ve şu iki ek meta veriyi içerecektir:
+            Dosya: Her bağlamın kaynağını belirtir.
+            Güven katsayısı: Bağlamın önceliğini gösteren, 0 ile 1 arasında bir sayı (daha yüksek sayılar daha yüksek öncelik anlamına gelir).
+            
+            1. Sorgu ile ilgili bağlamdan anahtar noktaları veya temel fikirleri belirleyin ve çıkarın.
+            2. Netlik için madde işaretleri veya kategoriler kullanarak kısa ve iyi yapılandırılmış bir özet oluşturun.
+            3. Genel temaları vurgulayın ve gereksiz ayrıntılara yer vermeden genel bir bakış sağlayın.
+            4. Tekrarlamaları önlemek için bağlamlar arasındaki tutarlı bilgileri birleştirin.
+                                   
+            İlgili Bilgileri Çıkarmak:
+            Kullanıcının sorgusunu dikkatlice analiz ederek talep edilen spesifik bilgiyi belirleyin.
+            Daha yüksek güven seviyelerine sahip bağlam pencerelerini doğruluk açısından önceliklendirin.
+            Eğer sorgu belirli bir dosyayı referans alıyorsa, yalnızca belirtilen dosyadan bilgi çıkarın.
+            Eğer sorgu herhangi bir dosya belirtmiyorsa, tüm mevcut dosyalardan bilgileri bir araya getirin.
+            Bağlam birden fazla dosyada tutarlı bilgiler içeriyorsa, verileri birleştirin ve tutarlılığı belirtin.
+            Bağlam çelişkili bilgiler içeriyorsa: Çelişkileri vurgulayın, kaynaklarını belirtin ve nasıl farklılaştıklarını açıklayın.
+            Bağlam benzer veya farklı bilgiler içeriyorsa, farklılıkları ya da benzerlikleri özetleyin ve bunları sorguyla ilişkilendirin.
+            Yanıtınızı daha iyi okunabilirlik için madde işaretleri veya konu bazlı bölümler halinde sunun.
+            Netlik ve özlülüğü önceliklendirin. Karmaşık sorgular için alt başlıklar veya kategoriler kullanın.
+            Eğer bağlamda gerekli bilgi bulunmuyorsa, bunu açıkça belirtin ve mümkünse öneriler veya açıklamalar sunun.
+            Yanıtınızda güven katsayısını belirtmeyin.
+            Çıktıyı kesinlikle aşağıdaki formatta verin:
+
+            Çıkarılan Bilgiler:
+
+            [header]Bölüm Adı[/header]
+            \n- Gerekirse [b]önemli terimlerle[/b] içerik
+
+            [header]Başka Bir Bölüm[/header]
+            \n- Daha fazla içerik, [b]önemli terimler[/b] ile
+
+            Kurallar:
+
+            1. Her ana bölüm [header]...[/header] ile başlamalıdır.
+            2. İçerikte önemli terimler veya vurgular için [b]...[/b] kullanın.
+            3. Her madde \n- ile başlamalıdır.
+            4. Bölümler arasında bir boş satır bırakın (\n\n).
+            5. Başlıklar şunlardan biri olmalıdır: Definition, Purpose, Key Features, Operation, Context, vb.
+            Güven Seviyesi: [Yüksek/Orta/Düşük]
+
+            Bağlam Pencereleri:
+            {context}
+
+            Kullanıcı Sorgusu:
+            {query}
+            """)
+        elif lang == "en" and intention == 'Summarization':
+            return textwrap.dedent(f"""
+            Your task is to analyze the given context windows, extract relevant data based on the user's query, and use file information to enhance your response. Your primary goal is to provide a comprehensive, structured, and user-friendly answer using solely the information provided in the context window.
+
+            Instructions:
+            You will be provided with context windows, each containing several sentences along with the two following metadata: 
+            File: Specifies source of each context. 
+            Confidence coefficient: A number between 0 and 1, indicating the priority of the context (higher numbers mean higher priority).
+
+            1. Identify and extract key points or main ideas from the context relevant to the query.
+            2. Create a concise and well-structured summary, using bullet points or categories for clarity.
+            3. Highlight overarching themes and provide an overview without including excessive details.
+            4. Consolidate consistent information across contexts to avoid redundancy.
+                                   
+            Extracting Relevant Information:
+            Carefully analyze the user's query to determine the specific information being requested.
+            Use all relevant context windows, prioritizing those with higher confidence levels for accuracy.
+            If the query references a specific file, extract information only from the specified file(s).
+            If the query does not specify a file, aggregate information from all available files.
+            If the context contains consistent information across multiple files, consolidate the data and indicate consistency.
+            If the context contains contradictory information: Highlight the contradictions, specify their sources, and explain how they differ.
+            If the context contains similar or different information, summarize the distinctions or similarities and relate them to the query.
+            Present your response using bullet points or topic-based sections for better readability.
+            Prioritize clarity and conciseness. Use subheadings or categories for complex queries.
+            If the required information is not found in the context, state this clearly and offer suggestions or clarifications if possible.
+            Do not specify the confidence coefficient in response.
+
+            Respond *strictly* in the following format:
+
+            Extracted Information: 
+
+            [header]Section Name[/header]
+            \n- Content with [b]bold terms[/b] when needed
+
+            [header]Another Section[/header]
+            \n- More content with [b]important terms[/b]
+
+            Rules:
+            1. Each major section must start with [header]...[/header]
+            2. Use [b]...[/b] for important terms or emphasis within content
+            3. Each point starts with \n- 
+            4. Leave an empty line between sections (\n\n)
+            5. Headers should be one of: Definition, Purpose, Key Features, Operation, Context, etc.
+
+            Confidence Level: [High/Medium/Low]                                 
+                                   
+            Context Windows:
+            {context}
+
+            User Query:
+            {query}
+            """)
+        elif lang == "tr" and intention == 'Karşılaştırma':
+            return textwrap.dedent(f"""
+            Göreviniz, verilen bağlam pencerelerini analiz etmek, kullanıcı sorgusuna dayanarak ilgili verileri çıkarmak ve yanıtınızı geliştirmek için dosya bilgilerini kullanmaktır. Birincil amacınız, yalnızca bağlam penceresinde sağlanan bilgileri kullanarak kapsamlı, yapılandırılmış ve kullanıcı dostu bir yanıt sağlamaktır.
+
+            Talimatlar:
+            Size her biri birkaç cümle içeren bağlam pencereleri sunulacaktır ve şu iki ek meta veriyi içerecektir:
+            Dosya: Her bağlamın kaynağını belirtir.
+            Güven katsayısı: Bağlamın önceliğini gösteren, 0 ile 1 arasında bir sayı (daha yüksek sayılar daha yüksek öncelik anlamına gelir).
+            
+            1. Benzerlikleri ve farklılıkları vurgulamak için bağlamdan ilgili detayları çıkarın ve karşılaştırın.
+            2. Çelişkili bilgiler bulunursa, bu çelişkileri belirtin ve kaynaklarını açıklayın.
+            3. Ayrımları veya paralellikleri, [header]Benzerlikler[/header] ve [header]Farklılıklar[/header] gibi başlıklar kullanarak yapılandırılmış bir formatta sunun.
+            4. Çıkarılan bilgilerin kullanıcının sorgusuyla nasıl ilişkili olduğunu net bir şekilde açıklayın.
+                                   
+            İlgili Bilgileri Çıkarmak:
+            Kullanıcının sorgusunu dikkatlice analiz ederek talep edilen spesifik bilgiyi belirleyin.
+            Daha yüksek güven seviyelerine sahip bağlam pencerelerini doğruluk açısından önceliklendirin.
+            Eğer sorgu belirli bir dosyayı referans alıyorsa, yalnızca belirtilen dosyadan bilgi çıkarın.
+            Eğer sorgu herhangi bir dosya belirtmiyorsa, tüm mevcut dosyalardan bilgileri bir araya getirin.
+            Bağlam birden fazla dosyada tutarlı bilgiler içeriyorsa, verileri birleştirin ve tutarlılığı belirtin.
+            Bağlam çelişkili bilgiler içeriyorsa: Çelişkileri vurgulayın, kaynaklarını belirtin ve nasıl farklılaştıklarını açıklayın.
+            Bağlam benzer veya farklı bilgiler içeriyorsa, farklılıkları ya da benzerlikleri özetleyin ve bunları sorguyla ilişkilendirin.
+            Yanıtınızı daha iyi okunabilirlik için madde işaretleri veya konu bazlı bölümler halinde sunun.
+            Netlik ve özlülüğü önceliklendirin. Karmaşık sorgular için alt başlıklar veya kategoriler kullanın.
+            Eğer bağlamda gerekli bilgi bulunmuyorsa, bunu açıkça belirtin ve mümkünse öneriler veya açıklamalar sunun.
+            Yanıtınızda güven katsayısını belirtmeyin.
+            Çıktıyı kesinlikle aşağıdaki formatta verin:
+
+            Çıkarılan Bilgiler:
+
+            [header]Bölüm Adı[/header]
+            \n- Gerekirse [b]önemli terimlerle[/b] içerik
+
+            [header]Başka Bir Bölüm[/header]
+            \n- Daha fazla içerik, [b]önemli terimler[/b] ile
+
+            Kurallar:
+
+            1. Her ana bölüm [header]...[/header] ile başlamalıdır.
+            2. İçerikte önemli terimler veya vurgular için [b]...[/b] kullanın.
+            3. Her madde \n- ile başlamalıdır.
+            4. Bölümler arasında bir boş satır bırakın (\n\n).
+            5. Başlıklar şunlardan biri olmalıdır: Definition, Purpose, Key Features, Operation, Context, vb.
+            Güven Seviyesi: [Yüksek/Orta/Düşük]
+
+            Bağlam Pencereleri:
+            {context}
+
+            Kullanıcı Sorgusu:
+            {query}
+            """)
+        elif lang == "en" and intention == 'Comparison':
+            return textwrap.dedent(f"""
+            Your task is to analyze the given context windows, extract relevant data based on the user's query, and use file information to enhance your response. Your primary goal is to provide a comprehensive, structured, and user-friendly answer using solely the information provided in the context window.
+
+            Instructions:
+            You will be provided with context windows, each containing several sentences along with the two following metadata: 
+            File: Specifies source of each context. 
+            Confidence coefficient: A number between 0 and 1, indicating the priority of the context (higher numbers mean higher priority).
+
+            1. Extract and compare relevant details from the context to highlight similarities and differences.
+            2. If contradictory information is found, specify the contradictions and explain their sources.
+            3. Present distinctions or parallels in a structured format, using headers like [header]Similarities[/header] and [header]Differences[/header].
+            4. Provide a clear explanation of how the extracted information relates to the user's query.
+                                   
             Extracting Relevant Information:
             Carefully analyze the user's query to determine the specific information being requested.
             Use all relevant context windows, prioritizing those with higher confidence levels for accuracy.
