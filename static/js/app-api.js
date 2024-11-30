@@ -169,3 +169,80 @@ window.deleteDomain = async function deleteDomain(domainId) {
         return 0;
     }
 };
+
+window.storeFile = async function(userID, formData) {
+    try {
+        const response = await fetch(`/api/v1/io/store_file?userID=${encodeURIComponent(userID)}`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to store file');
+        }
+
+        const data = await response.json();
+        return {
+            success: true,
+            data: data
+        };
+    } catch (error) {
+        console.error('Error storing file:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+};
+
+window.uploadFiles = async function(userID) {
+    try {
+        const response = await fetch(`/api/v1/io/upload_files?userID=${userID}`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to process uploads');
+        }
+
+        const data = await response.json();
+        return {
+            success: true,
+            data: data
+        };
+    } catch (error) {
+        console.error('Error uploading files:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+};
+
+window.removeFiles = async function(userID, filesToRemove) {
+    try {
+        const response = await fetch(`/api/v1/io/remove_file_upload?userID=${encodeURIComponent(userID)}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ files_to_remove: filesToRemove })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to remove files');
+        }
+
+        const data = await response.json();
+        return {
+            success: true,
+            data: data
+        };
+    } catch (error) {
+        console.error('Error removing files:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+};

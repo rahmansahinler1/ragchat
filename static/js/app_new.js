@@ -78,6 +78,108 @@ class DomainCard extends Component {
     }
 }
 
+class FileBasket {
+    constructor() {
+        this.files = new Map();
+        this.uploadQueue = [];
+        this.totalSize = 0;
+        this.maxBatchSize = 20 * 1024 * 1024; // 20MB
+        this.maxConcurrent = 10;
+    }
+
+    addFiles(fileList) {
+        let duplicates = 0;
+        Array.from(fileList).forEach(file => {
+            if (!this.files.has(file.name)) {
+                this.files.set(file.name, {
+                    file: file,
+                    lastModified: file.lastModified,
+                    status: 'pending'
+                });
+                this.uploadQueue.push(file.name);
+                this.totalSize += file.size;
+            } else {
+                duplicates++;
+            }
+        });
+
+        return {
+            fileNames: this.getFileNames(),
+            duplicates: duplicates
+        };
+    }
+
+    getBatch() {
+        let currentBatchSize = 0;
+        const batch = [];
+        
+        while (this.uploadQueue.length > 0 && batch.length < this.maxConcurrent) {
+            const fileName = this.uploadQueue[0];
+            const fileInfo = this.files.get(fileName);
+            
+            if (currentBatchSize + fileInfo.file.size > this.maxBatchSize) {
+                break;
+            }
+            
+            batch.push(this.uploadQueue.shift());
+            currentBatchSize += fileInfo.file.size;
+        }
+        
+        return batch;
+    }
+
+    getFileFormData(fileName) {
+        const fileInfo = this.files.get(fileName);
+        if (!fileInfo) return null;
+
+        const formData = new FormData();
+        formData.append('file', fileInfo.file);
+        formData.append('lastModified', fileInfo.lastModified);
+        return formData;
+    }
+
+    removeFile(fileName) {
+        const fileInfo = this.files.get(fileName);
+        if (fileInfo) {
+            this.totalSize -= fileInfo.file.size;
+            this.files.delete(fileName);
+            const queueIndex = this.uploadQueue.indexOf(fileName);
+            if (queueIndex > -1) {
+                this.uploadQueue.splice(queueIndex, 1);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    getFileNames() {
+        return Array.from(this.files.keys());
+    }
+
+    hasFilesToUpload() {
+        return this.uploadQueue.length > 0;
+    }
+
+    getFileStatus(fileName) {
+        return this.files.get(fileName)?.status || null;
+    }
+
+    updateFileStatus(fileName, status) {
+        const fileInfo = this.files.get(fileName);
+        if (fileInfo) {
+            fileInfo.status = status;
+            return true;
+        }
+        return false;
+    }
+
+    clear() {
+        this.files.clear();
+        this.uploadQueue = [];
+        this.totalSize = 0;
+    }
+}
+
 // Domain Manager (Storage)
 class DomainManager {
     constructor() {
@@ -567,8 +669,7 @@ class FileUploadModal extends Component {
         super(element);
         
         this.isUploading = false;
-        this.uploadedFiles = new Set();
-        this.uploadedFileObjects = new Map();
+        this.fileBasket = new FileBasket();
         
         this.render();
         this.setupEventListeners();
@@ -679,38 +780,35 @@ class FileUploadModal extends Component {
         const fileList = this.element.querySelector('#fileList');
         const uploadBtn = this.element.querySelector('#uploadBtn');
         const uploadArea = this.element.querySelector('#dropZone');
-        let duplicateFound = false;
-
-        Array.from(newFiles).forEach(file => {
-            if (this.uploadedFiles.has(file.name)) {
-                duplicateFound = true;
-                return;
-            }
-
-            this.uploadedFileObjects.set(file.name, file);
-            this.uploadedFiles.add(file.name);
-            this.displayFileInList(file, fileList);
-        });
-
-        if (duplicateFound) {
-            this.events.emit('warning', 'Some files were skipped as they were already added');
+        
+        const result = this.fileBasket.addFiles(newFiles);
+        
+        if (result.duplicates > 0) {
+            this.events.emit('warning', `${result.duplicates} files were skipped as they were already added`);
         }
 
+        // Update UI
+        fileList.innerHTML = '';
+        result.fileNames.forEach(fileName => {
+            const fileItem = this.createFileItem(fileName);
+            fileList.appendChild(fileItem);
+        });
+        
         this.updateUploadUI(fileList, uploadBtn, uploadArea);
     }
 
-    displayFileInList(file, fileList) {
+    createFileItem(fileName) {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item pending-upload';
-        fileItem.dataset.fileName = file.name;
+        fileItem.dataset.fileName = fileName;
         
-        const icon = this.getFileIcon(file.name);
+        const icon = this.getFileIcon(fileName);
         fileItem.innerHTML = `
             <div class="file-icon">
                 <i class="bi ${icon} text-primary-green"></i>
             </div>
             <div class="file-info">
-                <div class="file-name">${file.name}</div>
+                <div class="file-name">${fileName}</div>
                 <div class="file-progress">
                     <div class="progress-bar"></div>
                 </div>
@@ -723,18 +821,89 @@ class FileUploadModal extends Component {
         const removeButton = fileItem.querySelector('.file-remove');
         removeButton.addEventListener('click', () => {
             if (!this.isUploading) {
-                this.uploadedFiles.delete(file.name);
-                this.uploadedFileObjects.delete(file.name);
+                this.fileBasket.removeFile(fileName);
                 fileItem.remove();
                 this.updateUploadUI(
-                    fileList,
+                    this.element.querySelector('#fileList'),
                     this.element.querySelector('#uploadBtn'),
                     this.element.querySelector('#dropZone')
                 );
             }
         });
 
-        fileList.appendChild(fileItem);
+        return fileItem;
+    }
+
+    async startUpload() {
+        if (!this.fileBasket.hasFilesToUpload() || this.isUploading) return;
+
+        this.isUploading = true;
+        const uploadBtn = this.element.querySelector('#uploadBtn');
+        uploadBtn.disabled = true;
+        let successCount = 0;
+
+        try {
+            while (this.fileBasket.hasFilesToUpload()) {
+                const batch = this.fileBasket.getBatch();
+                const uploadPromises = batch.map(async (fileName) => {
+                    try {
+                        const result = await this.uploadFile(fileName);
+                        if (result.success) successCount++;
+                    } catch (error) {
+                        console.error(`Failed to upload ${fileName}:`, error);
+                    }
+                });
+                await Promise.all(uploadPromises);
+            }
+
+            if (successCount > 0) {
+                const uploadResult = await window.uploadFiles(window.serverData.userId);
+                
+                if (uploadResult.success) {
+                    this.events.emit('filesUploaded', uploadResult.data);
+                    setTimeout(() => this.hide(), 500);
+                } else {
+                    throw new Error(uploadResult.error);
+                }
+            }
+
+        } catch (error) {
+            console.error('Upload error:', error);
+            this.events.emit('error', error.message);
+        } finally {
+            this.isUploading = false;
+            this.fileBasket.clear();
+            uploadBtn.disabled = false;
+        }
+    }
+
+    async uploadFile(fileName) {
+        const fileItem = this.element.querySelector(`[data-file-name="${fileName}"]`);
+        const progressBar = fileItem.querySelector('.progress-bar');
+        
+        try {
+            const formData = this.fileBasket.getFileFormData(fileName);
+            if (!formData) throw new Error('File not found');
+
+            fileItem.classList.remove('pending-upload');
+            fileItem.classList.add('uploading');
+            
+            const result = await window.storeFile(window.serverData.userId, formData);
+            
+            if (result.success) {
+                progressBar.style.width = '100%';
+                fileItem.classList.remove('uploading');
+                fileItem.classList.add('uploaded');
+                return { success: true };
+            } else {
+                throw new Error(result.error);
+            }
+
+        } catch (error) {
+            fileItem.classList.remove('uploading');
+            fileItem.classList.add('upload-error');
+            return { success: false, error: error.message };
+        }
     }
 
     getFileIcon(fileName) {
@@ -749,7 +918,7 @@ class FileUploadModal extends Component {
     }
 
     updateUploadUI(fileList, uploadBtn, uploadArea) {
-        if (this.uploadedFiles.size > 0) {
+        if (this.fileBasket.getFileNames().length > 0) {
             uploadArea.style.display = 'none';
             uploadBtn.disabled = false;
             this.ensureAddMoreFilesButton(fileList);
@@ -787,67 +956,6 @@ class FileUploadModal extends Component {
         }
     }
 
-    startUpload() {
-        if (this.uploadedFiles.size === 0 || this.isUploading) return;
-
-        this.isUploading = true;
-        const fileItems = this.element.querySelectorAll('.file-item');
-        let completed = 0;
-
-        // Disable UI elements
-        this.element.querySelector('#uploadBtn').disabled = true;
-        const addMoreFilesBtn = this.element.querySelector('.add-file-btn');
-        if (addMoreFilesBtn) {
-            addMoreFilesBtn.disabled = true;
-            addMoreFilesBtn.style.opacity = '0.5';
-        }
-
-        fileItems.forEach(item => {
-            item.classList.remove('pending-upload');
-            item.classList.add('uploading');
-
-            const progressBar = item.querySelector('.progress-bar');
-            const progressContainer = item.querySelector('.file-progress');
-            progressContainer.style.display = 'block';
-
-            this.simulateFileUpload(item, progressBar, () => {
-                completed++;
-                item.classList.remove('uploading');
-                item.classList.add('uploaded');
-
-                if (completed === fileItems.length) {
-                    this.finishUpload();
-                }
-            });
-        });
-    }
-
-    simulateFileUpload(fileItem, progressBar, onComplete) {
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += Math.random() * 30;
-            if (progress >= 100) {
-                progress = 100;
-                clearInterval(interval);
-                onComplete();
-            }
-            progressBar.style.width = `${progress}%`;
-        }, 500);
-    }
-
-    finishUpload() {
-        this.isUploading = false;
-        const filesToAdd = Array.from(this.uploadedFileObjects.values());
-        
-        // Emit event for parent components
-        this.events.emit('filesUploaded', filesToAdd);
-
-        this.uploadedFiles.clear();
-        this.uploadedFileObjects.clear();
-
-        setTimeout(() => this.hide(), 500);
-    }
-
     show(domainName = '') {
         const domainNameElement = this.element.querySelector('.domain-name');
         if (domainNameElement) {
@@ -862,6 +970,7 @@ class FileUploadModal extends Component {
         if (modal) {
             modal.hide();
         }
+        this.fileBasket.clear();
     }
 }
 
@@ -1494,17 +1603,28 @@ class App {
         });
 
         // File Upload Modal events
-        this.fileUploadModal.events.on('filesUploaded', (files) => {
-            const currentDomain = this.domainManager.getSelectedDomain();
-            if (currentDomain) {
-                const newCount = (currentDomain.data.files || []).length + files.length;
-                this.updateSourcesCount(newCount);
+        this.fileUploadModal.events.on('filesUploaded', (data) => {
+            const selectedDomain = this.domainManager.getSelectedDomain();
+            if (selectedDomain) {
+                selectedDomain.data.files = data.file_names;
+                selectedDomain.data.fileIDS = data.file_ids;  // Add this line
+                this.sidebar.updateFileList(data.file_names, data.file_ids);  // Update this line
+                this.updateSourcesCount(data.file_names.length);
             }
-            console.log('Files ready for upload:', files);
         });
 
         this.fileUploadModal.events.on('warning', (message) => {
-            console.warn(message);
+            this.events.emit('message', {
+                text: message,
+                type: 'warning'
+            });
+        });
+
+        this.fileUploadModal.events.on('error', (message) => {
+            this.events.emit('message', {
+                text: message,
+                type: 'error'
+            });
         });
 
         // Feedback Modal events
