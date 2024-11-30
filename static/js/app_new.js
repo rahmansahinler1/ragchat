@@ -1340,6 +1340,9 @@ class App {
         this.fileUploadModal = new FileUploadModal();
         this.events = new EventEmitter();
         this.userData = null;
+        this.sourcesCount = 0;
+        this.sourcesBox = document.querySelector('.sources-box');
+        this.sourcesNumber = document.querySelector('.sources-number');
         
         this.setupEventListeners();
     }
@@ -1351,6 +1354,14 @@ class App {
         
         userEmail.textContent = this.userData.user_info.user_email;
         userAvatar.textContent = this.userData.user_info.user_name[0].toUpperCase();
+    }
+
+    updateSourcesCount(count) {
+        this.sourcesCount = count;
+        if (this.sourcesNumber) {
+            this.sourcesNumber.textContent = count;
+            this.sourcesBox.setAttribute('count', count);
+        }
     }
 
     setupEventListeners() {
@@ -1409,6 +1420,9 @@ class App {
                     const fileIDS = domain.data.fileIDS || [];
                     this.sidebar.updateFileList(files, fileIDS);
                     
+                    // Update sources count
+                    this.updateSourcesCount(files.length);
+                    
                     this.events.emit('message', {
                         text: `Successfully switched to domain ${domain.data.name}`,
                         type: 'success'
@@ -1466,9 +1480,10 @@ class App {
                     // Reset sidebar to default state
                     this.sidebar.updateDomainSelection(null);
                     this.sidebar.updateFileList([], []);
+                    // Reset sources count
+                    this.updateSourcesCount(0);
                 }
                 
-                // Update the domains list in the modal
                 this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());
                 
                 this.events.emit('message', {
@@ -1480,7 +1495,11 @@ class App {
 
         // File Upload Modal events
         this.fileUploadModal.events.on('filesUploaded', (files) => {
-            // Later this will handle actual file upload to backend
+            const currentDomain = this.domainManager.getSelectedDomain();
+            if (currentDomain) {
+                const newCount = (currentDomain.data.files || []).length + files.length;
+                this.updateSourcesCount(newCount);
+            }
             console.log('Files ready for upload:', files);
         });
 
