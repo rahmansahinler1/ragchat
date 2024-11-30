@@ -1,15 +1,55 @@
-// Local Storage
+// Core Event System
+class EventEmitter {
+    constructor() {
+        this.events = {};
+    }
+
+    on(event, callback) {
+        if (!this.events[event]) {
+            this.events[event] = [];
+        }
+        this.events[event].push(callback);
+    }
+
+    emit(event, data) {
+        if (!this.events[event]) return;
+        this.events[event].forEach(callback => callback(data));
+    }
+}
+
+// Base Component
+class Component {
+    constructor(element) {
+        this.element = element;
+        this.events = new EventEmitter();
+    }
+
+    createElement(tag, className = '') {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        return element;
+    }
+
+    destroy() {
+        this.element.remove();
+    }
+}
+
+
+
+
 class FileBasket {
     constructor() {
         this.files = new Map();
         this.uploadQueue = [];
         this.totalSize = 0;
-        this.MAX_BATCH_SIZE = 20 * 1024 * 1024; // 20MB in bytes
-        this.MAX_CONCURRENT = 10;
+        this.maxBatchSize = 20 * 1024 * 1024; // 20MB
+        this.maxConcurrent = 10;
     }
 
     addFiles(fileList) {
-        for (let file of fileList) {
+        let duplicates = 0;
+        Array.from(fileList).forEach(file => {
             if (!this.files.has(file.name)) {
                 this.files.set(file.name, {
                     file: file,
@@ -18,20 +58,26 @@ class FileBasket {
                 });
                 this.uploadQueue.push(file.name);
                 this.totalSize += file.size;
+            } else {
+                duplicates++;
             }
-        }
-        return this.getFileNames();
+        });
+
+        return {
+            fileNames: this.getFileNames(),
+            duplicates: duplicates
+        };
     }
 
     getBatch() {
         let currentBatchSize = 0;
         const batch = [];
         
-        while (this.uploadQueue.length > 0 && batch.length < this.MAX_CONCURRENT) {
+        while (this.uploadQueue.length > 0 && batch.length < this.maxConcurrent) {
             const fileName = this.uploadQueue[0];
             const fileInfo = this.files.get(fileName);
             
-            if (currentBatchSize + fileInfo.file.size > this.MAX_BATCH_SIZE) {
+            if (currentBatchSize + fileInfo.file.size > this.maxBatchSize) {
                 break;
             }
             
@@ -61,14 +107,9 @@ class FileBasket {
             if (queueIndex > -1) {
                 this.uploadQueue.splice(queueIndex, 1);
             }
+            return true;
         }
-    }
-
-    removeFiles(fileNames) {
-        fileNames.forEach(fileName => {
-            this.removeFile(fileName);
-        });
-        return this.getFileNames();
+        return false;
     }
 
     getFileNames() {
@@ -79,6 +120,19 @@ class FileBasket {
         return this.uploadQueue.length > 0;
     }
 
+    getFileStatus(fileName) {
+        return this.files.get(fileName)?.status || null;
+    }
+
+    updateFileStatus(fileName, status) {
+        const fileInfo = this.files.get(fileName);
+        if (fileInfo) {
+            fileInfo.status = status;
+            return true;
+        }
+        return false;
+    }
+
     clear() {
         this.files.clear();
         this.uploadQueue = [];
@@ -86,1270 +140,1828 @@ class FileBasket {
     }
 }
 
+// Domain Manager (Storage)
 class DomainManager {
     constructor() {
-        this.domains = new Map(); // Stores domain objects
-        this.selectedDomain = null;
-        this.MAX_NAME_LENGTH = 30;
-        this.MAX_DOMAINS = 10; // Maximum domains per user
+        this.domains = new Map();
+        this.selectedDomainId = null;
+        this.events = new EventEmitter();
     }
 
-    // Domain structure: { id, name, files: Map(), fileCount, createdAt }
-    initializeDomains(userDomains) {
-        userDomains.forEach(domain => {
-            this.domains.set(domain.id, {
-                id: domain.id,
-                name: domain.name,
-                files: new Map(),
-                fileCount: domain.fileCount || 0,
-                createdAt: domain.createdAt || new Date()
-            });
-        });
+    getDomain(domainId) {
+        return this.domains.get(domainId);
     }
 
-    addDomain(name) {
-        if (this.domains.size >= this.MAX_DOMAINS) {
-            throw new Error('Maximum domain limit reached');
-        }
-
-        const domainId = crypto.randomUUID();
-        const newDomain = {
-            id: domainId,
-            name: this.validateName(name),
-            files: new Map(),
-            fileCount: 0,
-            createdAt: new Date()
+    async addDomain(domain) {
+        const domainData = {
+            id: domain.id,
+            name: domain.name,
+            fileCount: domain.files?.length || 0,
+            files: domain.files || [],
+            fileIDS: domain.fileIDS || []
         };
-
-        this.domains.set(domainId, newDomain);
-        return newDomain;
+    
+        const domainCard = new DomainCard(domainData);
+        this.domains.set(domain.id, { data: domainData, component: domainCard });
+        return domainCard;
     }
 
-    deleteDomain(domainId) {
-        if (!this.domains.has(domainId)) {
-            throw new Error('Domain not found');
+    getAllDomains() {
+        return Array.from(this.domains.values()).map(entry => ({
+            id: entry.data.id,
+            name: entry.data.name,
+            fileCount: entry.data.fileCount,
+            files: entry.data.files,
+            fileIDS: entry.data.fileIDS
+        }));
+    }
+
+    // Single method to handle selection state
+    selectDomain(domainId) {
+        // Deselect previous
+        if (this.selectedDomainId) {
+            const previous = this.domains.get(this.selectedDomainId);
+            if (previous) {
+                previous.component.setSelected(false);
+            }
         }
 
-        if (this.selectedDomain === domainId) {
-            this.selectedDomain = null;
+        // Select new
+        const domain = this.domains.get(domainId);
+        if (domain) {
+            domain.component.setSelected(true);
+            this.selectedDomainId = domainId;
         }
+    }
 
-        return this.domains.delete(domainId);
+    getSelectedDomain() {
+        if (!this.selectedDomainId) return null;
+        return this.domains.get(this.selectedDomainId);
+    }
+
+    clearSelection() {
+        if (this.selectedDomainId) {
+            const previous = this.domains.get(this.selectedDomainId);
+            if (previous) {
+                previous.component.setSelected(false);
+            }
+            this.selectedDomainId = null;
+        }
     }
 
     renameDomain(domainId, newName) {
         const domain = this.domains.get(domainId);
-        if (!domain) {
-            throw new Error('Domain not found');
+        if (domain) {
+            domain.data.name = newName;
+            return true;
         }
-
-        domain.name = this.validateName(newName);
-        return domain;
+        return false;
     }
 
-    selectDomain(domainId) {
-        if (!this.domains.has(domainId)) {
-            throw new Error('Domain not found');
+    deleteDomain(domainId) {
+        const wasSelected = this.selectedDomainId === domainId;
+        const success = this.domains.delete(domainId);
+        if (success && wasSelected) {
+            this.selectedDomainId = null;
         }
-
-        this.selectedDomain = domainId;
-        return this.domains.get(domainId);
-    }
-
-    getSelectedDomain() {
-        return this.selectedDomain ? 
-            this.domains.get(this.selectedDomain) : null;
-    }
-
-    addFilesToDomain(domainId, files) {
-        const domain = this.domains.get(domainId);
-        if (!domain) {
-            throw new Error('Domain not found');
-        }
-
-        files.forEach(file => {
-            domain.files.set(file.name, {
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                lastModified: file.lastModified,
-                addedAt: new Date()
-            });
-        });
-
-        domain.fileCount = domain.files.size;
-        return domain.fileCount;
-    }
-
-    removeFilesFromDomain(domainId, fileNames) {
-        const domain = this.domains.get(domainId);
-        if (!domain) {
-            throw new Error('Domain not found');
-        }
-
-        fileNames.forEach(fileName => {
-            domain.files.delete(fileName);
-        });
-
-        domain.fileCount = domain.files.size;
-        return domain.fileCount;
-    }
-
-    getDomainFiles(domainId) {
-        const domain = this.domains.get(domainId);
-        return domain ? Array.from(domain.files.values()) : [];
-    }
-
-    searchDomains(query) {
-        const searchTerm = query.toLowerCase();
-        return Array.from(this.domains.values())
-            .filter(domain => domain.name.toLowerCase().includes(searchTerm));
-    }
-
-    validateName(name) {
-        const trimmedName = name.trim();
-        if (!trimmedName) {
-            throw new Error('Domain name cannot be empty');
-        }
-        if (trimmedName.length > this.MAX_NAME_LENGTH) {
-            throw new Error(`Domain name cannot exceed ${this.MAX_NAME_LENGTH} characters`);
-        }
-        return trimmedName;
-    }
-
-    getDomainSummary(domainId) {
-        const domain = this.domains.get(domainId);
-        if (!domain) {
-            throw new Error('Domain not found');
-        }
-
-        return {
-            id: domain.id,
-            name: domain.name,
-            fileCount: domain.fileCount,
-            createdAt: domain.createdAt,
-            isSelected: this.selectedDomain === domainId
-        };
-    }
-
-    getAllDomains() {
-        // Convert Map values to array and return domain data
-        return Array.from(this.domains.values()).map(entry => ({
-            id: entry.data.name, // Using name as id since we're not using database ids
-            name: entry.data.name,
-            fileCount: entry.data.fileCount,
-            files: entry.data.files
-        }));
+        return success;
     }
 }
 
-// Utility Functions
-function generateFileId() {
-    return '_' + Math.random().toString(36).substr(2, 9);
-}
-
-function getFileIcon(fileName) {
-    const extension = fileName.split('.').pop().toLowerCase();
-    switch (extension) {
-        case 'pdf':
-            return 'bi-file-pdf';
-        case 'docx':
-            return 'bi-file-word';
-        case 'doc':
-            return 'bi-file-word';
-        case 'txt':
-            return 'bi-file-text';
-        default:
-            return 'bi-file';
+// Domain Card Component
+class DomainCard extends Component {
+    constructor(domainData) {
+        const element = document.createElement('div');
+        element.className = 'domain-card';
+        super(element);
+        
+        this.data = domainData;
+        this.render();
+        this.attachEventListeners();
     }
-}
 
-function preventDefaults(e) {
-    e.preventDefault();
-    e.stopPropagation();
-}
-
-// Domain Management Functions
-function createDomainCard(domain) {
-    const displayName = domain.name.length > MAX_DOMAIN_NAME_LENGTH
-        ? domain.name.substring(0, MAX_DOMAIN_NAME_LENGTH) + '...'
-        : domain.name;
-
-    return `
-        <div class="domain-card" data-domain-id="${domain.id}">
+    render() {
+        this.element.innerHTML = `
             <div class="domain-content">
                 <div class="checkbox-wrapper">
-                    <input type="checkbox" id="${domain.id}" class="domain-checkbox">
-                    <label for="${domain.id}" class="checkbox-label"></label>
+                    <input type="checkbox" id="${this.data.id}" class="domain-checkbox">
+                    <label for="${this.data.id}" class="checkbox-label"></label>
                 </div>
                 <div class="domain-info">
-                    <h6 title="${domain.name}">${displayName}</h6>
-                    <span class="file-count">${domain.fileCount} files</span>
+                    <h6 title="${this.data.name}">${this.data.name}</h6>
+                    <span class="file-count">${this.data.fileCount || 0} files</span>
                 </div>
             </div>
+        `;
+    }
+
+    attachEventListeners() {
+        const checkbox = this.element.querySelector('.domain-checkbox');
+        checkbox.addEventListener('change', () => {
+            this.events.emit('selected', {
+                id: this.data.id,
+                selected: checkbox.checked
+            });
+        });
+    }
+
+    setSelected(selected) {
+        const checkbox = this.element.querySelector('.domain-checkbox');
+        checkbox.checked = selected;
+    }
+}
+
+class DomainSettingsModal extends Component {
+    constructor() {
+        const element = document.createElement('div');
+        element.id = 'domainSelectModal';
+        element.className = 'modal fade';
+        element.setAttribute('tabindex', '-1');
+        element.setAttribute('aria-hidden', 'true');
+        super(element);
+        
+        this.domainToDelete = null;
+        this.deleteModal = null;
+        this.temporarySelectedId = null;
+        this.render();
+        this.initializeDeleteModal();
+        this.setupEventListeners();
+    }
+
+    render() {
+        this.element.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="domain-modal-wrapper">
+                        <div class="domain-header">
+                            <h5>Select Domain</h5>
+                            <button type="button" class="close-button" data-bs-dismiss="modal">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+
+                        <div class="domain-search">
+                            <i class="bi bi-search"></i>
+                            <input type="text" placeholder="Search domains..." class="domain-search-input" id="domainSearchInput">
+                        </div>
+
+                        <div class="domains-container" id="domainsContainer">
+                            <!-- Domains will be populated here -->
+                        </div>
+
+                        <button class="new-domain-button" id="newDomainBtn">
+                            <i class="bi bi-plus-circle"></i>
+                            Create New Domain
+                        </button>
+
+                        <button class="select-button">
+                            Select Domain
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Confirmation Modal -->
+            <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm">
+                    <div class="modal-content">
+                        <div class="domain-modal-wrapper text-center">
+                            <h6 class="mb-3">Delete Domain?</h6>
+                            <p class="text-secondary mb-4">Are you sure you want to delete this domain?</p>
+                            <div class="d-flex gap-3">
+                                <button class="btn btn-outline-secondary flex-grow-1" data-bs-dismiss="modal">Cancel</button>
+                                <button class="btn btn-danger flex-grow-1" id="confirmDeleteBtn">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Template for new domain input -->
+            <template id="newDomainInputTemplate">
+                <div class="domain-card new-domain-input-card">
+                    <input type="text" class="new-domain-input" placeholder="Enter domain name" autofocus>
+                    <div class="new-domain-actions">
+                        <button class="confirm-button"><i class="bi bi-check"></i></button>
+                        <button class="cancel-button"><i class="bi bi-x"></i></button>
+                    </div>
+                </div>
+            </template>
+        `;
+
+        document.body.appendChild(this.element);
+    }
+
+    setupEventListeners() {
+        // Search functionality
+        const searchInput = this.element.querySelector('#domainSearchInput');
+        searchInput?.addEventListener('input', (e) => {
+            this.events.emit('domainSearch', e.target.value);
+        });
+
+        // New domain button
+        const newDomainBtn = this.element.querySelector('#newDomainBtn');
+        newDomainBtn?.addEventListener('click', () => {
+            this.handleNewDomain();
+        });
+
+        // Select button
+        const selectButton = this.element.querySelector('.select-button');
+        selectButton?.addEventListener('click', () => {
+            if (this.temporarySelectedId) {
+                this.events.emit('domainSelected', this.temporarySelectedId);
+                this.hide();
+            }
+        });
+
+        // Close button
+        const closeButton = this.element.querySelector('.close-button');
+        closeButton?.addEventListener('click', () => {
+            this.resetTemporarySelection();
+            this.hide();
+        });
+
+        // Handle modal hidden event
+        this.element.addEventListener('hidden.bs.modal', () => {
+            this.resetTemporarySelection();
+        });
+    }
+
+    createDomainCard(domain) {
+        return `
+            <div class="domain-card" data-domain-id="${domain.id}">
+                <div class="domain-content">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="domain-${domain.id}" class="domain-checkbox">
+                        <label for="domain-${domain.id}" class="checkbox-label"></label>
+                    </div>
+                    <div class="domain-info">
+                        <h6 title="${domain.name}">${domain.name}</h6>
+                        <span class="file-count">${domain.fileCount} files</span>
+                    </div>
+                </div>
                 <div class="domain-actions">
-                <button class="edit-button">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button class="delete-button">
-                    <i class="bi bi-trash3"></i>
-                </button>
+                    <button class="edit-button">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="delete-button">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </div>
             </div>
-        </div>
-    `;
-}
-
-function initializeDomains() {
-    const domainsContainer = document.getElementById('domainsContainer');
-    if (domainsContainer) {
-        domainsContainer.innerHTML = initialDomains.map(domain => createDomainCard(domain)).join('');
-        setupEventListeners();
-    }
-}
-
-function setupEventListeners() {
-    // Domain Checkboxes
-    const checkboxes = document.querySelectorAll('.domain-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function () {
-            if (this.checked) {
-                checkboxes.forEach(cb => {
-                    if (cb !== this) cb.checked = false;
-                });
-            }
-        });
-    });
-
-    // Domain Cards
-    document.querySelectorAll('.domain-card').forEach(card => {
-        card.addEventListener('click', function (e) {
-            // Don't trigger if clicking edit or delete buttons
-            if (e.target.closest('.edit-button') || e.target.closest('.delete-button')) {
-                return;
-            }
-
-            // Don't trigger if clicking inside an input field (during edit)
-            if (e.target.closest('.domain-name-input-wrapper')) {
-                return;
-            }
-
-            const checkbox = this.querySelector('.domain-checkbox');
-            const isChecked = checkbox.checked;
-
-            // Uncheck all other checkboxes
-            document.querySelectorAll('.domain-checkbox').forEach(cb => {
-                cb.checked = false;
-            });
-
-            // Toggle this checkbox
-            checkbox.checked = !isChecked;
-        });
-    });
-
-    // Delete buttons
-    document.querySelectorAll('.delete-button').forEach(button => {
-        button.addEventListener('click', function () {
-            domainToDelete = this.closest('.domain-card');
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-            deleteModal.show();
-        });
-    });
-
-    document.querySelectorAll('.edit-button').forEach(button => {
-        button.addEventListener('click', function () {
-            const domainCard = this.closest('.domain-card');
-            const domainInfo = domainCard.querySelector('.domain-info');
-            const domainNameElement = domainInfo.querySelector('h6');
-            const currentName = domainNameElement.getAttribute('title') || domainNameElement.textContent;
-            const currentDisplay = domainNameElement.textContent;
-
-            // Create wrapper for input and buttons
-            const wrapper = document.createElement('div');
-            wrapper.className = 'domain-name-input-wrapper';
-
-            // Create input element
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'domain-name-input';
-            input.value = currentName;
-            input.maxLength = MAX_DOMAIN_NAME_LENGTH;
-
-            // Create confirm/cancel buttons container
-            const actionButtons = document.createElement('div');
-            actionButtons.className = 'domain-edit-actions';
-            actionButtons.innerHTML = `
-            <button class="edit-confirm-button" title="Confirm">
-                <i class="bi bi-check"></i>
-            </button>
-            <button class="edit-cancel-button" title="Cancel">
-                <i class="bi bi-x"></i>
-            </button>
         `;
-
-            // Add input and buttons to wrapper
-            wrapper.appendChild(input);
-            wrapper.appendChild(actionButtons);
-
-            // Replace h6 with wrapper
-            domainNameElement.replaceWith(wrapper);
-            input.focus();
-
-            function handleConfirm() {
-                const newName = input.value.trim();
-                if (newName && newName !== currentName) {
-                    const displayName = newName.length > MAX_DOMAIN_NAME_LENGTH
-                        ? newName.substring(0, MAX_DOMAIN_NAME_LENGTH) + '...'
-                        : newName;
-
-                    const newH6 = document.createElement('h6');
-                    newH6.textContent = displayName;
-                    newH6.title = newName;
-                    wrapper.replaceWith(newH6);
-
-                    // Update domain id if it was selected
-                    if (domainCard === selectedDomainCard) {
-                        const sidebarDomainText = document.querySelector('.selected-domain-text');
-                        if (sidebarDomainText) {
-                            sidebarDomainText.textContent = displayName;
-                            sidebarDomainText.title = newName;
-                        }
-                    }
-                } else {
-                    handleCancel();
-                }
-            }
-
-            function handleCancel() {
-                const newH6 = document.createElement('h6');
-                newH6.textContent = currentDisplay;
-                newH6.title = currentName;
-                wrapper.replaceWith(newH6);
-            }
-
-            // Attach event listeners
-            wrapper.querySelector('.edit-confirm-button').addEventListener('click', handleConfirm);
-            wrapper.querySelector('.edit-cancel-button').addEventListener('click', handleCancel);
-
-            // Handle enter key for confirm
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    handleConfirm();
-                }
-            });
-
-            // Handle escape key for cancel
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    handleCancel();
-                }
-            });
-
-            // Stop propagation to prevent unwanted behaviors
-            input.addEventListener('click', (e) => e.stopPropagation());
-            actionButtons.addEventListener('click', (e) => e.stopPropagation());
-        });
-    });
-}
-
-// File Management Functions
-function handleFiles(newFiles) {
-    if (isUploading) return;
-
-    const fileList = document.getElementById('fileList');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const uploadArea = document.getElementById('dropZone');
-    let duplicateFound = false;
-
-    Array.from(newFiles).forEach(file => {
-        if (uploadedFiles.has(file.name)) {
-            duplicateFound = true;
-            return;
-        }
-
-        // Store the actual File object
-        uploadedFileObjects.set(file.name, file);
-        uploadedFiles.add(file.name);
-
-        displayFileInList(file, fileList);
-    });
-
-    if (duplicateFound) {
-        alert('Some files were skipped as they were already added');
     }
 
-    updateUploadUI(fileList, uploadBtn, uploadArea);
-}
+    setupDomainCardListeners() {
+        this.element.querySelectorAll('.domain-card').forEach(card => {
+            if (card.classList.contains('new-domain-input-card')) return;
 
-function displayFileInList(file, fileList) {
-    const icon = getFileIcon(file.name);
-
-    const fileItem = document.createElement('div');
-    fileItem.className = 'file-item pending-upload';
-    fileItem.dataset.fileName = file.name;
-    fileItem.innerHTML = `
-        <div class="file-icon">
-            <i class="bi ${icon} text-primary-green"></i>
-        </div>
-        <div class="file-info">
-            <div class="file-name">${file.name}</div>
-            <div class="file-progress">
-                <div class="progress-bar"></div>
-            </div>
-        </div>
-        <div class="file-remove">
-            <i class="bi bi-trash"></i>
-        </div>
-    `;
-
-    // Add remove handler
-    const removeButton = fileItem.querySelector('.file-remove');
-    removeButton.addEventListener('click', () => {
-        if (!isUploading) {
-            uploadedFiles.delete(file.name);
-            uploadedFileObjects.delete(file.name);
-            fileItem.remove();
-            updateUploadUI(fileList, document.getElementById('uploadBtn'), document.getElementById('dropZone'));
-        }
-    });
-
-    fileList.appendChild(fileItem);
-}
-
-function updateUploadUI(fileList, uploadBtn, uploadArea) {
-    if (uploadedFiles.size > 0) {
-        uploadArea.style.display = 'none';
-        uploadBtn.disabled = false;
-        ensureAddMoreFilesButton(fileList);
-    } else {
-        uploadArea.style.display = 'flex';
-        uploadBtn.disabled = true;
-        removeAddMoreFilesButton();
-    }
-}
-
-function ensureAddMoreFilesButton(fileList) {
-    let addFileBtn = document.querySelector('.add-file-btn');
-    if (!addFileBtn) {
-        addFileBtn = document.createElement('button');
-        addFileBtn.className = 'add-file-btn';
-        addFileBtn.innerHTML = `
-            <i class="bi bi-plus-circle"></i>
-            Add More Files
-        `;
-        addFileBtn.addEventListener('click', () => {
-            if (!isUploading) {
-                document.getElementById('fileInput').click();
-            }
-        });
-        fileList.after(addFileBtn);
-    }
-    addFileBtn.disabled = isUploading;
-    addFileBtn.style.opacity = isUploading ? '0.5' : '1';
-}
-
-function removeAddMoreFilesButton() {
-    const addFileBtn = document.querySelector('.add-file-btn');
-    if (addFileBtn) {
-        addFileBtn.remove();
-    }
-}
-
-function startUpload() {
-    if (uploadedFiles.size === 0 || isUploading) return;
-
-    const fileItems = document.querySelectorAll('.file-item');
-    let completed = 0;
-    isUploading = true;
-
-    // Disable UI elements
-    const uploadBtn = document.getElementById('uploadBtn');
-    uploadBtn.disabled = true;
-
-    const addMoreFilesBtn = document.querySelector('.add-file-btn');
-    if (addMoreFilesBtn) {
-        addMoreFilesBtn.disabled = true;
-        addMoreFilesBtn.style.opacity = '0.5';
-    }
-
-    fileItems.forEach(item => {
-        item.classList.remove('pending-upload');
-        item.classList.add('uploading');
-
-        const progressBar = item.querySelector('.progress-bar');
-        const progressContainer = item.querySelector('.file-progress');
-        progressContainer.style.display = 'block';
-
-        simulateFileUpload(item, progressBar, () => {
-            completed++;
-            item.classList.remove('uploading');
-            item.classList.add('uploaded');
-
-            if (completed === fileItems.length) {
-                finishUpload();
-            }
-        });
-    });
-}
-
-function simulateFileUpload(fileItem, progressBar, onComplete) {
-    let progress = 0;
-    const interval = setInterval(() => {
-        progress += Math.random() * 30;
-        if (progress >= 100) {
-            progress = 100;
-            clearInterval(interval);
-            onComplete();
-        }
-        progressBar.style.width = `${progress}%`;
-    }, 500);
-}
-
-function finishUpload() {
-    isUploading = false;
-
-    const filesToAdd = Array.from(uploadedFileObjects.values());
-    updateSidebarFiles(filesToAdd);
-
-    // Clear upload data
-    uploadedFiles.clear();
-    uploadedFileObjects.clear();
-
-    // Close modal and clean up
-    setTimeout(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('fileUploadModal'));
-        if (modal) {
-            modal.hide();
-        }
-        document.body.classList.remove('modal-open');
-        const modalBackdrops = document.querySelectorAll('.modal-backdrop');
-        modalBackdrops.forEach(backdrop => backdrop.remove());
-    }, 500);
-}
-
-function updateFileMenuPosition() {
-    const sidebarFileList = document.getElementById('sidebarFileList');
-    const fileMenuBtn = document.querySelector('.open-file-btn');
-    const fileListContainer = document.querySelector('.file-list-container');
-    const helperText = document.querySelector('.helper-text');
-
-    if (sidebarFileList && sidebarFileList.children.length > 0) {
-        helperText.style.display = 'none';
-        helperText.style.height = '0';
-        helperText.style.margin = '0';
-        helperText.style.padding = '0';
-    } else {
-        fileListContainer.style.height = 'auto';
-        fileMenuBtn.style.position = 'static';
-        fileMenuBtn.style.width = '100%';
-    }
-}
-
-function updateSidebarFiles(files) {
-    const selectedDomain = selectedDomainCard;
-    if (!selectedDomain || !files.length) return;
-
-    const domainId = selectedDomain.dataset.domainId;
-    const sidebarFileList = document.getElementById('sidebarFileList');
-    if (!sidebarFileList) return;
-
-    // Get or create the array for this domain
-    let domainFileArray = domainFiles.get(domainId);
-    if (!domainFileArray) {
-        domainFileArray = [];
-        domainFiles.set(domainId, domainFileArray);
-    }
-
-    // Add new files to the domain's file array and display them
-    Array.from(files).forEach(file => {
-        // Store file information
-        const fileInfo = {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            lastModified: file.lastModified
-        };
-        domainFileArray.push(fileInfo);
-
-        // Display in sidebar
-        displayFileInSidebar(fileInfo, sidebarFileList, domainId);
-    });
-
-    updateFileMenuPosition();
-    updateDomainFileCount();
-}
-function displayFileInSidebar(file, sidebarFileList, domainId) {
-    const extension = file.name.split('.').pop().toLowerCase();
-    const icon = getFileIcon(extension);
-
-    const maxLength = 25;
-    let displayName = file.name;
-    if (displayName.length > maxLength) {
-        const ext = displayName.slice(displayName.lastIndexOf('.'));
-        displayName = displayName.slice(0, maxLength - ext.length - 3) + '..' + ext;
-    }
-
-    const fileItem = document.createElement('li');
-    fileItem.innerHTML = `
-        <div class="d-flex align-items-center w-100">
-    <div class="icon-container">
-        <i class="bi ${icon} file-icon sidebar-file-list-icon" style="color:#10B981"></i>
-        <button class="delete-file-btn">
-            <i class="bi bi-trash"></i>
-        </button>
-        <div class="delete-confirm-actions">
-            <button class="confirm-delete-btn" title="Confirm delete">
-                <i class="bi bi-check"></i>
-            </button>
-            <button class="cancel-delete-btn" title="Cancel delete">
-                <i class="bi bi-x"></i>
-            </button>
-        </div>
-    </div>
-    <span class="file-name" title="${file.name}">${displayName}</span>
-    <div class="checkbox-wrapper">
-        <input type="checkbox" class="file-checkbox" id="file-${generateFileId()}">
-        <label class="checkbox-label" for="file-${generateFileId()}"></label>
-    </div>
-    </div>
-    `;
-
-    // Add delete handler
-    const deleteBtn = fileItem.querySelector('.delete-file-btn');
-    const confirmActions = fileItem.querySelector('.delete-confirm-actions');
-    const confirmBtn = fileItem.querySelector('.confirm-delete-btn');
-    const cancelBtn = fileItem.querySelector('.cancel-delete-btn');
-
-    deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteBtn.classList.add('confirming');
-        confirmActions.classList.add('show');
-    });
-
-    confirmBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Remove file from domainFiles Map
-        const domainFileArray = domainFiles.get(domainId);
-        if (domainFileArray) {
-            const index = domainFileArray.findIndex(f => f.name === file.name);
-            if (index !== -1) {
-                domainFileArray.splice(index, 1);
-            }
-        }
-        fileItem.remove();
-        updateFileMenuPosition();
-        updateDomainFileCount();
-    });
-
-    cancelBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteBtn.classList.remove('confirming');
-        confirmActions.classList.remove('show');
-    });
-
-    // Close confirmation on clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.delete-file-btn') && 
-            !e.target.closest('.delete-confirm-actions')) {
-            deleteBtn.classList.remove('confirming');
-            confirmActions.classList.remove('show');
-        }
-    });
-
-    sidebarFileList.appendChild(fileItem);
-}
-function setupFileActionHandlers(fileItem) {
-    const actionDots = fileItem.querySelector('.bi-three-dots-vertical');
-    const menu = fileItem.querySelector('.action-menu');
-    const renameAction = fileItem.querySelector('.rename-action');
-    const deleteAction = fileItem.querySelector('.delete-action');
-
-    actionDots.addEventListener('click', (e) => {
-        e.stopPropagation();
-        menu.classList.toggle('show');
-    });
-
-    renameAction.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const fileName = fileItem.querySelector('.file-name');
-        const currentName = fileName.textContent;
-        const domainFileArray = domainFiles.get(domainId);
-
-        const lastDotIndex = currentName.lastIndexOf('.');
-        const nameWithoutExt = currentName.substring(0, lastDotIndex);
-        const extension = currentName.substring(lastDotIndex);
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'rename-input';
-        input.value = nameWithoutExt;
-
-        fileName.replaceWith(input);
-        input.focus();
-        menu.classList.remove('show');
-
-        function handleRename() {
-            let newName = input.value.trim();
-            if (newName) {
-                newName = newName + extension;
-                fileName.textContent = newName;
-
-                // Update file name in domainFiles
-                const fileIndex = domainFileArray.findIndex(f => f.name === currentName);
-                if (fileIndex !== -1) {
-                    domainFileArray[fileIndex].name = newName;
-                }
-            } else {
-                fileName.textContent = currentName;
-            }
-            input.replaceWith(fileName);
-        }
-
-        input.addEventListener('blur', handleRename);
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') input.blur();
-        });
-    });
-
-    deleteAction.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (confirm('Are you sure you want to delete this file?')) {
-            const fileName = fileItem.querySelector('.file-name').textContent;
-            const domainFileArray = domainFiles.get(domainId);
-
-            // Remove file from domainFiles array
-            const fileIndex = domainFileArray.findIndex(f => f.name === fileName);
-            if (fileIndex !== -1) {
-                domainFileArray.splice(fileIndex, 1);
-            }
-
-            fileItem.remove();
-            updateFileMenuPosition();
-            updateDomainFileCount();
-        }
-        menu.classList.remove('show');
-    });
-}
-function handleDomainSelection(domainCard) {
-    selectedDomainCard = domainCard;
-    const domainId = domainCard.dataset.domainId;
-    const selectedDomainName = domainCard.querySelector('h6').textContent;
-
-    // Update sidebar domain text
-    const sidebarDomainText = document.querySelector('.selected-domain-text');
-    if (sidebarDomainText) {
-        sidebarDomainText.textContent = selectedDomainName;
-        sidebarDomainText.title = selectedDomainName;
-    }
-
-    // Clear and update sidebar file list
-    const sidebarFileList = document.getElementById('sidebarFileList');
-    if (sidebarFileList) {
-        sidebarFileList.innerHTML = '';
-
-        // Get files for selected domain
-        const domainFileArray = domainFiles.get(domainId) || [];
-        domainFileArray.forEach(file => {
-            displayFileInSidebar(file, sidebarFileList, domainId);
-        });
-    }
-
-    updateFileMenuPosition();
-    updateDomainFileCount();
-}
-function finishUpload() {
-    isUploading = false;
-
-    const filesToAdd = Array.from(uploadedFileObjects.values());
-    updateSidebarFiles(filesToAdd);
-
-    // Clear upload data
-    uploadedFiles.clear();
-    uploadedFileObjects.clear();
-
-    // Close modal and clean up
-    setTimeout(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('fileUploadModal'));
-        if (modal) {
-            modal.hide();
-        }
-        document.body.classList.remove('modal-open');
-        const modalBackdrops = document.querySelectorAll('.modal-backdrop');
-        modalBackdrops.forEach(backdrop => backdrop.remove());
-    }, 500);
-}
-function updateDomainFileCount() {
-    const selectedDomain = selectedDomainCard;
-    if (!selectedDomain) return;
-
-    const domainId = selectedDomain.dataset.domainId;
-    const domainFileArray = domainFiles.get(domainId) || [];
-    const currentFileCount = domainFileArray.length;
-
-    // Update domain card file count
-    const fileCountElement = selectedDomain.querySelector('.file-count');
-    if (fileCountElement) {
-        fileCountElement.textContent = `${currentFileCount} files`;
-    }
-
-    // Update sources box count
-    const sourcesBox = document.querySelector('.sources-box');
-    if (sourcesBox) {
-        const sourcesNumber = sourcesBox.querySelector('.sources-number');
-        sourcesNumber.textContent = currentFileCount;
-        sourcesBox.setAttribute('data-count', currentFileCount);
-    }
-}
-// Event Listeners Setup
-document.addEventListener('DOMContentLoaded', function () {
-    // DOM Elements
-    const uploadBtn = document.getElementById('uploadBtn');
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('fileInput');
-    const searchInput = document.getElementById('domainSearchInput');
-    const newDomainBtn = document.getElementById('newDomainBtn');
-    const sidebarContainer = document.querySelector('.sidebar-container');
-    const menuTrigger = document.querySelector('.menu-trigger');
-    const resourcesTrigger = document.querySelector('.resources-trigger');
-    const resourcesContainer = document.querySelector('.resources-container');
-    const backdrop = document.createElement('div');
-
-    backdrop.className = 'sidebar-backdrop';
-    document.body.appendChild(backdrop);
-
-    let timeout;
-    if (resourcesTrigger && resourcesContainer) {
-        resourcesTrigger.addEventListener('click', () => {
-            resourcesContainer.classList.toggle('show');
+            const domainId = card.dataset.domainId;
+            const checkbox = card.querySelector('.domain-checkbox');
             
-            // Backdrop kontrolü
-            if (resourcesContainer.classList.contains('show')) {
-                backdrop.classList.add('show');
-                document.body.style.overflow = 'hidden';
-            } else {
-                backdrop.classList.remove('show');
-                document.body.style.overflow = '';
-            }
-        });
-
-        // Backdrop'a tıklandığında resources'ı kapat
-        backdrop.addEventListener('click', () => {
-            resourcesContainer.classList.remove('show');
-            backdrop.classList.remove('show');
-            document.body.style.overflow = '';
-        });
-
-        // Escape tuşu ile kapatma
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && resourcesContainer.classList.contains('show')) {
-                resourcesContainer.classList.remove('show');
-                backdrop.classList.remove('show');
-                document.body.style.overflow = '';
-            }
-        });
-    }
-    function toggleSidebar() {
-        sidebarContainer.classList.toggle('open');
-        backdrop.classList.toggle('show');
-        document.body.style.overflow = sidebarContainer.classList.contains('open') ? 'hidden' : '';
-    }
-
-    function showSidebar() {
-        if (window.innerWidth >= 992) {
-            clearTimeout(timeout);
-            sidebarContainer.classList.add('open');
-        }
-    }
-
-    function hideSidebar() {
-        if (window.innerWidth >= 992) {
-            timeout = setTimeout(() => {
-                if (!sidebarContainer.matches(':hover')) {
-                    sidebarContainer.classList.remove('open');
-                }
-            }, 300);
-        }
-    }
-
-    // Mobile click handler
-    menuTrigger.addEventListener('click', () => {
-        if (window.innerWidth < 992) {
-            toggleSidebar();
-        }
-    });
-
-    // Desktop hover handlers
-    if (window.innerWidth >= 992) {
-        menuTrigger.addEventListener('mouseenter', showSidebar);
-        menuTrigger.addEventListener('mouseleave', hideSidebar);
-        sidebarContainer.addEventListener('mouseenter', showSidebar);
-        sidebarContainer.addEventListener('mouseleave', hideSidebar);
-    }
-
-    // Backdrop click handler
-    backdrop.addEventListener('click', () => {
-        sidebarContainer.classList.remove('open');
-        backdrop.classList.remove('show');
-        document.body.style.overflow = '';
-    });
-
-    // Handle menu icon rotation on mobile
-    if (window.innerWidth < 992) {
-        const menuIcon = menuTrigger.querySelector('.bi-list');
-        if (menuIcon) {
-            menuTrigger.addEventListener('click', () => {
-                if (sidebarContainer.classList.contains('open')) {
-                    menuIcon.style.transform = 'rotate(45deg)';
-                } else {
-                    menuIcon.style.transform = 'rotate(0)';
+            // Handle entire card click for selection
+            card.addEventListener('click', (e) => {
+                if (!e.target.closest('.domain-actions') && !e.target.closest('.checkbox-wrapper')) {
+                    checkbox.checked = !checkbox.checked;
+                    this.handleDomainSelection(checkbox, domainId);
                 }
             });
-        }
-    }
 
-    // Update on window resize
-    window.addEventListener('resize', () => {
-        if (window.innerWidth >= 992) {
-            backdrop.classList.remove('show');
-            document.body.style.overflow = '';
-            menuTrigger.querySelector('.bi-list').style.transform = 'rotate(0)';
-        }
-    });
-    
-    // Feedback 
-    const feedbackLink = document.querySelector('.bottom-links a[href="#"]:not(.premium-link)');
-    const feedbackModal = document.getElementById('feedback-modal');
-    const closeButtons = feedbackModal.querySelectorAll('.close-modal, .btn-cancel');
-    const feedbackForm = document.getElementById('feedback-form');
+            // Handle checkbox click
+            checkbox?.addEventListener('change', (e) => {
+                e.stopPropagation();
+                this.handleDomainSelection(checkbox, domainId);
+            });
 
-    feedbackLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        feedbackModal.classList.add('show');
-        document.body.style.overflow = 'hidden';
-    });
-    
-    // Hide modal
-    function hideModal() {
-        feedbackModal.classList.remove('show');
-        document.body.style.overflow = '';
-    }
-    
-    // Close modal with buttons
-    closeButtons.forEach(button => {
-        button.addEventListener('click', hideModal);
-    });
-    
-    // Close modal when clicking outside
-    feedbackModal.addEventListener('click', (e) => {
-        if (e.target === feedbackModal) {
-            hideModal();
-        }
-    });
-    
-    // Handle form submission
-    feedbackForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        // Add your form submission logic here
-        hideModal();
-    });
+            // Delete button
+            card.querySelector('.delete-button')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.domainToDelete = domainId;
+                this.showDomainDeleteModal();
+            });
 
-    // Setup Search Functionality
-    if (searchInput) {
-        searchInput.addEventListener('input', function () {
-            const searchTerm = this.value.toLowerCase();
-            document.querySelectorAll('.domain-card:not(.new-domain-input-card)').forEach(card => {
-                const domainName = card.querySelector('h6').textContent.toLowerCase();
-                card.classList.toggle('filtered', !domainName.includes(searchTerm));
+            // Edit button
+            card.querySelector('.edit-button')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.enableDomainEditing(card);
             });
         });
     }
 
-    // Setup Domain Selection
-    document.querySelector('.select-button').addEventListener('click', function () {
-        const selectedCheckbox = document.querySelector('.domain-checkbox:checked');
-        if (selectedCheckbox) {
-            const domainCard = selectedCheckbox.closest('.domain-card');
-            handleDomainSelection(domainCard);
-            bootstrap.Modal.getInstance(document.getElementById('domainSelectModal')).hide();
-        }
-    });
-    const domainText = document.querySelector('.selected-domain-text');
-
-    if (domainText) {
-        // Add title attribute when text is truncated
-        const updateTitle = () => {
-            if (domainText.offsetWidth < domainText.scrollWidth) {
-                domainText.title = domainText.textContent;
-            } else {
-                domainText.removeAttribute('title');
+    handleDomainSelection(checkbox, domainId) {
+        // Uncheck all other checkboxes
+        this.element.querySelectorAll('.domain-checkbox').forEach(cb => {
+            if (cb !== checkbox) {
+                cb.checked = false;
             }
-        };
-
-        // Update on content change
-        const observer = new MutationObserver(updateTitle);
-        observer.observe(domainText, {
-            characterData: true,
-            childList: true,
-            subtree: true
         });
 
-        // Initial check
-        updateTitle();
+        // Update temporary selection
+        this.temporarySelectedId = checkbox.checked ? domainId : null;
     }
-    // Setup Domain Deletion
-    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-    if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener('click', function () {
-            if (domainToDelete) {
-                if (domainToDelete === selectedDomainCard) {
-                    const sidebarDomainText = document.querySelector('.bi-folder.empty-folder').nextElementSibling;
-                    if (sidebarDomainText) {
-                        sidebarDomainText.textContent = 'Select Domain';
-                    }
-                    selectedDomainCard = null;
-                }
 
-                domainToDelete.remove();
-                domainToDelete = null;
-                bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
-
-                // Clear modal backdrop
-                document.body.classList.remove('modal-open');
-                const modalBackdrops = document.querySelectorAll('.modal-backdrop');
-                modalBackdrops.forEach(backdrop => backdrop.remove());
-            }
+    resetTemporarySelection() {
+        this.temporarySelectedId = null;
+        this.element.querySelectorAll('.domain-checkbox').forEach(cb => {
+            cb.checked = false;
         });
     }
 
-    // Setup New Domain Creation
-    if (newDomainBtn) {
-        newDomainBtn.addEventListener('click', function () {
-            const templateContent = document.getElementById('newDomainInputTemplate').content.cloneNode(true);
-            const domainsContainer = document.getElementById('domainsContainer');
-            domainsContainer.appendChild(templateContent);
+    handleNewDomain() {
+        const template = document.getElementById('newDomainInputTemplate');
+        const domainsContainer = this.element.querySelector('#domainsContainer');
+        
+        if (template && domainsContainer) {
+            const clone = template.content.cloneNode(true);
+            domainsContainer.appendChild(clone);
 
             const inputCard = domainsContainer.querySelector('.new-domain-input-card');
             const input = inputCard.querySelector('.new-domain-input');
-            const confirmBtn = inputCard.querySelector('.confirm-button');
-            const cancelBtn = inputCard.querySelector('.cancel-button');
-
-            input.setAttribute('maxlength', MAX_DOMAIN_NAME_LENGTH);
-
-            if (window.innerWidth <= 350) {
-                const actionsContainer = inputCard.querySelector('.new-domain-actions');
-                actionsContainer.style.marginLeft = '8px';
-                confirmBtn.style.padding = '4px';
-                cancelBtn.style.padding = '4px';
-            }
-
+            
+            this.setupNewDomainHandlers(inputCard, input);
             input.focus();
+        }
+    }
 
-            confirmBtn.addEventListener('click', function () {
-                const name = input.value.trim();
-                if (name) {
-                    const newDomain = {
-                        id: name.toLowerCase().replace(/\s+/g, '-'),
-                        name: name,
-                        fileCount: 0
-                    };
-                    inputCard.insertAdjacentHTML('beforebegin', createDomainCard(newDomain));
+    setupNewDomainHandlers(inputCard, input) {
+        const confirmBtn = inputCard.querySelector('.confirm-button');
+        const cancelBtn = inputCard.querySelector('.cancel-button');
+    
+        const handleConfirm = async () => {
+            const name = input.value.trim();
+            if (name) {
+                if (name.length > 20) {
+                    this.events.emit('warning', 'Domain name must be less than 20 characters');
+                    return;
+                }
+    
+                const result = await window.createDomain(window.serverData.userId, name);
+                
+                if (result.success) {
+                    this.events.emit('domainCreate', {
+                        id: result.id,
+                        name: name
+                    });
                     inputCard.remove();
-                    setupEventListeners();
+                } else {
+                    this.events.emit('warning', 'Failed to create domain');
+                }
+            }
+        };
+    
+        confirmBtn.addEventListener('click', handleConfirm);
+        cancelBtn.addEventListener('click', () => inputCard.remove());
+        
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleConfirm();
+        });
+        
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') inputCard.remove();
+        });
+    }
+
+    async enableDomainEditing(card) {
+        const domainInfo = card.querySelector('.domain-info');
+        const domainNameElement = domainInfo.querySelector('h6');
+        const currentName = domainNameElement.getAttribute('title') || domainNameElement.textContent;
+        const domainId = card.dataset.domainId;
+    
+        const wrapper = document.createElement('div');
+        wrapper.className = 'domain-name-input-wrapper';
+        wrapper.innerHTML = `
+            <input type="text" class="domain-name-input" value="${currentName}" maxlength="20">
+            <div class="domain-edit-actions">
+                <button class="edit-confirm-button"><i class="bi bi-check"></i></button>
+                <button class="edit-cancel-button"><i class="bi bi-x"></i></button>
+            </div>
+        `;
+    
+        const input = wrapper.querySelector('.domain-name-input');
+        const confirmBtn = wrapper.querySelector('.edit-confirm-button');
+        const cancelBtn = wrapper.querySelector('.edit-cancel-button');
+    
+        const handleConfirm = async () => {
+            const newName = input.value.trim();
+            if (newName && newName !== currentName) {
+                if (newName.length > 20) {
+                    this.events.emit('warning', 'Domain name must be less than 20 characters');
+                    return;
+                }
+        
+                const success = await window.renameDomain(domainId, newName);
+                
+                if (success) {
+                    this.events.emit('domainEdit', {
+                        id: domainId,
+                        newName: newName
+                    });
+                    wrapper.replaceWith(domainNameElement);
+                    domainNameElement.textContent = newName;
+                    domainNameElement.setAttribute('title', newName);
+                } else {
+                    this.events.emit('warning', 'Failed to rename domain');
+                }
+            } else {
+                wrapper.replaceWith(domainNameElement);
+            }
+        };
+    
+        confirmBtn.addEventListener('click', handleConfirm);
+        cancelBtn.addEventListener('click', () => wrapper.replaceWith(domainNameElement));
+        
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleConfirm();
+        });
+        
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') wrapper.replaceWith(domainNameElement);
+        });
+    
+        domainNameElement.replaceWith(wrapper);
+        input.focus();
+        input.select();
+    }
+
+    updateDomainsList(domains) {
+        const container = this.element.querySelector('#domainsContainer');
+        if (container) {
+            container.innerHTML = domains.map(domain => this.createDomainCard(domain)).join('');
+            this.setupDomainCardListeners();
+        }
+    }
+
+    show() {
+        const modal = new bootstrap.Modal(this.element);
+        this.resetTemporarySelection();
+        modal.show();
+    }
+
+    hide() {
+        const modal = bootstrap.Modal.getInstance(this.element);
+        if (modal) {
+            modal.hide();
+        }
+    }
+
+    initializeDeleteModal() {
+        const deleteModalElement = document.getElementById('deleteConfirmModal');
+        if (deleteModalElement) {
+            this.deleteModal = new bootstrap.Modal(deleteModalElement, {
+                backdrop: 'static',
+                keyboard: false
+            });
+    
+            deleteModalElement.addEventListener('show.bs.modal', () => {
+                document.getElementById('domainSelectModal').classList.add('delete-confirmation-open');
+            });
+    
+            deleteModalElement.addEventListener('hidden.bs.modal', () => {
+                document.getElementById('domainSelectModal').classList.remove('delete-confirmation-open');
+                this.domainToDelete = null; // Clean up on hide
+            });
+    
+            const confirmBtn = deleteModalElement.querySelector('#confirmDeleteBtn');
+            confirmBtn?.addEventListener('click', async () => {
+                if (this.domainToDelete) {
+                    await this.handleDomainDelete(this.domainToDelete);
+                    this.domainToDelete = null;
+                    this.deleteModal.hide();
                 }
             });
-
-            cancelBtn.addEventListener('click', () => inputCard.remove());
-
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') confirmBtn.click();
+    
+            const cancelBtn = deleteModalElement.querySelector('.btn-outline-secondary');
+            cancelBtn?.addEventListener('click', () => {
+                this.domainToDelete = null;
+                this.deleteModal.hide();
             });
-        });
-    }
-    const userSection = document.getElementById('userProfileMenu');
-
-    if (userSection) {
-        userSection.addEventListener('click', function (e) {
-            e.stopPropagation();
-            this.classList.toggle('active');
-        });
-
-        // Close menu when clicking outside
-        document.addEventListener('click', function (e) {
-            if (!userSection.contains(e.target)) {
-                userSection.classList.remove('active');
-            }
-        });
-
-        // Handle menu items click
-        const menuItems = userSection.querySelectorAll('.menu-item');
-        menuItems.forEach(item => {
-            item.addEventListener('click', function (e) {
-                e.stopPropagation();
-                if (this.classList.contains('logout-item')) {
-                    // Handle logout
-                    console.log('Logging out...');
-                    // Add your logout logic here
-                }
-                userSection.classList.remove('active');
-            });
-        });
-    }
-    // Setup File Upload Modal
-    const openFileBtn = document.querySelector('.open-file-btn');
-    if (openFileBtn) {
-        openFileBtn.addEventListener('click', function () {
-            const selectedDomain = document.querySelector('.bi-folder.empty-folder').nextElementSibling.textContent;
-            if (selectedDomain === 'Select Domain') {
-                alert('Please select a domain first');
-                return;
-            }
-
-            const modal = new bootstrap.Modal(document.getElementById('fileUploadModal'));
-            document.querySelector('#fileUploadModal .domain-name').textContent = selectedDomain;
-
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '';
-
-            if (uploadBtn) uploadBtn.disabled = true;
-            if (dropZone) dropZone.style.display = 'flex';
-
-            uploadedFiles.clear();
-            uploadedFileObjects.clear();
-            removeAddMoreFilesButton();
-
-            modal.show();
-        });
+        }
     }
 
-    // Setup Drag and Drop
-    if (dropZone && fileInput) {
+    showDomainDeleteModal() {
+        if (this.deleteModal) {
+            this.deleteModal.show();
+        }
+    }
+
+    hideDomainDeleteModal() {
+        if (this.deleteModal) {
+            this.deleteModal.hide();
+        }
+    }
+
+    async handleDomainDelete(domainId) {
+        const success = await window.deleteDomain(domainId);
+        
+        if (success) {
+            this.events.emit('domainDelete', domainId);
+            this.hideDomainDeleteModal();
+        } else {
+            this.events.emit('warning', 'Failed to delete domain');
+        }
+    }
+}
+
+class FileUploadModal extends Component {
+    constructor() {
+        const element = document.createElement('div');
+        element.id = 'fileUploadModal';
+        element.className = 'modal fade';
+        element.setAttribute('tabindex', '-1');
+        element.setAttribute('aria-hidden', 'true');
+        super(element);
+        
+        this.isUploading = false;
+        this.fileBasket = new FileBasket();
+        
+        this.render();
+        this.setupEventListeners();
+    }
+
+    render() {
+        this.element.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="domain-modal-wrapper">
+                        <div class="modal-header border-0 d-flex align-items-center">
+                            <div>
+                                <h6 class="mb-0">Selected Domain: <span class="domain-name text-primary-green text-truncate"></span></h6>
+                            </div>
+                            <button type="button" class="close-button" data-bs-dismiss="modal">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+
+                        <div class="upload-container">
+                            <div id="fileList" class="file-list mb-3"></div>
+
+                            <div class="upload-area" id="dropZone">
+                                <div class="upload-content text-center">
+                                    <div class="upload-icon-wrapper">
+                                        <div class="upload-icon">
+                                            <i class="bi bi-cloud-upload text-primary-green"></i>
+                                        </div>
+                                    </div>
+                                    <h5 class="mb-2">Upload Files</h5>
+                                    <p class="mb-3">Drag & drop or <span class="text-primary-green choose-text">choose files</span> to upload</p>
+                                    <small class="text-secondary">Supported file types: PDF, DOCX and TXT</small>
+                                    <input type="file" id="fileInput" multiple accept=".pdf,.docx,.txt" class="d-none">
+                                </div>
+                            </div>
+
+                            <button class="upload-btn mt-3" id="uploadBtn" disabled>
+                                Upload
+                                <div class="upload-progress">
+                                    <div class="progress-bar"></div>
+                                </div>
+                            </button>
+
+                            <div class="upload-loading-overlay" style="display: none">
+                                <div class="loading-content">
+                                    <div class="spinner-border text-primary-green mb-3" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <h5 class="mb-2">Uploading Files...</h5>
+                                    <p class="text-center mb-0">Please wait while we process your files.</p>
+                                    <p class="text-center text-secondary">This might take a moment depending on file size.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(this.element);
+    }
+
+    setupEventListeners() {
+        const dropZone = this.element.querySelector('#dropZone');
+        const fileInput = this.element.querySelector('#fileInput');
+        const uploadBtn = this.element.querySelector('#uploadBtn');
+        const chooseText = this.element.querySelector('.choose-text');
+
+        // Drag and drop handlers
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
         });
 
         ['dragenter', 'dragover'].forEach(eventName => {
             dropZone.addEventListener(eventName, () => {
-                if (!isUploading) {
+                if (!this.isUploading) {
                     dropZone.classList.add('dragover');
                 }
-            }, false);
+            });
         });
 
         ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.remove('dragover');
+            });
         });
 
-        dropZone.addEventListener('drop', function (e) {
-            if (!isUploading) {
+        // File drop handler
+        dropZone.addEventListener('drop', (e) => {
+            if (!this.isUploading) {
                 const files = e.dataTransfer.files;
-                handleFiles(files);
+                this.handleFiles(files);
             }
-        }, false);
+        });
 
-        const chooseText = document.querySelector('.choose-text');
-        if (chooseText) {
-            chooseText.addEventListener('click', () => {
-                if (!isUploading) {
-                    fileInput.click();
+        // File input handler
+        chooseText.addEventListener('click', () => {
+            if (!this.isUploading) {
+                fileInput.click();
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            this.handleFiles(fileInput.files);
+        });
+
+        // Upload button handler
+        uploadBtn.addEventListener('click', () => {
+            this.startUpload();
+        });
+    }
+
+    handleFiles(newFiles) {
+        if (this.isUploading) return;
+
+        const fileList = this.element.querySelector('#fileList');
+        const uploadBtn = this.element.querySelector('#uploadBtn');
+        const uploadArea = this.element.querySelector('#dropZone');
+        
+        const result = this.fileBasket.addFiles(newFiles);
+        
+        if (result.duplicates > 0) {
+            this.events.emit('warning', `${result.duplicates} files were skipped as they were already added`);
+        }
+
+        // Update UI
+        fileList.innerHTML = '';
+        result.fileNames.forEach(fileName => {
+            const fileItem = this.createFileItem(fileName);
+            fileList.appendChild(fileItem);
+        });
+        
+        this.updateUploadUI(fileList, uploadBtn, uploadArea);
+    }
+
+    createFileItem(fileName) {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item pending-upload';
+        fileItem.dataset.fileName = fileName;
+        
+        const icon = this.getFileIcon(fileName);
+        fileItem.innerHTML = `
+            <div class="file-icon">
+                <i class="bi ${icon} text-primary-green"></i>
+            </div>
+            <div class="file-info">
+                <div class="file-name">${fileName}</div>
+                <div class="file-progress">
+                    <div class="progress-bar"></div>
+                </div>
+            </div>
+            <div class="file-remove">
+                <i class="bi bi-trash"></i>
+            </div>
+        `;
+
+        const removeButton = fileItem.querySelector('.file-remove');
+        removeButton.addEventListener('click', () => {
+            if (!this.isUploading) {
+                this.fileBasket.removeFile(fileName);
+                fileItem.remove();
+                this.updateUploadUI(
+                    this.element.querySelector('#fileList'),
+                    this.element.querySelector('#uploadBtn'),
+                    this.element.querySelector('#dropZone')
+                );
+            }
+        });
+
+        return fileItem;
+    }
+
+    setLoadingState(isLoading) {
+        const loadingOverlay = this.element.querySelector('.upload-loading-overlay');
+        const closeButton = this.element.querySelector('.close-button');
+        const uploadBtn = this.element.querySelector('#uploadBtn');
+        const modal = bootstrap.Modal.getInstance(this.element);
+    
+        if (isLoading) {
+            loadingOverlay.style.display = 'flex';
+            closeButton.style.display = 'none';
+            uploadBtn.disabled = true;
+            modal._config.backdrop = 'static';
+            modal._config.keyboard = false;
+        } else {
+            loadingOverlay.style.display = 'none';
+            closeButton.style.display = 'block';
+            uploadBtn.disabled = false;
+            modal._config.backdrop = true;
+            modal._config.keyboard = true;
+        }
+    }
+
+    async startUpload() {
+        if (!this.fileBasket.hasFilesToUpload() || this.isUploading) return;
+
+        this.isUploading = true;
+        const uploadBtn = this.element.querySelector('#uploadBtn');
+        uploadBtn.disabled = true;
+        this.setLoadingState(true); 
+        let successCount = 0;
+
+        try {
+            while (this.fileBasket.hasFilesToUpload()) {
+                const batch = this.fileBasket.getBatch();
+                const uploadPromises = batch.map(async (fileName) => {
+                    try {
+                        const result = await this.uploadFile(fileName);
+                        if (result.success) successCount++;
+                    } catch (error) {
+                        console.error(`Failed to upload ${fileName}:`, error);
+                    }
+                });
+                await Promise.all(uploadPromises);
+            }
+
+            if (successCount > 0) {
+                const uploadResult = await window.uploadFiles(window.serverData.userId);
+                
+                if (uploadResult.success) {
+                    this.events.emit('filesUploaded', uploadResult.data);
+                    this.resetUploadUI();
+                    this.events.emit('message', {
+                        text: `Successfully uploaded ${successCount} files`,
+                        type: 'success'
+                    });
+                    setTimeout(() => this.hide(), 500);
+                } else {
+                    throw new Error(uploadResult.error);
                 }
+            }
+
+        } catch (error) {
+            console.error('Upload error:', error);
+            this.events.emit('error', error.message);
+        } finally {
+            this.isUploading = false;
+            this.fileBasket.clear();
+            uploadBtn.disabled = false;
+            this.setLoadingState(false);
+        }
+    }
+
+    resetUploadUI() {
+        const fileList = this.element.querySelector('#fileList');
+        const uploadBtn = this.element.querySelector('#uploadBtn');
+        const uploadArea = this.element.querySelector('#dropZone');
+        
+        // Clear file list
+        fileList.innerHTML = '';
+        
+        // Reset upload area
+        uploadArea.style.display = 'flex';
+        uploadBtn.disabled = true;
+        
+        // Remove "Add More Files" button
+        this.removeAddMoreFilesButton();
+        
+        // Clear FileBasket
+        this.fileBasket.clear();
+    }
+
+    async uploadFile(fileName) {
+        const fileItem = this.element.querySelector(`[data-file-name="${fileName}"]`);
+        const progressBar = fileItem.querySelector('.progress-bar');
+        
+        try {
+            const formData = this.fileBasket.getFileFormData(fileName);
+            if (!formData) throw new Error('File not found');
+
+            fileItem.classList.remove('pending-upload');
+            fileItem.classList.add('uploading');
+            
+            const success = await window.storeFile(window.serverData.userId, formData);
+            
+            if (success) {
+                progressBar.style.width = '100%';
+                fileItem.classList.remove('uploading');
+                fileItem.classList.add('uploaded');
+                return { success: true };
+            } else {
+                throw new Error(result.error);
+            }
+
+        } catch (error) {
+            fileItem.classList.remove('uploading');
+            fileItem.classList.add('upload-error');
+            return { success: false, error: error.message };
+        }
+    }
+
+    getFileIcon(fileName) {
+        const extension = fileName.split('.').pop().toLowerCase();
+        const iconMap = {
+            pdf: 'bi-file-pdf',
+            docx: 'bi-file-word',
+            doc: 'bi-file-word',
+            txt: 'bi-file-text'
+        };
+        return iconMap[extension] || 'bi-file';
+    }
+
+    updateUploadUI(fileList, uploadBtn, uploadArea) {
+        if (this.fileBasket.getFileNames().length > 0) {
+            uploadArea.style.display = 'none';
+            uploadBtn.disabled = false;
+            this.ensureAddMoreFilesButton(fileList);
+        } else {
+            uploadArea.style.display = 'flex';
+            uploadBtn.disabled = true;
+            this.removeAddMoreFilesButton();
+        }
+    }
+
+    ensureAddMoreFilesButton(fileList) {
+        let addFileBtn = this.element.querySelector('.add-file-btn');
+        if (!addFileBtn) {
+            addFileBtn = document.createElement('button');
+            addFileBtn.className = 'add-file-btn';
+            addFileBtn.innerHTML = `
+                <i class="bi bi-plus-circle"></i>
+                Add More Files
+            `;
+            addFileBtn.addEventListener('click', () => {
+                if (!this.isUploading) {
+                    this.element.querySelector('#fileInput').click();
+                }
+            });
+            fileList.after(addFileBtn);
+        }
+        addFileBtn.disabled = this.isUploading;
+        addFileBtn.style.opacity = this.isUploading ? '0.5' : '1';
+    }
+
+    removeAddMoreFilesButton() {
+        const addFileBtn = this.element.querySelector('.add-file-btn');
+        if (addFileBtn) {
+            addFileBtn.remove();
+        }
+    }
+
+    show(domainName = '') {
+        const domainNameElement = this.element.querySelector('.domain-name');
+        if (domainNameElement) {
+            domainNameElement.textContent = domainName;
+        }
+        const modal = new bootstrap.Modal(this.element);
+        modal.show();
+    }
+
+    hide() {
+        const modal = bootstrap.Modal.getInstance(this.element);
+        if (modal) {
+            modal.hide();
+            this.resetUploadUI();
+        }
+    }
+}
+
+class ChatManager extends Component {
+    constructor() {
+        const element = document.querySelector('.chat-content');
+        super(element);
+        
+        this.messageContainer = this.element.querySelector('.chat-messages');
+        this.setupMessageInput();
+    }
+
+    setupMessageInput() {
+        const container = document.querySelector('.message-input-container');
+        container.innerHTML = `
+            <textarea 
+                class="message-input" 
+                placeholder="Find your answer..." 
+                rows="1"
+            ></textarea>
+            <button class="send-button">
+                <i class="bi bi-send send-icon"></i>
+            </button>
+        `;
+
+        const input = container.querySelector('.message-input');
+        const sendButton = container.querySelector('.send-button');
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.handleSendMessage(input);
+            }
+        });
+
+        sendButton.addEventListener('click', () => {
+            this.handleSendMessage(input);
+        });
+    }
+
+    async handleSendMessage(input) {
+        const message = input.value.trim();
+        if (!message) return;
+    
+        // Add user message
+        this.addMessage(message, 'user');
+        input.value = '';
+    
+        // Add loading message
+        const loadingMessage = this.addLoadingMessage();
+    
+        try {
+            const response = await window.sendMessage(message, window.serverData.userId);
+    
+            // Remove loading message
+            loadingMessage.remove();
+    
+            if (response.status === 400) {
+                this.addMessage(response.message, 'ai');
+                return;
+            }
+    
+            if (response.answer) {
+                this.addMessage(response.answer, 'ai');
+                this.updateResources(response.resources, response.resource_sentences);
+            } else {
+                this.addMessage(response.message, 'ai');
+            }
+    
+        } catch (error) {
+            loadingMessage.remove();
+            this.addMessage('Error generating message!', 'ai');
+            console.error('Error:', error);
+        }
+    }
+
+    addMessage(content, type) {
+        const message = document.createElement('div');
+        message.className = `chat-message ${type}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = `message-bubble ${type}-bubble`;
+        
+        const text = document.createElement('div');
+        text.className = 'message-text';
+        
+        if (type === 'ai') {
+            text.innerHTML = this.formatMessage(content);
+        } else {
+            text.textContent = content;
+        }
+        
+        bubble.appendChild(text);
+        message.appendChild(bubble);
+        this.messageContainer.appendChild(message);
+        this.scrollToBottom();
+        
+        return message;
+    }
+
+    addLoadingMessage() {
+        const message = document.createElement('div');
+        message.className = 'chat-message ai';
+        message.innerHTML = `
+            <div class="message-bubble ai-bubble">
+                <div class="message-text">
+                    <div class="spinner-border text-light" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        this.messageContainer.appendChild(message);
+        this.scrollToBottom();
+        return message;
+    }
+
+    formatMessage(text) {
+        return text
+            .replace(/\[header\](.*?)\[\/header\]/g, '<h4>$1</h4>')
+            .replace(/\[b\](.*?)\[\/b\]/g, '<strong>$1</strong>')
+            .replace(/\\n-\s(.*?)(?=\\n|$)/g, '<p>• $1</p>');
+    }
+
+    updateResources(resources, sentences) {
+        const container = document.querySelector('.resources-list');
+        container.innerHTML = '';
+    
+        if (!resources || !sentences || !resources.file_names?.length) {
+            return;
+        }
+    
+        sentences.forEach((sentence, index) => {
+            const item = document.createElement('div');
+            item.className = 'resource-item';
+                
+            item.innerHTML = `
+                <div class="source-info">
+                    <span class="document-name">${resources.file_names[index]}</span>
+                    <span class="page-number">
+                        <i class="bi bi-file-text"></i>
+                        Page ${resources.page_numbers[index]}
+                    </span>
+                </div>
+                <div class="content-wrapper">
+                    <div class="bullet-indicator">
+                        <div class="bullet-line"></div>
+                        <div class="bullet-number">${index + 1}</div>
+                    </div>
+                    <p class="description">${sentence}</p>
+                </div>
+            `;
+                
+            container.appendChild(item);
+        });
+    
+        // Update sources count in UI
+        const sourcesNumber = document.querySelector('.sources-number');
+        if (sourcesNumber) {
+            sourcesNumber.textContent = resources.file_names.length;
+        }
+    }
+
+    scrollToBottom() {
+        this.element.scrollTop = this.element.scrollHeight;
+    }
+}
+
+// Sidebar Component
+class Sidebar extends Component {
+    constructor(domainManager) {
+        const element = document.createElement('div');
+        element.className = 'sidebar-container';
+        super(element);
+        
+        this.domainManager = domainManager;
+        this.isOpen = false;
+        this.timeout = null;
+        this.render();
+        this.setupEventListeners();
+    }
+
+    render() {
+        this.element.innerHTML = `
+            <div class="sidebar d-flex flex-column flex-shrink-0 h-100">
+                <div class="top-header py-3 px-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-3">
+                            <h1 class="logo-text m-0 d-xl-block">ragchat</h1>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-4 py-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-folder empty-folder"></i>
+                            <span class="d-xl-block selected-domain-text">Select Domain</span>
+                        </div>
+                        <i class="bi bi-gear settings-icon"></i>
+                    </div>
+
+                    <div class="file-list-container">
+                        <div id="sidebarFileList" class="sidebar-files">
+                        </div>
+                    </div>
+                    <div class="file-add">
+                        <button class="open-file-btn">
+                            Open File Menu
+                        </button>
+                        <p class="helper-text">
+                            Select your domain and start adding files with file menu
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bottom-section mt-auto">
+                    <div class="text-center mb-3">
+                        <span class="plan-badge d-xl-block">Free Plan</span>
+                    </div>
+                    <div class="user-section d-flex align-items-center gap-3 mb-3" role="button" id="userProfileMenu">
+                        <div class="user-avatar">i</div>
+                        <div class="user-info d-xl-block">
+                            <div class="user-email">ibrahimyasing@gmail.com</div>
+                            <div class="user-status">
+                                <span class="status-dot"></span>
+                                Active
+                            </div>
+                        </div>
+                        <div class="user-menu">
+                            <div class="menu-item">
+                                <i class="bi bi-person-circle"></i>
+                                Profile
+                            </div>
+                            <div class="menu-item">
+                                <i class="bi bi-gear"></i>
+                                Settings
+                            </div>
+                            <div class="menu-divider"></div>
+                            <div class="menu-item logout-item">
+                                <i class="bi bi-box-arrow-right"></i>
+                                Logout
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bottom-links justify-content-center">
+                        <a href="#" class="premium-link">Go Premium!</a>
+                        <a href="#">Feedback</a>
+                    </div>
+                </div>
+                <div id="sidebar-seperator"></div>
+            </div>
+        `;
+
+        // Create backdrop
+        this.backdrop = document.createElement('div');
+        this.backdrop.className = 'sidebar-backdrop';
+        document.body.appendChild(this.backdrop);
+    }
+
+    setupEventListeners() {
+        // Existing event listeners
+        const settingsIcon = this.element.querySelector('.settings-icon');
+        settingsIcon.addEventListener('click', () => {
+            this.events.emit('settingsClick');
+        });
+    
+        const fileMenuBtn = this.element.querySelector('.open-file-btn');
+        fileMenuBtn.addEventListener('click', () => {
+            this.events.emit('fileMenuClick');
+        });
+    
+        this.backdrop.addEventListener('click', () => {
+            this.toggle(false);
+        });
+    
+        // Add hover handlers for desktop
+        if (window.innerWidth >= 992) {
+            // Menu trigger hover
+            const menuTrigger = document.querySelector('.menu-trigger');
+            if (menuTrigger) {
+                menuTrigger.addEventListener('mouseenter', () => {
+                    console.log('Menu trigger hover');
+                    clearTimeout(this.timeout);
+                    this.toggle(true);
+                });
+    
+                menuTrigger.addEventListener('mouseleave', () => {
+                    this.timeout = setTimeout(() => {
+                        if (!this.element.matches(':hover')) {
+                            this.toggle(false);
+                        }
+                    }, 300);
+                });
+            }
+    
+            // Sidebar hover
+            this.element.addEventListener('mouseenter', () => {
+                console.log('Sidebar hover');
+                clearTimeout(this.timeout);
+                this.toggle(true);
+            });
+    
+            this.element.addEventListener('mouseleave', () => {
+                this.timeout = setTimeout(() => {
+                    if (!document.querySelector('.menu-trigger')?.matches(':hover')) {
+                        this.toggle(false);
+                    }
+                }, 300);
+            });
+        }
+    
+        // Mobile menu trigger handler
+        this.events.on('menuTrigger', () => {
+            if (window.innerWidth < 992) {
+                const menuIcon = document.querySelector('.menu-trigger .bi-list');
+                if (menuIcon) {
+                    menuIcon.style.transform = this.isOpen ? 'rotate(0)' : 'rotate(45deg)';
+                }
+                this.toggle();
+            }
+        });
+    
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 992) {
+                this.backdrop.classList.remove('show');
+                document.body.style.overflow = '';
+                const menuIcon = document.querySelector('.menu-trigger .bi-list');
+                if (menuIcon) {
+                    menuIcon.style.transform = 'rotate(0)';
+                }
+            }
+        });
+
+        // User Profile Menu
+        const userSection = this.element.querySelector('#userProfileMenu');
+        if (userSection) {
+            userSection.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userSection.classList.toggle('active');
+            });
+
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!userSection.contains(e.target)) {
+                    userSection.classList.remove('active');
+                }
+            });
+
+            // Handle menu items
+            userSection.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (item.classList.contains('logout-item')) {
+                        // Handle logout logic here
+                        console.log('Logging out...');
+                    }
+                    userSection.classList.remove('active');
+                });
             });
         }
 
-        fileInput.addEventListener('change', function () {
-            handleFiles(this.files);
+        // Premium and Feedback links
+        const premiumLink = this.element.querySelector('.premium-link');
+        if (premiumLink) {
+            premiumLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.events.emit('premiumClick');
+            });
+        }
+
+        const feedbackLink = this.element.querySelector('.bottom-links a:not(.premium-link)');
+        if (feedbackLink) {
+            feedbackLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.events.emit('feedbackClick');
+            });
+        }
+    }
+
+    toggle(force = null) {
+        this.isOpen = force !== null ? force : !this.isOpen;
+        this.element.classList.toggle('open', this.isOpen);
+        this.backdrop.classList.toggle('show', this.isOpen);
+        document.body.style.overflow = this.isOpen ? 'hidden' : '';
+    }
+
+    updateDomainSelection(domain) {
+        const domainText = this.element.querySelector('.selected-domain-text');
+        const folderIcon = this.element.querySelector('.bi-folder');
+        
+        if (domain) {
+            domainText.textContent = domain.name;
+            domainText.title = domain.name;
+            folderIcon.classList.remove('empty-folder');
+        } else {
+            domainText.textContent = 'Select Domain';
+            domainText.removeAttribute('title');
+            folderIcon.classList.add('empty-folder');
+        }
+    }
+
+    updateFileList(files, fileIDS) {
+        const fileList = this.element.querySelector('#sidebarFileList');
+        if (!fileList) return;
+        
+        fileList.innerHTML = '';
+        
+        if (files.length > 0 && fileIDS.length > 0) {
+            files.forEach((file, index) => {
+                const fileItem = this.createFileListItem(file, fileIDS[index]);
+                
+                // Check the checkbox by default
+                const checkbox = fileItem.querySelector('.file-checkbox');
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+                
+                fileList.appendChild(fileItem);
+            });
+        }
+    
+        this.updateFileMenuVisibility();
+    }
+
+    createFileListItem(fileName, fileID) {
+        const fileItem = document.createElement('li');
+        const extension = fileName.split('.').pop().toLowerCase();
+        const icon = this.getFileIcon(extension);
+        
+        fileItem.innerHTML = `
+            <div class="d-flex align-items-center w-100">
+                <div class="icon-container">
+                    <i class="bi ${icon} file-icon sidebar-file-list-icon" style="color:#10B981"></i>
+                    <button class="delete-file-btn">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    <div class="delete-confirm-actions">
+                        <button class="confirm-delete-btn" title="Confirm delete">
+                            <i class="bi bi-check"></i>
+                        </button>
+                        <button class="cancel-delete-btn" title="Cancel delete">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+                <span class="file-name" title="${fileName}">${fileName}</span>
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" class="file-checkbox" id="file-${fileID}">
+                    <label class="checkbox-label" for="file-${fileID}"></label>
+                </div>
+            </div>
+        `;
+
+        const deleteBtn = fileItem.querySelector('.delete-file-btn');
+        const confirmActions = fileItem.querySelector('.delete-confirm-actions');
+
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Show confirmation actions
+            confirmActions.classList.add('show');
+            deleteBtn.style.display = 'none';
+        });
+    
+        // Add confirm/cancel handlers
+        const confirmBtn = fileItem.querySelector('.confirm-delete-btn');
+        const cancelBtn = fileItem.querySelector('.cancel-delete-btn');
+    
+        confirmBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const selectedDomain = this.domainManager.getSelectedDomain();
+            if (!selectedDomain) return;
+    
+            const success = await window.removeFile(fileID, selectedDomain.data.id, window.serverData.userId);
+    
+            if (success) {
+                // Remove file from UI
+                fileItem.remove();
+                
+                // Update domain file count
+                selectedDomain.data.files = selectedDomain.data.files.filter(f => f !== fileName);
+                selectedDomain.data.fileIDS = selectedDomain.data.fileIDS.filter(id => id !== fileID);
+                
+                // Update sources count
+                const sourcesCount = selectedDomain.data.files.length;
+                window.app.updateSourcesCount(sourcesCount);
+            }
+        });
+    
+        cancelBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            confirmActions.classList.remove('show');
+            deleteBtn.style.display = 'flex';
+        });
+
+        return fileItem;
+    }
+
+    hideDeleteConfirmations() {
+        this.element.querySelectorAll('.delete-confirm-actions').forEach(actions => {
+            actions.classList.remove('show');
+        });
+        this.element.querySelectorAll('.delete-file-btn').forEach(btn => {
+            btn.style.display = 'flex';
         });
     }
-    const domainNameSpan = document.querySelector('.domain-name');
 
-    if (domainNameSpan) {
-        // Add title attribute when text is truncated
-        const updateTitle = () => {
-            if (domainNameSpan.offsetWidth < domainNameSpan.scrollWidth) {
-                domainNameSpan.title = domainNameSpan.textContent;
-            } else {
-                domainNameSpan.removeAttribute('title');
-            }
+    getFileIcon(extension) {
+        const iconMap = {
+            pdf: 'bi-file-pdf',
+            docx: 'bi-file-word',
+            doc: 'bi-file-word',
+            txt: 'bi-file-text'
         };
-
-        // Update on content change
-        const observer = new MutationObserver(updateTitle);
-        observer.observe(domainNameSpan, {
-            characterData: true,
-            childList: true,
-            subtree: true
-        });
-
-        // Initial check
-        updateTitle();
+        return iconMap[extension] || 'bi-file';
     }
-    // Setup Upload Button
-    if (uploadBtn) {
-        uploadBtn.addEventListener('click', startUpload);
-    }
-    const uploadIconWrapper = document.querySelector('.upload-icon-wrapper');
-    if (uploadIconWrapper) {
-        uploadIconWrapper.addEventListener('click', () => {
-            if (!isUploading) {
-                document.getElementById('fileInput').click();
-            }
-        });
-    }
-    const documentNames = document.querySelectorAll('.document-name');
 
-    documentNames.forEach(docName => {
-        const fullText = docName.textContent;
-        const lastDotIndex = fullText.lastIndexOf('.');
+    updateFileMenuVisibility() {
+        const fileList = this.element.querySelector('#sidebarFileList');
+        const helperText = this.element.querySelector('.helper-text');
+        const fileMenuBtn = this.element.querySelector('.open-file-btn');
+        const fileListContainer = this.element.querySelector('.file-list-container');
 
-        if (lastDotIndex !== -1) {
-            const nameWithoutExt = fullText.substring(0, lastDotIndex);
-            const extension = fullText.substring(lastDotIndex);
-
-            // Maximum length for the name part (adjust as needed)
-            const maxLength = 40;
-
-            if (nameWithoutExt.length > maxLength) {
-                const truncatedName = nameWithoutExt.substring(0, maxLength) + '...' + extension;
-                docName.textContent = truncatedName;
-                docName.title = fullText; // Show full name on hover
-            }
+        if (fileList.children.length > 0) {
+            helperText.style.display = 'none';
+            helperText.style.height = '0';
+            helperText.style.margin = '0';
+            helperText.style.padding = '0';
+        } else {
+            fileListContainer.style.height = 'auto';
+            fileMenuBtn.style.position = 'static';
+            fileMenuBtn.style.width = '100%';
         }
-    });
-    // Setup Menu Button
-    // Setup Settings Icon
-    const settingsIcon = document.querySelector('.settings-icon');
-    if (settingsIcon) {
-        settingsIcon.addEventListener('click', function () {
-            const modal = new bootstrap.Modal(document.getElementById('domainSelectModal'));
-            modal.show();
+    }
+
+    
+}
+
+// Feedback Modal Component
+class FeedbackModal extends Component {
+    constructor() {
+        const element = document.createElement('div');
+        element.id = 'feedback-modal';
+        element.className = 'feedback-modal';
+        super(element);
+        
+        this.render();
+        this.setupEventListeners();
+    }
+
+    render() {
+        this.element.innerHTML = `
+            <div class="feedback-modal-content">
+                <div class="feedback-modal-header">
+                    <h3>Send Feedback</h3>
+                    <button class="close-modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="feedback-modal-description">
+                    <p>Your feedback really helps us get better!</p>
+                    <p>Please follow these steps:</p>
+                    <ol>
+                        <li>Select the type of your feedback</li>
+                        <li>Add your description</li>
+                        <li>If it helps explain better, attach a screenshot</li>
+                    </ol>
+                </div>
+                <div class="feedback-modal-body">
+                    <form id="feedback-form" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="feedback-type">Type</label>
+                            <select id="feedback-type" name="feedback_type" class="form-control">
+                                <option value="general">General Feedback</option>
+                                <option value="bug">Bug Report</option>
+                                <option value="feature">Feature Request</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="feedback-description">Description</label>
+                            <textarea 
+                                id="feedback-description"
+                                name="feedback_description"
+                                class="form-control" 
+                                rows="4" 
+                                placeholder="Please describe your feedback or issue..."
+                            ></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="feedback-screenshot">Screenshot (Optional)</label>
+                            <input 
+                                type="file" 
+                                id="feedback-screenshot"
+                                name="feedback_screenshot"
+                                class="form-control" 
+                                accept="image/*"
+                            >
+                            <small class="form-text">Max size: 2MB</small>
+                        </div>
+                        <div class="feedback-modal-footer">
+                            <button type="button" class="btn-cancel close-modal">Cancel</button>
+                            <button type="submit" class="btn-submit">Submit Feedback</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(this.element);
+    }
+
+    setupEventListeners() {
+        // DOM Event Handlers
+        const closeButtons = this.element.querySelectorAll('.close-modal');
+        closeButtons.forEach(button => {
+            button.addEventListener('click', () => this.hide());
+        });
+    
+        this.element.addEventListener('click', (e) => {
+            if (e.target === this.element) {
+                this.hide();
+            }
+        });
+    
+        const form = this.element.querySelector('#feedback-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.handleSubmit(e);
+        });
+    
+        const screenshotInput = this.element.querySelector('#feedback-screenshot');
+        screenshotInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.size > 2 * 1024 * 1024) {
+                alert('File size must be less than 2MB');
+                e.target.value = '';
+            }
         });
     }
-    // Alert Message For Premium Button
-    const premiumLink = document.querySelector('.premium-link');
-    const premiumAlert = document.getElementById('premiumAlert');
-    const alertButton = premiumAlert.querySelector('.alert-button');
 
-    premiumLink.addEventListener('click', function (e) {
-        e.preventDefault();
-        premiumAlert.classList.add('show');
+    async handleSubmit(e) {
+        const form = e.target;
+        const submitButton = form.querySelector('.btn-submit');
+        submitButton.disabled = true;
+
+        try {
+            const formData = new FormData(form);
+            const userID = 'current-user-id'; // This should come from app state
+
+            const response = await fetch(`/api/v1/db/insert_feedback?userID=${encodeURIComponent(userID)}`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to submit feedback');
+            }
+
+            this.hide();
+            // Emit success event for parent components to handle
+            this.events.emit('feedbackSubmitted', 'Thank you for your feedback!');
+
+        } catch (error) {
+            console.error('Error submitting feedback:', error);
+            this.events.emit('feedbackError', 'Failed to submit feedback. Please try again.');
+        } finally {
+            submitButton.disabled = false;
+            form.reset();
+        }
+    }
+
+    show() {
+        this.element.classList.add('show');
         document.body.style.overflow = 'hidden';
-    });
+    }
 
-    alertButton.addEventListener('click', function () {
-        premiumAlert.classList.remove('show');
+    hide() {
+        this.element.classList.remove('show');
         document.body.style.overflow = '';
-    });
+        // Reset form
+        this.element.querySelector('#feedback-form').reset();
+    }
+}
 
-    premiumAlert.addEventListener('click', function (e) {
-        if (e.target === premiumAlert) {
-            premiumAlert.classList.remove('show');
-            document.body.style.overflow = '';
-        }
-    });
-    // Global click handler for closing action menus
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.file-actions')) {
-        }
-    });
+// Application
+class App {
+    constructor() {
+        this.domainManager = new DomainManager();
+        this.sidebar = new Sidebar(this.domainManager);
+        this.feedbackModal = new FeedbackModal();
+        this.domainSettingsModal = new DomainSettingsModal();
+        this.fileUploadModal = new FileUploadModal();
+        this.events = new EventEmitter();
+        this.userData = null;
+        this.sourcesCount = 0;
+        this.sourcesBox = document.querySelector('.sources-box');
+        this.sourcesNumber = document.querySelector('.sources-number');
+        this.chatManager = new ChatManager();
+        
+        this.setupEventListeners();
+    }
 
-    // Initialize domains
-    initializeDomains();
+    updateUserInterface() {
+        // Update user section in sidebar
+        const userEmail = this.sidebar.element.querySelector('.user-email');
+        const userAvatar = this.sidebar.element.querySelector('.user-avatar');
+        
+        userEmail.textContent = this.userData.user_info.user_email;
+        userAvatar.textContent = this.userData.user_info.user_name[0].toUpperCase();
+    }
+
+    updateSourcesCount(count) {
+        this.sourcesCount = count;
+        if (this.sourcesNumber) {
+            this.sourcesNumber.textContent = count;
+            this.sourcesBox.setAttribute('count', count);
+        }
+    }
+
+    setupEventListeners() {
+        // Sidebar events
+        this.sidebar.events.on('settingsClick', () => {
+            this.domainSettingsModal.show();
+        });
+
+        this.sidebar.events.on('fileMenuClick', () => {
+            const selectedDomain = this.domainManager.getSelectedDomain();
+            if (!selectedDomain) {
+                this.events.emit('warning', 'Please select a domain first');
+                return;
+            }
+            this.fileUploadModal.show(selectedDomain.data.name);
+        });
+
+        this.sidebar.events.on('feedbackClick', () => {
+            this.feedbackModal.show();
+        });
+
+        // Domain Settings Modal events
+        this.domainSettingsModal.events.on('domainCreate', async (domainData) => {
+            const domainCard = this.domainManager.addDomain({
+                id: domainData.id,
+                name: domainData.name
+            });
+        
+            // Update the domains list in the modal
+            this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());
+            
+            this.events.emit('message', {
+                text: `Successfully created domain ${domainData.name}`,
+                type: 'success'
+            });
+        });
+
+        this.domainSettingsModal.events.on('domainSearch', (searchTerm) => {
+            const filteredDomains = this.domainManager.searchDomains(searchTerm);
+            this.domainSettingsModal.updateDomainsList(filteredDomains);
+        });
+
+        this.domainSettingsModal.events.on('domainSelected', async (domainId) => {
+            try {
+                const success = await window.selectDomain(domainId, window.serverData.userId);
+                
+                if (success) {
+                    const domain = this.domainManager.getDomain(domainId);
+                    if (!domain) return;
+        
+                    // Update domain manager state and UI
+                    this.domainManager.selectDomain(domainId);
+                    this.sidebar.updateDomainSelection(domain.data);
+                    
+                    const files = domain.data.files || [];
+                    const fileIDS = domain.data.fileIDS || [];
+                    this.sidebar.updateFileList(files, fileIDS);
+                    
+                    // Update sources count
+                    this.updateSourcesCount(files.length);
+                    
+                    this.events.emit('message', {
+                        text: `Successfully switched to domain ${domain.data.name}`,
+                        type: 'success'
+                    });
+                }
+            } catch (error) {
+                this.events.emit('message', {
+                    text: 'Failed to select domain',
+                    type: 'error'
+                });
+            }
+        });
+
+        const selectButton = this.domainSettingsModal.element.querySelector('.select-button');
+        selectButton?.addEventListener('click', () => {
+            const selectedCheckbox = this.domainSettingsModal.element.querySelector('.domain-checkbox:checked');
+            if (selectedCheckbox) {
+                const domainCard = selectedCheckbox.closest('.domain-card');
+                const domainId = domainCard.dataset.domainId;
+                this.domainSettingsModal.events.emit('domainSelected', domainId);
+            }
+        });
+
+        this.domainSettingsModal.events.on('domainEdit', async ({ id, newName }) => {
+            const success = this.domainManager.renameDomain(id, newName);
+            if (success) {
+                // If this is the currently selected domain, update the sidebar
+                const selectedDomain = this.domainManager.getSelectedDomain();
+                if (selectedDomain && selectedDomain.data.id === id) {
+                    this.sidebar.updateDomainSelection(selectedDomain.data);
+                }
+                
+                // Update the domains list in the modal
+                this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());
+                
+                this.events.emit('message', {
+                    text: `Successfully renamed domain to ${newName}`,
+                    type: 'success'
+                });
+            }
+        });
+        
+        this.domainSettingsModal.events.on('warning', (message) => {
+            this.events.emit('message', {
+                text: message,
+                type: 'warning'
+            });
+        });
+
+        this.domainSettingsModal.events.on('domainDelete', async (domainId) => {
+            const wasSelected = this.domainManager.getSelectedDomain()?.data.id === domainId;
+            
+            if (this.domainManager.deleteDomain(domainId)) {
+                if (wasSelected) {
+                    // Reset sidebar to default state
+                    this.sidebar.updateDomainSelection(null);
+                    this.sidebar.updateFileList([], []);
+                    // Reset sources count
+                    this.updateSourcesCount(0);
+                }
+                
+                this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());
+                
+                this.events.emit('message', {
+                    text: 'Domain successfully deleted',
+                    type: 'success'
+                });
+            }
+        });
+
+        // File Upload Modal events
+        this.fileUploadModal.events.on('filesUploaded', (data) => {
+            const selectedDomain = this.domainManager.getSelectedDomain();
+            if (selectedDomain) {
+                // Access the nested data object
+                selectedDomain.data.files = data.file_names;
+                selectedDomain.data.fileIDS = data.file_ids;
+                this.sidebar.updateFileList(data.file_names, data.file_ids);
+                this.updateSourcesCount(data.file_names.length);
+            }
+        });
+
+        this.fileUploadModal.events.on('warning', (message) => {
+            this.events.emit('message', {
+                text: message,
+                type: 'warning'
+            });
+        });
+
+        this.fileUploadModal.events.on('error', (message) => {
+            this.events.emit('message', {
+                text: message,
+                type: 'error'
+            });
+        });
+
+        // Feedback Modal events
+        this.feedbackModal.events.on('feedbackSubmitted', (message) => {
+            console.log(message);
+        });
+    
+        this.feedbackModal.events.on('feedbackError', (error) => {
+            console.error(error);
+        });
+        
+    }
+
+    // In App class initialization
+    async init() {
+        // Initialize
+        await window.checkVersion();
+        this.userData = await window.fetchUserInfo(window.serverData.userId);
+        if (!this.userData) {
+            throw new Error('Failed to load user data');
+        }
+
+        // Update user interface with user data
+        this.updateUserInterface()
+
+        // Store domain data
+        Object.keys(this.userData.domain_info).forEach(key => {
+            const domainData = this.userData.domain_info[key];
+            const domain = {
+              id: key,
+              name: domainData.domain_name,
+              fileCount: domainData.file_names.length,
+              files: domainData.file_names,
+              fileIDS: domainData.file_ids
+            };
+            this.domainManager.addDomain(domain);
+          });
+
+        // Update UI with domain data
+        this.domainSettingsModal.updateDomainsList(
+            this.domainManager.getAllDomains()
+        );
+
+        // Add sidebar to DOM
+        document.body.appendChild(this.sidebar.element);
+
+        // Setup menu trigger
+        const menuTrigger = document.querySelector('.menu-trigger');
+        if (menuTrigger) {
+            menuTrigger.addEventListener('click', () => {
+                this.sidebar.events.emit('menuTrigger');
+            });
+        }
+    }
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    window.app = new App();
+    window.app.init();
 });
