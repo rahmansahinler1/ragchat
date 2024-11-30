@@ -719,8 +719,8 @@ class FileUploadModal extends Component {
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
                                     <h5 class="mb-2">Uploading Files...</h5>
-                                    <p class="text-center mb-0">Please wait while we process your files.</p>
-                                    <p class="text-center text-secondary">This might take a moment depending on file size.</p>
+                                    <p class="text-center mb-0">Please wait for ragchat to process your files</p>
+                                    <p class="text-center text-secondary">This might take a moment depending on file size</p>
                                 </div>
                             </div>
                         </div>
@@ -1167,10 +1167,26 @@ class ChatManager extends Component {
     }
 
     formatMessage(text) {
-        return text
-            .replace(/\[header\](.*?)\[\/header\]/g, '<h4>$1</h4>')
-            .replace(/\[b\](.*?)\[\/b\]/g, '<strong>$1</strong>')
-            .replace(/\\n-\s(.*?)(?=\\n|$)/g, '<p>• $1</p>');
+        // First process headers with proper styling
+        let formattedText = text.replace(/\[header\](.*?)\[\/header\]/g, '<div class="message-header">$1</div>');
+        
+        // Process bold terms
+        formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong class="message-bold">$1</strong>');
+        
+        // Process substances (dashed items)
+        formattedText = formattedText.replace(/--\s*(.*?)(?=\n|$)/g, '<span class="message-substance">• $1</span>');
+        
+        // Process bullet points with proper indentation
+        formattedText = formattedText.replace(/\n-\s+/g, '\n<div class="message-bullet">• ');
+        formattedText = formattedText.replace(/(?<=• .*)\n/g, '</div>\n');
+        
+        // Handle nested bullet points (indentation)
+        formattedText = formattedText.replace(/\n\s{2}-\s+/g, '\n<div class="message-bullet message-bullet-nested">• ');
+        
+        // Convert new lines to breaks for proper spacing
+        formattedText = formattedText.replace(/\n/g, '<br>');
+        
+        return `<div class="message-content">${formattedText}</div>`;
     }
 
     updateResources(resources, sentences) {

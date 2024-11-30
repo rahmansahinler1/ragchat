@@ -118,22 +118,20 @@ class ChatbotFunctions:
             Yanıtta güven katsayısını belirtmeyin.
                                    
             *Kesinlikle* aşağıdaki formatta yanıt verin:
-            Çıkarılan Bilgiler:
-            
-            [header]Bölüm Adı[/header]  
-            \n- İçerik, gerektiğinde [b]kalın terimler[/b] ile  
 
-            [header]Bir Başka Bölüm[/header]  
-            \n- Daha fazla içerik, [b]önemli terimler[/b] ile  
+            [header]Bölüm Adı[/header]  
+            İçerik, gerektiğinde [b]kalın terimler[/b] ile
+            --madde eğer gerekliyse (ekstra satır başı olmadan)
+            [header]Başka Bir Bölüm Adı[/header]  
+            İçerik, gerektiğinde [b]kalın terimler[/b] ile
+            --madde eğer gerekliyse (ekstra satır başı olmadan)
 
             Kurallar:  
             1. Her ana bölüm [header]...[/header] ile başlamalıdır  
             2. İçerikte önemli terimler veya vurgular için [b]...[/b] kullanın  
-            3. Her madde işareti \n- ile başlamalıdır  
-            4. Bölümler arasında bir boş satır bırakın (\n\n)  
-            5. Başlıklar şu kategorilerden biri olmalıdır: Tanım, Amaç, Temel Özellikler, İşleyiş, Bağlam vb.
-            
-            Güven Seviyesi: [Yüksek/Orta/Düşük]
+            3. Başlıklar şu kategorilerden biri olmalıdır: Tanım, Amaç, Temel Özellikler, İşleyiş, Bağlam
+            4. Maddeler arasında ekstra olarak satır başı kullanmayın
+            5. Sadece ana bölümler arasında satır başı kullanın
 
             Bağlam Pencereleri:
             {context}
@@ -162,25 +160,23 @@ class ChatbotFunctions:
             Prioritize clarity and conciseness. Use subheadings or categories for complex queries.
             If the required information is not found in the context, state this clearly and offer suggestions or clarifications if possible.
             Do not specify the confidence coefficient in response.
+            Do not mention about the 'context windows'. 'Use according to resources' instead.
 
             Respond *strictly* in the following format:
 
-            Extracted Information: 
-
             [header]Section Name[/header]
-            \n- Content with [b]bold terms[/b] when needed
-
-            [header]Another Section[/header]
-            \n- More content with [b]important terms[/b]
+            Content with [bold]bold terms[/bold] when needed
+            --substance when needed (without extra line breaks)
+            [header]Another Section Name[/header]
+            Content with [bold]bold terms[/bold] when needed
+            --substance when needed (without extra line breaks)
 
             Rules:
             1. Each major section must start with [header]...[/header]
-            2. Use [b]...[/b] for important terms or emphasis within content
-            3. Each point starts with \n- 
-            4. Leave an empty line between sections (\n\n)
-            5. Headers should be one of: Definition, Purpose, Key Features, Operation, Context, etc.
-
-            Confidence Level: [High/Medium/Low]                                 
+            2. Use [bold]...[/bold] for important terms or emphasis within content
+            3. Headers should be one of: Definition, Purpose, Key Features, Operation, Context
+            4. Do not add extra line breaks between substances
+            5. Only use line breaks between major sections                          
                                    
             Context Windows:
             {context}

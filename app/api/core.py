@@ -116,7 +116,7 @@ class Processor:
                     if sentence_index == table_index:
                         table_text = f"{domain_content[table_index][0]}"
                         context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sorted_sentence_indexes)-i+1)/len(sorted_sentence_indexes)}, Table\n{table_text}\n"
-                        context_windows.append(f"{i + 1}: Table\n{table_text}")
+                        context_windows.append(table_text)
                         table_indexes.remove(table_index)
                         break
             if table_chunk_amount == len(table_indexes):
@@ -129,7 +129,7 @@ class Processor:
                 )
                 if widen_sentence:
                     context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sorted_sentence_indexes)-i)/len(sorted_sentence_indexes)}, {widen_sentence}\n\n"
-                    context_windows.append(f"{i+1}: {widen_sentence}")
+                    context_windows.append(widen_sentence)
 
         answer = self.cf.response_generation(query=user_query, context=context)
 
