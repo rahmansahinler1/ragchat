@@ -100,7 +100,7 @@ class Processor:
                     sentence_index=sentence_index,
                     domain_content=domain_content,
                     header_indexes=boost_info["header_indexes"],
-                    widened_indexes=widened_indexes
+                    widened_indexes=widened_indexes,
                 )
                 if widen_sentence:
                     context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sorted_sentence_indexes)-i)/len(sorted_sentence_indexes)}, {widen_sentence}\n\n"
@@ -113,7 +113,7 @@ class Processor:
     def query_preprocessing(self, user_query):
         generated_queries = self.cf.query_generation(query=user_query).split("\n")
 
-        if generated_queries:
+        if len(generated_queries) > 1:
             return generated_queries
         return None
 
@@ -152,35 +152,62 @@ class Processor:
             return boost_array
 
     def _wide_sentences(
-        self, window_size: int, sentence_index: int, domain_content: List[tuple], header_indexes: list, widened_indexes: list
+        self,
+        window_size: int,
+        sentence_index: int,
+        domain_content: List[tuple],
+        header_indexes: list,
+        widened_indexes: list,
     ):
         start = max(0, sentence_index - window_size)
         end = min(len(domain_content) - 1, sentence_index + window_size)
 
         if not header_indexes:
-                return " ".join(domain_content[index][0] for index in range(start,end))
+            return " ".join(domain_content[index][0] for index in range(start, end))
 
         for i, current_header in enumerate(header_indexes):
             if sentence_index == current_header:
                 start = max(0, sentence_index)
-                if i + 1 < len(header_indexes) and abs(sentence_index - header_indexes[i+1]) <= 15 and abs(sentence_index - header_indexes[i+1]) > 4:
-                    end = min(len(domain_content) - 1, header_indexes[i+1])
+                if (
+                    i + 1 < len(header_indexes)
+                    and abs(sentence_index - header_indexes[i + 1]) <= 15
+                    and abs(sentence_index - header_indexes[i + 1]) > 4
+                ):
+                    end = min(len(domain_content) - 1, header_indexes[i + 1])
                 else:
                     end = min(len(domain_content) - 1, sentence_index + window_size)
                 break
-            elif i + 1 < len(header_indexes) and current_header < sentence_index < header_indexes[i+1]:
-                start = (current_header if abs(sentence_index - current_header) <= 15 and abs(sentence_index - current_header) > 4 else max(0, sentence_index - window_size))
-                end = (header_indexes[i+1] if abs(header_indexes[i+1] - sentence_index) <= 15 and abs(header_indexes[i+1] - sentence_index) > 4 else min(len(domain_content) - 1, sentence_index + window_size))
+            elif (
+                i + 1 < len(header_indexes)
+                and current_header < sentence_index < header_indexes[i + 1]
+            ):
+                start = (
+                    current_header
+                    if abs(sentence_index - current_header) <= 15
+                    and abs(sentence_index - current_header) > 4
+                    else max(0, sentence_index - window_size)
+                )
+                end = (
+                    header_indexes[i + 1]
+                    if abs(header_indexes[i + 1] - sentence_index) <= 15
+                    and abs(header_indexes[i + 1] - sentence_index) > 4
+                    else min(len(domain_content) - 1, sentence_index + window_size)
+                )
                 break
             elif i == len(header_indexes) - 1 and current_header >= sentence_index:
-                start = (max(0, sentence_index) if abs(current_header - sentence_index) <= 15 and abs(current_header - sentence_index) > 4 else max(0, sentence_index - window_size))
+                start = (
+                    max(0, sentence_index)
+                    if abs(current_header - sentence_index) <= 15
+                    and abs(current_header - sentence_index) > 4
+                    else max(0, sentence_index - window_size)
+                )
                 end = min(len(domain_content) - 1, sentence_index + window_size)
                 break
 
-        if (start,end) not in widened_indexes:
+        if (start, end) not in widened_indexes:
             widened_indexes.append((start, end))
             try:
-                return " ".join(domain_content[index][0] for index in range(start,end))
+                return " ".join(domain_content[index][0] for index in range(start, end))
             except Exception:
                 return ""
 

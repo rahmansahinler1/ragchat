@@ -196,8 +196,8 @@ async def generate_answer(
         user_message = data.get("user_message")
 
         # Check if domain is selected
-        selected_domain = redis_manager.get_data(f"user:{userID}:selected_domain")
-        if not selected_domain:
+        selected_domain_id = redis_manager.get_data(f"user:{userID}:selected_domain")
+        if not selected_domain_id:
             return JSONResponse(
                 content={"message": "Please select a domain first"},
                 status_code=400,

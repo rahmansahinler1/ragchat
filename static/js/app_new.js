@@ -35,48 +35,8 @@ class Component {
     }
 }
 
-// Domain Card Component
-class DomainCard extends Component {
-    constructor(domainData) {
-        const element = document.createElement('div');
-        element.className = 'domain-card';
-        super(element);
-        
-        this.data = domainData;
-        this.render();
-        this.attachEventListeners();
-    }
 
-    render() {
-        this.element.innerHTML = `
-            <div class="domain-content">
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" id="${this.data.id}" class="domain-checkbox">
-                    <label for="${this.data.id}" class="checkbox-label"></label>
-                </div>
-                <div class="domain-info">
-                    <h6 title="${this.data.name}">${this.data.name}</h6>
-                    <span class="file-count">${this.data.fileCount || 0} files</span>
-                </div>
-            </div>
-        `;
-    }
 
-    attachEventListeners() {
-        const checkbox = this.element.querySelector('.domain-checkbox');
-        checkbox.addEventListener('change', () => {
-            this.events.emit('selected', {
-                id: this.data.id,
-                selected: checkbox.checked
-            });
-        });
-    }
-
-    setSelected(selected) {
-        const checkbox = this.element.querySelector('.domain-checkbox');
-        checkbox.checked = selected;
-    }
-}
 
 class FileBasket {
     constructor() {
@@ -265,6 +225,49 @@ class DomainManager {
             this.selectedDomainId = null;
         }
         return success;
+    }
+}
+
+// Domain Card Component
+class DomainCard extends Component {
+    constructor(domainData) {
+        const element = document.createElement('div');
+        element.className = 'domain-card';
+        super(element);
+        
+        this.data = domainData;
+        this.render();
+        this.attachEventListeners();
+    }
+
+    render() {
+        this.element.innerHTML = `
+            <div class="domain-content">
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" id="${this.data.id}" class="domain-checkbox">
+                    <label for="${this.data.id}" class="checkbox-label"></label>
+                </div>
+                <div class="domain-info">
+                    <h6 title="${this.data.name}">${this.data.name}</h6>
+                    <span class="file-count">${this.data.fileCount || 0} files</span>
+                </div>
+            </div>
+        `;
+    }
+
+    attachEventListeners() {
+        const checkbox = this.element.querySelector('.domain-checkbox');
+        checkbox.addEventListener('change', () => {
+            this.events.emit('selected', {
+                id: this.data.id,
+                selected: checkbox.checked
+            });
+        });
+    }
+
+    setSelected(selected) {
+        const checkbox = this.element.querySelector('.domain-checkbox');
+        checkbox.checked = selected;
     }
 }
 
@@ -1032,6 +1035,171 @@ class FileUploadModal extends Component {
     }
 }
 
+class ChatManager extends Component {
+    constructor() {
+        const element = document.querySelector('.chat-content');
+        super(element);
+        
+        this.messageContainer = this.element.querySelector('.chat-messages');
+        this.setupMessageInput();
+    }
+
+    setupMessageInput() {
+        const container = document.querySelector('.message-input-container');
+        container.innerHTML = `
+            <textarea 
+                class="message-input" 
+                placeholder="Find your answer..." 
+                rows="1"
+            ></textarea>
+            <button class="send-button">
+                <i class="bi bi-send send-icon"></i>
+            </button>
+        `;
+
+        const input = container.querySelector('.message-input');
+        const sendButton = container.querySelector('.send-button');
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.handleSendMessage(input);
+            }
+        });
+
+        sendButton.addEventListener('click', () => {
+            this.handleSendMessage(input);
+        });
+    }
+
+    async handleSendMessage(input) {
+        const message = input.value.trim();
+        if (!message) return;
+    
+        // Add user message
+        this.addMessage(message, 'user');
+        input.value = '';
+    
+        // Add loading message
+        const loadingMessage = this.addLoadingMessage();
+    
+        try {
+            const response = await window.sendMessage(message, window.serverData.userId);
+    
+            // Remove loading message
+            loadingMessage.remove();
+    
+            if (response.status === 400) {
+                this.addMessage(response.message, 'ai');
+                return;
+            }
+    
+            if (response.answer) {
+                this.addMessage(response.answer, 'ai');
+                this.updateResources(response.resources, response.resource_sentences);
+            } else {
+                this.addMessage(response.message, 'ai');
+            }
+    
+        } catch (error) {
+            loadingMessage.remove();
+            this.addMessage('Error generating message!', 'ai');
+            console.error('Error:', error);
+        }
+    }
+
+    addMessage(content, type) {
+        const message = document.createElement('div');
+        message.className = `chat-message ${type}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = `message-bubble ${type}-bubble`;
+        
+        const text = document.createElement('div');
+        text.className = 'message-text';
+        
+        if (type === 'ai') {
+            text.innerHTML = this.formatMessage(content);
+        } else {
+            text.textContent = content;
+        }
+        
+        bubble.appendChild(text);
+        message.appendChild(bubble);
+        this.messageContainer.appendChild(message);
+        this.scrollToBottom();
+        
+        return message;
+    }
+
+    addLoadingMessage() {
+        const message = document.createElement('div');
+        message.className = 'chat-message ai';
+        message.innerHTML = `
+            <div class="message-bubble ai-bubble">
+                <div class="message-text">
+                    <div class="spinner-border text-light" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        this.messageContainer.appendChild(message);
+        this.scrollToBottom();
+        return message;
+    }
+
+    formatMessage(text) {
+        return text
+            .replace(/\[header\](.*?)\[\/header\]/g, '<h4>$1</h4>')
+            .replace(/\[b\](.*?)\[\/b\]/g, '<strong>$1</strong>')
+            .replace(/\\n-\s(.*?)(?=\\n|$)/g, '<p>• $1</p>');
+    }
+
+    updateResources(resources, sentences) {
+        const container = document.querySelector('.resources-list');
+        container.innerHTML = '';
+    
+        if (!resources || !sentences || !resources.file_names?.length) {
+            return;
+        }
+    
+        sentences.forEach((sentence, index) => {
+            const item = document.createElement('div');
+            item.className = 'resource-item';
+                
+            item.innerHTML = `
+                <div class="source-info">
+                    <span class="document-name">${resources.file_names[index]}</span>
+                    <span class="page-number">
+                        <i class="bi bi-file-text"></i>
+                        Page ${resources.page_numbers[index]}
+                    </span>
+                </div>
+                <div class="content-wrapper">
+                    <div class="bullet-indicator">
+                        <div class="bullet-line"></div>
+                        <div class="bullet-number">${index + 1}</div>
+                    </div>
+                    <p class="description">${sentence}</p>
+                </div>
+            `;
+                
+            container.appendChild(item);
+        });
+    
+        // Update sources count in UI
+        const sourcesNumber = document.querySelector('.sources-number');
+        if (sourcesNumber) {
+            sourcesNumber.textContent = resources.file_names.length;
+        }
+    }
+
+    scrollToBottom() {
+        this.element.scrollTop = this.element.scrollHeight;
+    }
+}
+
 // Sidebar Component
 class Sidebar extends Component {
     constructor(domainManager) {
@@ -1561,6 +1729,7 @@ class App {
         this.sourcesCount = 0;
         this.sourcesBox = document.querySelector('.sources-box');
         this.sourcesNumber = document.querySelector('.sources-number');
+        this.chatManager = new ChatManager();
         
         this.setupEventListeners();
     }

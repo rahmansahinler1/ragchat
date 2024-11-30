@@ -270,3 +270,42 @@ window.removeFile = async function(fileId, domainId, userId) {
         };
     }
 };
+
+window.sendMessage = async function(message, userId) {
+    if (!message) {
+        return {
+            message: "Please enter your sentence!",
+            status: 400
+        };
+    }
+
+    try {
+        const url = `/api/v1/qa/generate_answer?userID=${encodeURIComponent(userId)}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ user_message: message })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            return {
+                message: data.message || 'Server error!',
+                status: response.status
+            };
+        }
+
+        return {
+            ...data,
+            status: 200
+        };
+
+    } catch (error) {
+        console.error('Error:', error);
+        return {
+            message: 'Error generating message!',
+            status: 500
+        };
+    }
+};
