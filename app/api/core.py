@@ -72,8 +72,9 @@ class Processor:
         queries = self.query_preprocessing(user_query=user_query)
         if not queries:
             return None, None, None
-
-        query_embeddings = self.ef.create_embeddings_from_sentences(sentences=queries)
+        
+        intention = queries[-1]
+        query_embeddings = self.ef.create_embeddings_from_sentences(sentences=queries[:-1])
         boost_array = self._create_boost_array(
             header_indexes=boost_info["header_indexes"],
             sentence_amount=index.ntotal,
@@ -131,7 +132,7 @@ class Processor:
                     context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sorted_sentence_indexes)-i)/len(sorted_sentence_indexes)}, {widen_sentence}\n\n"
                     context_windows.append(widen_sentence)
 
-        answer = self.cf.response_generation(query=user_query, context=context)
+        answer = self.cf.response_generation(query=user_query, context=context, intention=intention)
 
         return answer, resources, context_windows
 
