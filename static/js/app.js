@@ -2163,6 +2163,10 @@ class App {
                 this.sidebar.events.emit('menuTrigger');
             });
         }
+
+        // Welcome message
+        this.chatManager.addMessage(`Welcome ${this.userData.user_info.user_name}, what can I find for you?`, 'ai')
+        this.addMessage(response.message, 'ai');
     }
 }
 
