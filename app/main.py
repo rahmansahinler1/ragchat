@@ -56,4 +56,4 @@ async def app_page(
 
 @app.get("/api/version")
 async def get_version():
-    return {"version": "2.0.0"}
+    return {"version": "2.0.1"}
