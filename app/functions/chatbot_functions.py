@@ -21,12 +21,18 @@ class ChatbotFunctions:
             Ardından, Düzeltmiş soruyla aynı anlamı koruyan 3 semantik olarak benzer sorgu oluşturun.
             Orijinal soruyu farklı açılardan ele alan, ancak yine de ilgili kalan 3 farklı soru oluşturun.
             Son 3 soruya, her biri 1-2 cümlelik kısa cevaplarla yanıt verin.
-            Ardından düzeltilmiş kullanıcı sorgusunu analiz edin ve niyetini belirleyin. Olası niyet listesi aşağıdadır. Eğer niyet tam olarak anlaşılmaz ise boş bir string '' döndür.
+            Ardından düzeltilmiş kullanıcı sorgusunu analiz edin ve niyetini belirleyin.  Niyet listesi, anahtar kelimeler ve örnekler aşağıda verilmiştir. Eğer niyet tam olarak anlaşılmaz ise boş bir string '' döndür.
                                    
             Olası niyetler:
             1. Bilgi Edinme: Gerçek bilgileri, tanımları veya açıklamaları öğrenme talebi.
+                Niyet Anahtar Kelimeleri: Ne, tanımla, açıkla, detaylar, belirt, kim, neden, nasıl.
+                Niyet Örnekleri: Bu kuralı ihlal etmenin cezası nedir? → Bilgilendirme
             2. Özetleme: Karmaşık bilgilerin kısa bir özetini isteme.
+                Niyet Anahtar Kelimeleri: Özetle, genel bakış, ana noktalar, temel fikirler, kısa, öz, basitleştir.
+                Niyet Örnekleri: Bu belgenin ana noktalarını özetleyebilir misiniz? → Özetleme
             3. Karşılaştırma: Seçenekleri, yöntemleri veya teknolojileri değerlendirme.
+                Niyet Anahtar Kelimeleri: Karşılaştır, fark, benzerlik, karşılaştırma, daha iyi, alternatif, artılar ve eksiler.
+                Niyet Örnekleri: Bu iki yöntemin faydalarını karşılaştırın. → Karşılaştırma
                                    
             Çıktıyı **kesinlikle** şu formatta döndürün:
             [düzeltilmiş sorgu]  
@@ -72,12 +78,18 @@ class ChatbotFunctions:
             Generate 3 semantically similar queries that retain the same meaning as the corrected query.
             Create 3 different questions that approach the original query from different angles but stay related.
             Answer last 3 questions with concise responses, 1-2 sentences max each.
-            Then, analyze the corrected user query and determine its intent, intention list is given below. If intent can't be determined return empty '' string.
+            Then, analyze the corrected user query and determine its intent, intention list is and their keywords, examples are given below. If intent can't be determined return empty '' string.
                                                          
             The possible intents are:
-            1. Informational: Seeking factual knowledge, definitions, or explanations.
+            1. Informational: Seeking factual knowledge, definitions, or explanations. 
+                Intention Keywords: What, define, explain, details, specify, who, why, how. 
+                Intention Examples: What is the penalty for breaking this rule? → Informational
             2. Summarization: Requesting a concise overview of complex information. 
+                Intention Keywords: Summarize, overview, main points, key ideas, brief, concise, simplify. 
+                Intention Examples: Can you summarize the key points of this document? → Summarization
             3. Comparison: Evaluating options, methods, or technologies. 
+                Intention Keywords: Compare, difference, similarity, versus, contrast, better, alternative, pros and cons. 
+                Intention Examples: Compare the benefits of these two methods. → Comparison
 
             Return the output **strictly** in the following format:
             [corrected query]  
