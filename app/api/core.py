@@ -6,7 +6,7 @@ from ..functions.reading_functions import ReadingFunctions
 from ..functions.embedding_functions import EmbeddingFunctions
 from ..functions.indexing_functions import IndexingFunctions
 from ..functions.chatbot_functions import ChatbotFunctions
-
+from ..functions.search_functions import SearchFunctions
 
 class Authenticator:
     def __init__(self):
@@ -30,6 +30,7 @@ class Processor:
         self.rf = ReadingFunctions()
         self.indf = IndexingFunctions()
         self.cf = ChatbotFunctions()
+        self.sf = SearchFunctions()
 
     def create_index(self, embeddings: np.ndarray, index_type: str = "flat"):
         if index_type == "flat":
@@ -74,6 +75,12 @@ class Processor:
             return None, None, None
 
         query_embeddings = self.ef.create_embeddings_from_sentences(sentences=queries)
+
+        # Implement bm25 search
+        bm25_scores = self.sf.bm25_search(user_query=user_query, sentences= list(map(lambda x: x[0], domain_content)))
+        sorted_bm25_indexes = np.argsort(bm25_scores)[::-1]
+
+        # Implement semantic search
         boost_array = self._create_boost_array(
             header_indexes=boost_info["header_indexes"],
             sentence_amount=index.ntotal,
@@ -84,7 +91,7 @@ class Processor:
         # Get search distances with occurrences
         dict_resource = {}
         for query_embedding in query_embeddings:
-            D, I = index.search(query_embedding.reshape(1, -1), 10)
+            D, I = index.search(query_embedding.reshape(1, -1), len(domain_content))
             for i, match_index in enumerate(I[0]):
                 if match_index in dict_resource:
                     dict_resource[match_index].append(D[0][i])
@@ -98,10 +105,15 @@ class Processor:
         sorted_dict = dict(
             sorted(dict_resource.items(), key=lambda item: item[1], reverse=True)
         )
-        indexes = np.array(list(sorted_dict.keys()))
-        sorted_sentence_indexes = indexes[:10]
+        sorted_indexes = np.array(list(sorted_dict.keys()))
+
+        # Combine scores and finalize indexes
+        final_scores = [0.25*(1/(np.where(sorted_bm25_indexes == i)[0][0]+1)) + 0.75*(1/(np.where(sorted_indexes == i)[0][0]+1)) for i in range(len(domain_content))]
+        sorted_final_scores_indexes = np.argsort(final_scores)[::-1]
+        final_indexes = sorted_final_scores_indexes[:10]
+
         resources = self._extract_resources(
-            sentence_indexes=sorted_sentence_indexes, domain_content=domain_content
+            sentence_indexes=final_indexes, domain_content=domain_content
         )
 
         # Context sentences
@@ -109,13 +121,13 @@ class Processor:
         context_windows = []
         widened_indexes = []
         table_indexes = boost_info["table_indexes"]
-        for i, sentence_index in enumerate(sorted_sentence_indexes):
+        for i, sentence_index in enumerate(final_indexes):
             table_chunk_amount = len(table_indexes)
             if table_chunk_amount:
                 for table_index in table_indexes:
                     if sentence_index == table_index:
                         table_text = f"{domain_content[table_index][0]}"
-                        context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sorted_sentence_indexes)-i+1)/len(sorted_sentence_indexes)}, Table\n{table_text}\n"
+                        context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(final_indexes)-i+1)/len(final_indexes)}, Table\n{table_text}\n"
                         context_windows.append(table_text)
                         table_indexes.remove(table_index)
                         break
@@ -128,7 +140,7 @@ class Processor:
                     widened_indexes=widened_indexes,
                 )
                 if widen_sentence:
-                    context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sorted_sentence_indexes)-i)/len(sorted_sentence_indexes)}, {widen_sentence}\n\n"
+                    context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(final_indexes)-i)/len(final_indexes)}, {widen_sentence}\n\n"
                     context_windows.append(widen_sentence)
 
         answer = self.cf.response_generation(query=user_query, context=context)
