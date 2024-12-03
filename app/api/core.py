@@ -196,7 +196,6 @@ class Processor:
                 if (
                     i + 1 < len(header_indexes)
                     and abs(sentence_index - header_indexes[i + 1]) <= 15
-                    and abs(sentence_index - header_indexes[i + 1]) > 4
                 ):
                     end = min(len(domain_content) - 1, header_indexes[i + 1]-1)
                 else:
