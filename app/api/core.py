@@ -77,7 +77,7 @@ class Processor:
         query_embeddings = self.ef.create_embeddings_from_sentences(sentences=queries)
 
         # Implement bm25 search
-        bm25_scores = self.sf.bm25_search(user_query=user_query, sentences= list(map(lambda x: x[0], domain_content)))
+        bm25_scores = self.sf.bm25_search(user_query=user_query, sentences=list(map(lambda x: x[0], domain_content)))
         sorted_bm25_indexes = np.argsort(bm25_scores)[::-1]
 
         # Implement semantic search
@@ -87,7 +87,15 @@ class Processor:
             query_vector=query_embeddings[0],
             index_header=index_header,
         )
-
+        file_boost_array = self._create_file_boost_array(
+        user_query=user_query,
+        domain_content=domain_content,
+        sentences=list(map(lambda x: x[0], domain_content))
+        )
+        
+        # Combine boost arrays
+        combined_boost_array = 0.25*file_boost_array + 0.75*boost_array
+        
         # Get search distances with occurrences
         dict_resource = {}
         for query_embedding in query_embeddings:
@@ -101,7 +109,7 @@ class Processor:
         # Get average occurrences
         dict_resource = self._avg_resources(dict_resource)
         for key in dict_resource:
-            dict_resource[key] *= boost_array[key]
+            dict_resource[key] *= combined_boost_array[key]
         sorted_dict = dict(
             sorted(dict_resource.items(), key=lambda item: item[1], reverse=True)
         )
@@ -187,6 +195,34 @@ class Processor:
                     print(f"List is out of range {e}")
                     continue
             return boost_array
+    
+    def _create_file_boost_array(
+        self,
+        user_query: str,
+        domain_content : list,
+        sentences : list
+    ):
+        boost_array = np.ones(len(domain_content))
+        file_counts = {}
+
+        if not domain_content:
+            return boost_array
+        else:
+            for _, _, _, _, _, filename in domain_content:
+                file_counts[filename] = file_counts.get(filename, 0) + 1
+
+            file_sentence_counts = np.cumsum([0] + list(file_counts.values()))
+
+            for i in range(len(file_sentence_counts) - 1):
+                start, end = file_sentence_counts[i], file_sentence_counts[i+1]
+                scores = self.sf.bm25_search(
+                    user_query=user_query, 
+                    sentences=sentences[start:end]
+                    )
+                if np.mean(scores) > 0.40:
+                    boost_array[start:end] *= 1.1
+
+        return boost_array
 
     def _wide_sentences(
         self,
