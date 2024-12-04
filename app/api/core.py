@@ -77,7 +77,7 @@ class Processor:
         query_embeddings = self.ef.create_embeddings_from_sentences(sentences=queries)
 
         # Implement bm25 search
-        bm25_scores = self.sf.bm25_search(user_query=user_query, sentences=list(map(lambda x: x[0], domain_content)))
+        bm25_scores = self.sf.bm25_search(user_query=user_query, sentences=[x[0] for x in domain_content])
         sorted_bm25_indexes = np.argsort(bm25_scores)[::-1]
 
         # Implement semantic search
@@ -90,7 +90,7 @@ class Processor:
         file_boost_array = self._create_file_boost_array(
         user_query=user_query,
         domain_content=domain_content,
-        sentences=list(map(lambda x: x[0], domain_content))
+        sentences=[x[0] for x in domain_content]
         )
         
         # Combine boost arrays
