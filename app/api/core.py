@@ -104,33 +104,15 @@ class Processor:
             sentence_indexes=sorted_sentence_indexes, domain_content=domain_content
         )
 
-        # Context sentences
-        context = ""
-        context_windows = []
-        widened_indexes = []
-        table_indexes = boost_info["table_indexes"]
-        for i, sentence_index in enumerate(sorted_sentence_indexes):
-            table_chunk_amount = len(table_indexes)
-            if table_chunk_amount:
-                for table_index in table_indexes:
-                    if sentence_index == table_index:
-                        table_text = f"{domain_content[table_index][0]}"
-                        context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sorted_sentence_indexes)-i+1)/len(sorted_sentence_indexes)}, Table\n{table_text}\n"
-                        context_windows.append(table_text)
-                        table_indexes.remove(table_index)
-                        break
-            if table_chunk_amount == len(table_indexes):
-                widen_sentence = self._wide_sentences(
-                    window_size=4 if i < 3 else 2,
-                    sentence_index=sentence_index,
+        # Sentences to context creation
+        context, context_windows = self.context_creator(
+                    sentence_index_list=sorted_sentence_indexes,
                     domain_content=domain_content,
                     header_indexes=boost_info["header_indexes"],
-                    widened_indexes=widened_indexes,
-                )
-                if widen_sentence:
-                    context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sorted_sentence_indexes)-i)/len(sorted_sentence_indexes)}, {widen_sentence}\n\n"
-                    context_windows.append(widen_sentence)
-
+                    table_indexes=boost_info["table_indexes"],
+                    resources = resources
+        )
+        #TODO: handle resource pages
         answer = self.cf.response_generation(query=user_query, context=context)
 
         return answer, resources, context_windows
@@ -176,63 +158,81 @@ class Processor:
                     continue
             return boost_array
 
-    def _wide_sentences(
+    def context_creator(
         self,
-        window_size: int,
-        sentence_index: int,
+        sentence_index_list: list,
         domain_content: List[tuple],
         header_indexes: list,
-        widened_indexes: list,
+        table_indexes : list,
+        resources : dict
     ):
-        start = max(0, sentence_index - window_size)
-        end = min(len(domain_content) - 1, sentence_index + window_size)
+        context = ""
+        context_windows = []
+        widened_indexes = []
+        table_chunk_amount = len(table_indexes)
+        for i, sentence_index in enumerate(sentence_index_list):
+            window_size = 4 if i<3 else 2
+            start = max(0, sentence_index - window_size)
+            end = min(len(domain_content) - 1, sentence_index + window_size)
+            if table_chunk_amount:
+                for table_index in table_indexes:
+                    if sentence_index == table_index:
+                        widened_indexes.append((table_index,table_index))
+                        table_indexes.remove(table_index)
+                        break
+            if not header_indexes:
+                widened_indexes.append((start, end))
 
-        if not header_indexes:
-            return " ".join(domain_content[index][0] for index in range(start, end))
-
-        for i, current_header in enumerate(header_indexes):
-            if sentence_index == current_header:
-                start = max(0, sentence_index)
-                if (
+            for i, current_header in enumerate(header_indexes):
+                if sentence_index == current_header:
+                    start = max(0, sentence_index)
+                    if (
+                        i + 1 < len(header_indexes)
+                        and abs(sentence_index - header_indexes[i + 1]) <= 15
+                    ):
+                        end = min(len(domain_content) - 1, header_indexes[i + 1]-1)
+                    else:
+                        end = min(len(domain_content) - 1, sentence_index + window_size)
+                    break
+                elif (
                     i + 1 < len(header_indexes)
-                    and abs(sentence_index - header_indexes[i + 1]) <= 15
+                    and current_header < sentence_index < header_indexes[i + 1]
                 ):
-                    end = min(len(domain_content) - 1, header_indexes[i + 1]-1)
-                else:
+                    start = (
+                        current_header
+                        if abs(sentence_index - current_header) <= 15
+                        else max(0, sentence_index - window_size)
+                    )
+                    end = (
+                        header_indexes[i + 1]-1
+                        if abs(header_indexes[i + 1] - sentence_index) <= 15
+                        else min(len(domain_content) - 1, sentence_index + window_size)
+                    )
+                    break
+                elif i == len(header_indexes) - 1 and current_header >= sentence_index:
+                    start = (
+                        max(0, sentence_index)
+                        if abs(current_header - sentence_index) <= 15
+                        else max(0, sentence_index - window_size)
+                    )
                     end = min(len(domain_content) - 1, sentence_index + window_size)
-                break
-            elif (
-                i + 1 < len(header_indexes)
-                and current_header < sentence_index < header_indexes[i + 1]
-            ):
-                start = (
-                    current_header
-                    if abs(sentence_index - current_header) <= 15
-                    else max(0, sentence_index - window_size)
-                )
-                end = (
-                    header_indexes[i + 1]-1
-                    if abs(header_indexes[i + 1] - sentence_index) <= 15
-                    else min(len(domain_content) - 1, sentence_index + window_size)
-                )
-                break
-            elif i == len(header_indexes) - 1 and current_header >= sentence_index:
-                start = (
-                    max(0, sentence_index)
-                    if abs(current_header - sentence_index) <= 15
-                    else max(0, sentence_index - window_size)
-                )
-                end = min(len(domain_content) - 1, sentence_index + window_size)
-                break
+                    break
+            if (start, end) not in widened_indexes:
+                widened_indexes.append((start, end))
 
-        if (start, end) not in widened_indexes:
-            widened_indexes.append((start, end))
-            try:
-                return " ".join(domain_content[index][0] for index in range(start, end))
-            except Exception:
-                return ""
+        merged_truples,resources_indexes = self.merge_tuples(widen_sentences=widened_indexes)
 
-        return ""
+        for i,tuple in enumerate(merged_truples):
+            if tuple[0] == tuple[1]:
+                windened_sentence =  " ".join(domain_content[tuple[0]][0])
+                context += f"Context{i+1}: File:{resources['file_names'][resources_indexes[i]]}, Confidence:{(len(sentence_index_list)-i)/len(sentence_index_list)}, Table\n{windened_sentence}\n"
+                context_windows.append(windened_sentence)
+            else:
+                windened_sentence =  " ".join(domain_content[index][0] for index in range(tuple[0],tuple[1]))
+                context += f"Context{i+1}: File:{resources['file_names'][resources_indexes[i]]}, Confidence:{(len(sentence_index_list)-i)/len(sentence_index_list)}, {windened_sentence}\n\n"
+                context_windows.append(windened_sentence)
+
+        return context,context_windows
 
     def _avg_resources(self, resources_dict):
         for key, value in resources_dict.items():
@@ -270,3 +270,43 @@ class Processor:
                 boost_info["table_indexes"].append(index)
         boost_info["header_embeddings"] = embeddings[boost_info["header_indexes"]]
         return boost_info
+
+    def merge_tuples(self,widen_sentences):
+        indexed_tuples = sorted(enumerate(widen_sentences), key=lambda x: x[1][0])
+    
+        merged_groups = []
+        current_group = {
+            'start_index': indexed_tuples[0][0],
+            'tuple': indexed_tuples[0][1],
+            'indices': [indexed_tuples[0][0]]
+        }
+        
+        for index, current_tuple in indexed_tuples[1:]:
+            if current_tuple[0] <= current_group['tuple'][1] + 1:
+                current_group['tuple'] = (
+                    min(current_group['tuple'][0], current_tuple[0]),
+                    max(current_group['tuple'][1], current_tuple[1])
+                )
+                current_group['indices'].append(index)
+            else:
+                merged_groups.append(current_group)
+                current_group = {
+                    'start_index': index,
+                    'tuple': current_tuple,
+                    'indices': [index]
+                }
+        merged_groups.append(current_group)
+        
+        resoruces_indexes = []
+        result = widen_sentences.copy()
+        for group in merged_groups:
+            min_index = min(group['indices'])
+            resoruces_indexes.append(min_index)
+            result[min_index] = group['tuple']
+            for idx in group['indices']:
+                if idx != min_index:
+                    result[idx] = None
+        
+        merged_result = [x for x in result if x is not None]
+        
+        return merged_result,sorted(resoruces_indexes)
