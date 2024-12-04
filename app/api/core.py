@@ -74,6 +74,7 @@ class Processor:
         if not queries:
             return None, None, None
 
+        intention = queries[-1]
         query_embeddings = self.ef.create_embeddings_from_sentences(sentences=queries)
 
         # Implement bm25 search
@@ -151,7 +152,7 @@ class Processor:
                     context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(final_indexes)-i)/len(final_indexes)}, {widen_sentence}\n\n"
                     context_windows.append(widen_sentence)
 
-        answer = self.cf.response_generation(query=user_query, context=context)
+        answer = self.cf.response_generation(query=user_query, context=context, intention=intention)
 
         return answer, resources, context_windows
 
