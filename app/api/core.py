@@ -6,7 +6,6 @@ from ..functions.reading_functions import ReadingFunctions
 from ..functions.embedding_functions import EmbeddingFunctions
 from ..functions.indexing_functions import IndexingFunctions
 from ..functions.chatbot_functions import ChatbotFunctions
-from ..functions.search_functions import SearchFunctions
 
 class Authenticator:
     def __init__(self):
@@ -75,11 +74,8 @@ class Processor:
             return None, None, None
 
         intention = queries[-1]
-        query_embeddings = self.ef.create_embeddings_from_sentences(sentences=queries)
+        query_embeddings = self.ef.create_embeddings_from_sentences(sentences=queries[:-1])
 
-        # Implement bm25 search
-        bm25_scores = self.sf.bm25_search(user_query=user_query, sentences=[x[0] for x in domain_content])
-        sorted_bm25_indexes = np.argsort(bm25_scores)[::-1]
 
         # Implement semantic search
         boost_array = self._create_boost_array(
@@ -88,24 +84,27 @@ class Processor:
             query_vector=query_embeddings[0],
             index_header=index_header,
         )
-        file_boost_array = self._create_file_boost_array(
-        user_query=user_query,
-        domain_content=domain_content,
-        sentences=[x[0] for x in domain_content]
-        )
-        
-        # Combine boost arrays
-        combined_boost_array = 0.25*file_boost_array + 0.75*boost_array
-        
+
         # Get search distances with occurrences
         dict_resource = {}
-        for query_embedding in query_embeddings:
+        for i,query_embedding in enumerate(query_embeddings):
             D, I = index.search(query_embedding.reshape(1, -1), len(domain_content))
+            if i == 0: convergence_vector,distance_vector = I[0],D[0]
             for i, match_index in enumerate(I[0]):
                 if match_index in dict_resource:
                     dict_resource[match_index].append(D[0][i])
                 else:
                     dict_resource[match_index] = [D[0][i]]
+
+
+        file_boost_array = self._create_file_boost_array(
+        domain_content=domain_content,
+        distance_vector=distance_vector,
+        convergence_vector=convergence_vector
+        )
+
+        # Combine boost arrays
+        combined_boost_array = 0.25*file_boost_array + 0.75*boost_array
 
         # Get average occurrences
         dict_resource = self._avg_resources(dict_resource)
@@ -115,14 +114,10 @@ class Processor:
             sorted(dict_resource.items(), key=lambda item: item[1], reverse=True)
         )
         sorted_indexes = np.array(list(sorted_dict.keys()))
-
-        # Combine scores and finalize indexes
-        final_scores = [0.25*(1/(np.where(sorted_bm25_indexes == i)[0][0]+1)) + 0.75*(1/(np.where(sorted_indexes == i)[0][0]+1)) for i in range(len(domain_content))]
-        sorted_final_scores_indexes = np.argsort(final_scores)[::-1]
-        final_indexes = sorted_final_scores_indexes[:10]
+        top_10_index = sorted_indexes[:10]
 
         resources = self._extract_resources(
-            sentence_indexes=final_indexes, domain_content=domain_content
+            sentence_indexes=top_10_index, domain_content=domain_content
         )
 
         # Context sentences
@@ -130,13 +125,13 @@ class Processor:
         context_windows = []
         widened_indexes = []
         table_indexes = boost_info["table_indexes"]
-        for i, sentence_index in enumerate(final_indexes):
+        for i, sentence_index in enumerate(top_10_index):
             table_chunk_amount = len(table_indexes)
             if table_chunk_amount:
                 for table_index in table_indexes:
                     if sentence_index == table_index:
                         table_text = f"{domain_content[table_index][0]}"
-                        context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(final_indexes)-i+1)/len(final_indexes)}, Table\n{table_text}\n"
+                        context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(top_10_index)-i+1)/len(top_10_index)}, Table\n{table_text}\n"
                         context_windows.append(table_text)
                         table_indexes.remove(table_index)
                         break
@@ -149,7 +144,7 @@ class Processor:
                     widened_indexes=widened_indexes,
                 )
                 if widen_sentence:
-                    context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(final_indexes)-i)/len(final_indexes)}, {widen_sentence}\n\n"
+                    context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(top_10_index)-i)/len(top_10_index)}, {widen_sentence}\n\n"
                     context_windows.append(widen_sentence)
 
         answer = self.cf.response_generation(query=user_query, context=context, intention=intention)
@@ -199,11 +194,13 @@ class Processor:
     
     def _create_file_boost_array(
         self,
-        user_query: str,
         domain_content : list,
-        sentences : list
+        distance_vector : np.ndarray,
+        convergence_vector : np.ndarray
     ):
         boost_array = np.ones(len(domain_content))
+        sort_order = np.argsort(convergence_vector)
+        sorted_scores = distance_vector[sort_order]
         file_counts = {}
 
         if not domain_content:
@@ -216,11 +213,7 @@ class Processor:
 
             for i in range(len(file_sentence_counts) - 1):
                 start, end = file_sentence_counts[i], file_sentence_counts[i+1]
-                scores = self.sf.bm25_search(
-                    user_query=user_query, 
-                    sentences=sentences[start:end]
-                    )
-                if np.mean(scores) > 0.40:
+                if np.mean(sorted_scores[start:end]) > 0.25:
                     boost_array[start:end] *= 1.1
 
         return boost_array
