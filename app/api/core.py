@@ -29,7 +29,6 @@ class Processor:
         self.rf = ReadingFunctions()
         self.indf = IndexingFunctions()
         self.cf = ChatbotFunctions()
-        self.sf = SearchFunctions()
 
     def create_index(self, embeddings: np.ndarray, index_type: str = "flat"):
         if index_type == "flat":
