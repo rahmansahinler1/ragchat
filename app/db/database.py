@@ -206,6 +206,7 @@ class Database:
         FROM file_content t1
         LEFT JOIN file_info t2 ON t1.file_id = t2.file_id
         WHERE t1.file_id IN %s
+        ORDER BY t1.file_id asc, t1.content_id asc
         """
         query_get_embeddings = """
         SELECT array_agg(embedding) AS embeddings
