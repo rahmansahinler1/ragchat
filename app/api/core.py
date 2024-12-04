@@ -212,7 +212,7 @@ class Processor:
 
             for i in range(len(file_sentence_counts) - 1):
                 start, end = file_sentence_counts[i], file_sentence_counts[i+1]
-                if np.mean(sorted_scores[start:end]) > 0.25:
+                if np.mean(sorted_scores[start:end]) > 0.30:
                     boost_array[start:end] *= 1.1
 
         return boost_array
