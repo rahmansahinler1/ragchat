@@ -105,15 +105,17 @@ class Processor:
         )
 
         # Sentences to context creation
-        context, context_windows = self.context_creator(
+        context, context_windows, resource_indexes = self.context_creator(
                     sentence_index_list=sorted_sentence_indexes,
                     domain_content=domain_content,
                     header_indexes=boost_info["header_indexes"],
                     table_indexes=boost_info["table_indexes"],
                     resources = resources
         )
-        #TODO: handle resource pages
         answer = self.cf.response_generation(query=user_query, context=context)
+
+        for key in resources:
+            resources[key] = [value for index, value in enumerate(resources[key]) if index in resource_indexes]
 
         return answer, resources, context_windows
 
@@ -232,7 +234,7 @@ class Processor:
                 context += f"Context{i+1}: File:{resources['file_names'][resources_indexes[i]]}, Confidence:{(len(sentence_index_list)-i)/len(sentence_index_list)}, {windened_sentence}\n\n"
                 context_windows.append(windened_sentence)
 
-        return context,context_windows
+        return context,context_windows,resources_indexes
 
     def _avg_resources(self, resources_dict):
         for key, value in resources_dict.items():
