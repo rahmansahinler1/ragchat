@@ -99,7 +99,7 @@ class Processor:
             sorted(dict_resource.items(), key=lambda item: item[1], reverse=True)
         )
         indexes = np.array(list(sorted_dict.keys()))
-        sorted_sentence_indexes = indexes[:10]
+        sorted_sentence_indexes = indexes[:15]
         resources = self._extract_resources(
             sentence_indexes=sorted_sentence_indexes, domain_content=domain_content
         )
@@ -114,6 +114,7 @@ class Processor:
         )
         answer = self.cf.response_generation(query=user_query, context=context)
 
+        # Removing merged sentece indexes from resources
         for key in resources:
             resources[key] = [value for index, value in enumerate(resources[key]) if index in resource_indexes]
 
