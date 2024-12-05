@@ -73,7 +73,10 @@ class Processor:
         if not queries:
             return None, None, None
 
-        query_embeddings = self.ef.create_embeddings_from_sentences(sentences=queries)
+        intention = queries[-1]
+        query_embeddings = self.ef.create_embeddings_from_sentences(
+            sentences=queries[:-1]
+        )
         boost_array = self._create_boost_array(
             header_indexes=boost_info["header_indexes"],
             sentence_amount=index.ntotal,
@@ -122,7 +125,10 @@ class Processor:
             header_indexes=boost_info["header_indexes"],
             table_indexes=boost_info["table_indexes"],
         )
-        answer = self.cf.response_generation(query=user_query, context=context)
+
+        answer = self.cf.response_generation(
+            query=user_query, context=context, intention=intention
+        )
 
         return answer, resources, context_windows
 
