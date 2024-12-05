@@ -2164,9 +2164,47 @@ class App {
             });
         }
 
-        // Welcome message
-        this.chatManager.addMessage(`Welcome ${this.userData.user_info.user_name}, what can I find for you?`, 'ai')
-        this.addMessage(response.message, 'ai');
+        // Welcome operations
+        const isFirstTime = localStorage.getItem('firstTime') === '1';
+        if (isFirstTime) {
+            localStorage.setItem('firstTime', 0);
+            
+            // Select the default domain
+            const domains = this.domainManager.getAllDomains();
+            if (domains.length > 0) {
+                this.domainSettingsModal.events.emit('domainSelected', domains[0].id);
+                
+                this.chatManager.addMessage(
+                    `[header]Welcome to ragchat${this.userData.user_info.user_name ? `, ${this.userData.user_info.user_name}` : ''}! 👋[/header]
+                
+                I've automatically set up your first domain with helpful guide about using ragchat. To get started:
+                
+                --Just ask any question about ragchat's features and capabilities
+                --Try asking "What can ragchat do?" or "How do I organize my documents?"
+                --The user guide has been automatically uploaded to your first domain
+                --All answers will come with direct references to the source documentation
+                
+                [header]Quick Tips[/header]
+                --Open & close navigation bar with just hovering into it
+                --Click the gear icon (⚙️) to create new domains and organize your documents
+                --Upload your files by clicking "Open File Menu" after selecting a domain
+                --Check the right panel to see the sources used in my answers
+                --Documents support PDF, DOCX, and TXT formats
+                --Create different domains for different topics (e.g., Work, Research, Personal)
+                --Look for the highlighted source sections that show where information comes from
+                --Use the checkboxes next to files to control which ones I should search through
+                
+                What would you like to know about ragchat?`, 
+                    'ai'
+                );
+            }
+        } else {
+            // Regular welcome message for returning users
+            this.chatManager.addMessage(
+                `Welcome ${this.userData.user_info.user_name}, what can I find for you?`, 
+                'ai'
+            );
+        }
     }
 }
 

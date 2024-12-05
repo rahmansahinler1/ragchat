@@ -45,6 +45,9 @@ async function handleSignup(name, surname, email, password, signupButton, signup
 
         if (response.ok) {
             displayMessage(data.message, signupButton, signupForm);
+            localStorage.setItem('sessionId', data.session_id);
+            localStorage.setItem('firstTime', 1);
+            setTimeout(() => window.location.href = `/chat/${data.session_id}`, 1000);
         } else {
             displayError(data.message, signupButton, signupForm);
         }

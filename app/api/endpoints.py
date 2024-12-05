@@ -530,14 +530,17 @@ async def signup(
         user_surname = data.get("user_surname")
         user_email = data.get("user_email")
         user_password = data.get("user_password")
-        message = None
-        status_code = 500
         with Database() as db:
             user_info = db.get_user_info_w_email(user_email=user_email)
             if user_info:
-                message = "User already signed up!"
-                status_code = 400
+                return JSONResponse(
+                    content={
+                        "message": "User already Signed Up!",
+                    },
+                    status_code=400,
+                )
             else:
+                # User insertion
                 user_id = str(uuid.uuid4())
                 db.insert_user_info(
                     user_id=user_id,
@@ -549,6 +552,7 @@ async def signup(
                     is_active=True,
                 )
 
+                # Deafult domain creation
                 domain_id = str(uuid.uuid4())
                 db.insert_domain_info(
                     user_id=user_id,
@@ -556,18 +560,29 @@ async def signup(
                     domain_name="Default",
                     domain_type=0,
                 )
-
                 db.insert_user_guide(user_id=user_id, domain_id=domain_id)
-                db.conn.commit()
-                message = "Successfully Signed Up!"
-                status_code = 201
 
-        return JSONResponse(
+                # Session creation
+                session_id = str(uuid.uuid4())
+                db.insert_session_info(user_id, session_id=session_id)
+                db.conn.commit()
+
+        response = JSONResponse(
             content={
-                "message": message,
+                "message": "Successfully Signed Up! Logging in...",
+                "session_id": session_id,
             },
-            status_code=status_code,
+            status_code=201,
         )
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+        )
+
+        return response
     except Exception as e:
         db.conn.rollback()
         logging.error(f"Error during login: {str(e)}")
