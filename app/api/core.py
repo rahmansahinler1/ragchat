@@ -100,23 +100,15 @@ class Processor:
         )
         indexes = np.array(list(sorted_dict.keys()))
         sorted_sentence_indexes = indexes[:15]
-        resources = self._extract_resources(
-            sentence_indexes=sorted_sentence_indexes, domain_content=domain_content
-        )
 
         # Sentences to context creation
-        context, context_windows, resource_indexes = self.context_creator(
+        context, context_windows, resources = self.context_creator(
                     sentence_index_list=sorted_sentence_indexes,
                     domain_content=domain_content,
                     header_indexes=boost_info["header_indexes"],
-                    table_indexes=boost_info["table_indexes"],
-                    resources = resources
+                    table_indexes=boost_info["table_indexes"]
         )
         answer = self.cf.response_generation(query=user_query, context=context)
-
-        # Removing merged sentece indexes from resources
-        for key in resources:
-            resources[key] = [value for index, value in enumerate(resources[key]) if index in resource_indexes]
 
         return answer, resources, context_windows
 
@@ -166,76 +158,83 @@ class Processor:
         sentence_index_list: list,
         domain_content: List[tuple],
         header_indexes: list,
-        table_indexes : list,
-        resources : dict
+        table_indexes : list
     ):
         context = ""
         context_windows = []
         widened_indexes = []
-        table_chunk_amount = len(table_indexes)
+
         for i, sentence_index in enumerate(sentence_index_list):
             window_size = 4 if i<3 else 2
             start = max(0, sentence_index - window_size)
             end = min(len(domain_content) - 1, sentence_index + window_size)
-            if table_chunk_amount:
+
+            if table_indexes:
                 for table_index in table_indexes:
                     if sentence_index == table_index:
                         widened_indexes.append((table_index,table_index))
                         table_indexes.remove(table_index)
                         break
+
             if not header_indexes:
                 widened_indexes.append((start, end))
-
-            for i, current_header in enumerate(header_indexes):
-                if sentence_index == current_header:
-                    start = max(0, sentence_index)
-                    if (
+            else:
+                for i, current_header in enumerate(header_indexes):
+                    if sentence_index == current_header:
+                        start = max(0, sentence_index)
+                        if (
+                            i + 1 < len(header_indexes)
+                            and abs(sentence_index - header_indexes[i + 1]) <= 20
+                        ):
+                            end = min(len(domain_content) - 1, header_indexes[i + 1]-1)
+                        else:
+                            end = min(len(domain_content) - 1, sentence_index + window_size)
+                        break
+                    elif (
                         i + 1 < len(header_indexes)
-                        and abs(sentence_index - header_indexes[i + 1]) <= 20
+                        and current_header < sentence_index < header_indexes[i + 1]
                     ):
-                        end = min(len(domain_content) - 1, header_indexes[i + 1]-1)
-                    else:
+                        start = (
+                            current_header
+                            if abs(sentence_index - current_header) <= 20
+                            else max(0, sentence_index - window_size)
+                        )
+                        end = (
+                            header_indexes[i + 1]-1
+                            if abs(header_indexes[i + 1] - sentence_index) <= 20
+                            else min(len(domain_content) - 1, sentence_index + window_size)
+                        )
+                        break
+                    elif i == len(header_indexes) - 1 and current_header >= sentence_index:
+                        start = (
+                            max(0, sentence_index)
+                            if abs(current_header - sentence_index) <= 20
+                            else max(0, sentence_index - window_size)
+                        )
                         end = min(len(domain_content) - 1, sentence_index + window_size)
-                    break
-                elif (
-                    i + 1 < len(header_indexes)
-                    and current_header < sentence_index < header_indexes[i + 1]
-                ):
-                    start = (
-                        current_header
-                        if abs(sentence_index - current_header) <= 20
-                        else max(0, sentence_index - window_size)
-                    )
-                    end = (
-                        header_indexes[i + 1]-1
-                        if abs(header_indexes[i + 1] - sentence_index) <= 20
-                        else min(len(domain_content) - 1, sentence_index + window_size)
-                    )
-                    break
-                elif i == len(header_indexes) - 1 and current_header >= sentence_index:
-                    start = (
-                        max(0, sentence_index)
-                        if abs(current_header - sentence_index) <= 20
-                        else max(0, sentence_index - window_size)
-                    )
-                    end = min(len(domain_content) - 1, sentence_index + window_size)
-                    break
-            if (start, end) not in widened_indexes:
-                widened_indexes.append((start, end))
+                        break
+                if (start, end) not in widened_indexes:
+                    widened_indexes.append((start, end))
 
-        merged_truples,resources_indexes = self.merge_tuples(widen_sentences=widened_indexes)
+        merged_truples = self.merge_tuples(widen_sentences=widened_indexes)
+   
+        used_indexes = [
+            min(index for index in sentence_index_list if tuple[0] <= index <= tuple[1])
+            for tuple in merged_truples
+        ]
+        resources = self._extract_resources(sentence_indexes=used_indexes, domain_content=domain_content)
 
         for i,tuple in enumerate(merged_truples):
             if tuple[0] == tuple[1]:
                 windened_sentence =  " ".join(domain_content[tuple[0]][0])
-                context += f"Context{i+1}: File:{resources['file_names'][resources_indexes[i]]}, Confidence:{(len(sentence_index_list)-i)/len(sentence_index_list)}, Table\n{windened_sentence}\n"
+                context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sentence_index_list)-i)/len(sentence_index_list)}, Table\n{windened_sentence}\n"
                 context_windows.append(windened_sentence)
             else:
                 windened_sentence =  " ".join(domain_content[index][0] for index in range(tuple[0],tuple[1]))
-                context += f"Context{i+1}: File:{resources['file_names'][resources_indexes[i]]}, Confidence:{(len(sentence_index_list)-i)/len(sentence_index_list)}, {windened_sentence}\n\n"
+                context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sentence_index_list)-i)/len(sentence_index_list)}, {windened_sentence}\n\n"
                 context_windows.append(windened_sentence)
 
-        return context,context_windows,resources_indexes
+        return context,context_windows,resources
 
     def _avg_resources(self, resources_dict):
         for key, value in resources_dict.items():
@@ -300,11 +299,9 @@ class Processor:
                 }
         merged_groups.append(current_group)
         
-        resoruces_indexes = []
         result = widen_sentences.copy()
         for group in merged_groups:
             min_index = min(group['indices'])
-            resoruces_indexes.append(min_index)
             result[min_index] = group['tuple']
             for idx in group['indices']:
                 if idx != min_index:
@@ -312,4 +309,4 @@ class Processor:
         
         merged_result = [x for x in result if x is not None]
         
-        return merged_result,sorted(resoruces_indexes)
+        return merged_result
