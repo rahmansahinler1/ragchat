@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS domain_info (
     user_id UUID NOT NULL,
     domain_id UUID PRIMARY KEY,
     domain_name VARCHAR(30) NOT NULL,
+    domain_type INTEGER,
     FOREIGN KEY (user_id) REFERENCES user_info(user_id)
 );
 
@@ -54,4 +55,13 @@ CREATE TABLE IF NOT EXISTS session_info (
     session_id UUID NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES user_info(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS default_content (
+    content_id SERIAL PRIMARY KEY,
+    sentence TEXT NOT NULL,
+    is_header BOOLEAN DEFAULT FALSE,
+    is_table BOOLEAN DEFAULT FALSE,
+    page_number INTEGER,
+    embedding BYTEA
 );

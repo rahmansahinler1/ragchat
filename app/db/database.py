@@ -4,6 +4,8 @@ from pathlib import Path
 import psycopg2
 import logging
 import numpy as np
+import uuid
+from datetime import datetime
 
 from .config import GenerateConfig
 
@@ -254,34 +256,56 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def create_domain(self, user_id: str, domain_name: str, domain_id: str):
-        # First check if user has reached domain limit
-        query_count_domains = """
-        SELECT COUNT(*)
-        FROM domain_info
-        WHERE user_id = %s
+    def insert_user_guide(self, user_id: str, domain_id: str):
+        """
+        Insert default user guide content into user's default domain
+        """
+        file_id = str(uuid.uuid4())
+        current_date = datetime.now().date()
+
+        # Insert file info
+        query_insert_file_info = """
+        INSERT INTO file_info 
+            (user_id, domain_id, file_id, file_name, file_modified_date, file_upload_date)
+        VALUES 
+            (%s, %s, %s, %s, %s, %s)
+        """
+
+        # Copy content from default_content to file_content
+        query_insert_file_content = """
+        INSERT INTO file_content 
+            (file_id, sentence, is_header, is_table, page_number, embedding)
+        SELECT 
+            %s,
+            sentence,
+            is_header,
+            is_table,
+            page_number,
+            embedding
+        FROM default_content
         """
 
         try:
-            self.cursor.execute(query_count_domains, (user_id,))
-            domain_count = self.cursor.fetchone()[0]
+            # Insert file info
+            self.cursor.execute(
+                query_insert_file_info,
+                (
+                    user_id,
+                    domain_id,
+                    file_id,
+                    "User Guide.pdf",
+                    current_date,
+                    current_date,
+                ),
+            )
 
-            if domain_count >= 10:
-                return None
-
-            query_insert = """
-            INSERT INTO domain_info (user_id, domain_id, domain_name)
-            VALUES (%s, %s, %s)
-            RETURNING domain_id
-            """
-
-            self.cursor.execute(query_insert, (user_id, domain_id, domain_name))
-            created_domain_id = self.cursor.fetchone()[0]
-
-            return 1 if created_domain_id else None
+            # Insert file content
+            self.cursor.execute(query_insert_file_content, (file_id,))
+            return
 
         except DatabaseError as e:
             self.conn.rollback()
+            logger.error(f"Error inserting user guide: {str(e)}")
             raise e
 
     def delete_domain(self, domain_id: str):
@@ -385,10 +409,12 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def insert_domain_info(self, user_id: str, domain_id: str, domain_name: str):
+    def insert_domain_info(
+        self, user_id: str, domain_id: str, domain_name: str, domain_type: int
+    ):
         query_insert_domain_info = """
-        INSERT INTO domain_info (user_id, domain_id, domain_name)
-        VALUES (%s, %s, %s)
+        INSERT INTO domain_info (user_id, domain_id, domain_name, domain_type)
+        VALUES (%s, %s, %s, %s)
         """
         try:
             self.cursor.execute(
@@ -397,6 +423,7 @@ class Database:
                     user_id,
                     domain_id,
                     domain_name,
+                    domain_type,
                 ),
             )
         except DatabaseError as e:

@@ -75,7 +75,10 @@ async def create_domain(
         domain_id = str(uuid.uuid4())
         with Database() as db:
             success = db.create_domain(
-                user_id=userID, domain_id=domain_id, domain_name=domain_name
+                user_id=userID,
+                domain_id=domain_id,
+                domain_name=domain_name,
+                domain_type=1,
             )
 
             if not success:
@@ -545,12 +548,16 @@ async def signup(
                     user_type="trial",
                     is_active=True,
                 )
-                for i in range(2):
-                    db.insert_domain_info(
-                        user_id=user_id,
-                        domain_id=str(uuid.uuid4()),
-                        domain_name=f"Domain {i+1}",
-                    )
+
+                domain_id = str(uuid.uuid4())
+                db.insert_domain_info(
+                    user_id=user_id,
+                    domain_id=domain_id,
+                    domain_name="Default",
+                    domain_type=0,
+                )
+
+                db.insert_user_guide(user_id=user_id, domain_id=domain_id)
                 db.conn.commit()
                 message = "Successfully Signed Up!"
                 status_code = 201
