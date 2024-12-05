@@ -106,7 +106,9 @@ async def delete_domain(request: Request):
 
             if success < 0:
                 return JSONResponse(
-                    content={"message": "You can't delete your default domain"},
+                    content={
+                        "message": "This is your default domain. You cannot delete it completely, instead you can delete the unnucessary files inside!"
+                    },
                     status_code=400,
                 )
             elif success == 0:

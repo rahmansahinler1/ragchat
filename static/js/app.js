@@ -346,6 +346,22 @@ class DomainSettingsModal extends Component {
             </template>
         `;
 
+        this.element.innerHTML += `
+            <div class="modal fade" id="defaultDomainInfoModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-sm">
+                    <div class="modal-content">
+                        <div class="domain-modal-wrapper text-center">
+                            <h6 class="mb-3">I can't do it...</h6>
+                            <p class="text-secondary mb-4" id="domainInfoMessage"></p>
+                            <div class="d-flex justify-content-center">
+                                <button class="btn btn-primary" data-bs-dismiss="modal">Got it</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
         document.body.appendChild(this.element);
     }
 
@@ -659,10 +675,13 @@ class DomainSettingsModal extends Component {
             });
         } else {
             this.hideDomainDeleteModal();
-            this.events.emit('message', {
-                text: result.message,
-                type: 'error'
-            });
+            
+            const messageElement = document.getElementById('domainInfoMessage');
+            if (messageElement) {
+                messageElement.textContent = result.message;
+            }
+            const infoModal = new bootstrap.Modal(document.getElementById('defaultDomainInfoModal'));
+            infoModal.show();
         }
     }
 }
