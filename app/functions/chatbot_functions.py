@@ -69,7 +69,7 @@ class ChatbotFunctions:
             """)
         else:
             return textwrap.dedent(f"""
-             Task: Analyze, Correct, and Generate Related Questions & Answers
+            Task: Analyze, Correct, and Generate Related Questions & Answers
             Instructions:
             You are given a user query.
 
@@ -226,6 +226,7 @@ class ChatbotFunctions:
             2. Kısa, net ve spesifik bilgiler sunmaya odaklanın.
             3. Açıklık için [b]önemli terimler[/b] ve tanımları ekleyin ve ilgili ayrıntıları vurgulayın.
             4. Genellemelerden kaçının; bağlamdan tam eşleşmeleri veya ilgili bilgileri çıkarmayı önceliklendirin.
+            5. Cevap mümkün olduğunca kısa, net ve doğrudan olmalı; 150 ile 200 token arasında olmalıdır.
             
             İlgili Bilgilerin Çıkarılması:
             Kullanıcının sorgusunda istenen belirli bilgileri belirlemek için dikkatlice analiz yapın.
@@ -275,6 +276,7 @@ class ChatbotFunctions:
             2. Focus on delivering concise, clear, and specific information.
             3. Include [b]key terms[/b] and definitions for clarity and emphasize relevant details.
             4. Avoid generalizations; prioritize extracting exact matches or relevant information from the context.
+            5. Answer must be short as possible, on-point and clear as much as possible and between 150 to 200 tokens.
 
             Extracting Relevant Information:
             Carefully analyze the user's query to determine the specific information being requested.
