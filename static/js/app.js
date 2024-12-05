@@ -648,13 +648,21 @@ class DomainSettingsModal extends Component {
     }
 
     async handleDomainDelete(domainId) {
-        const success = await window.deleteDomain(domainId);
+        const result = await window.deleteDomain(domainId);
         
-        if (success) {
+        if (result.success) {
             this.events.emit('domainDelete', domainId);
             this.hideDomainDeleteModal();
+            this.events.emit('message', {
+                text: 'Domain successfully deleted',
+                type: 'success'
+            });
         } else {
-            this.events.emit('warning', 'Failed to delete domain');
+            this.hideDomainDeleteModal();
+            this.events.emit('message', {
+                text: result.message,
+                type: 'error'
+            });
         }
     }
 }

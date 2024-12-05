@@ -104,9 +104,16 @@ async def delete_domain(request: Request):
         with Database() as db:
             success = db.delete_domain(domain_id=domain_id)
 
-            if not success:
+            if success < 0:
                 return JSONResponse(
-                    content={"message": "error while renaming domain"},
+                    content={"message": "You can't delete your default domain"},
+                    status_code=400,
+                )
+            elif success == 0:
+                return JSONResponse(
+                    content={
+                        "message": "Error while deleting domain. Please report this to us, using feedback on the bottom left."
+                    },
                     status_code=400,
                 )
 
@@ -117,7 +124,7 @@ async def delete_domain(request: Request):
             status_code=200,
         )
     except Exception as e:
-        logger.error(f"Error renaming domain: {str(e)}")
+        logger.error(f"Error while deleting domain: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

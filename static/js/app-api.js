@@ -152,21 +152,33 @@ window.deleteDomain = async function deleteDomain(domainId) {
             })
         });
 
-        if (!response.ok) {
-            return 0;
-        }
-
         const data = await response.json();
         
-        if (data.message !== "success") {
-            return 0;
+        if (!response.ok) {
+            return {
+                success: false,
+                message: data.message
+            };
         }
 
-        return 1;
+        if (data.message !== "success") {
+            return {
+                success: false,
+                message: data.message
+            };
+        }
+
+        return {
+            success: true,
+            message: "Domain successfully deleted"
+        };
 
     } catch (error) {
         console.error('Error deleting domain:', error);
-        return 0;
+        return {
+            success: false,
+            message: "An unexpected error occurred"
+        };
     }
 };
 

@@ -309,6 +309,11 @@ class Database:
             raise e
 
     def delete_domain(self, domain_id: str):
+        get_domain_type_query = """
+        SELECT domain_type
+        FROM domain_info
+        WHERE domain_id = %s
+        """
         get_files_query = """
         SELECT file_id 
         FROM file_info 
@@ -331,6 +336,11 @@ class Database:
         """
 
         try:
+            self.cursor.execute(get_domain_type_query, (domain_id,))
+            domain_type = self.cursor.fetchone()
+            if not domain_type[0]:
+                return -1
+
             self.cursor.execute(get_files_query, (domain_id,))
             file_data = self.cursor.fetchall()
             file_ids = [data[0] for data in file_data]
@@ -426,6 +436,39 @@ class Database:
                     domain_type,
                 ),
             )
+        except DatabaseError as e:
+            self.conn.rollback()
+            raise e
+
+    def create_domain(
+        self, user_id: str, domain_name: str, domain_id: str, domain_type: int
+    ):
+        query_count_domains = """
+        SELECT COUNT(*)
+        FROM domain_info
+        WHERE user_id = %s
+        """
+
+        try:
+            self.cursor.execute(query_count_domains, (user_id,))
+            domain_count = self.cursor.fetchone()[0]
+
+            if domain_count >= 10:
+                return None
+
+            query_insert = """
+            INSERT INTO domain_info (user_id, domain_id, domain_name, domain_type)
+            VALUES (%s, %s, %s, %s)
+            RETURNING domain_id
+            """
+
+            self.cursor.execute(
+                query_insert, (user_id, domain_id, domain_name, domain_type)
+            )
+            created_domain_id = self.cursor.fetchone()[0]
+
+            return 1 if created_domain_id else None
+
         except DatabaseError as e:
             self.conn.rollback()
             raise e
