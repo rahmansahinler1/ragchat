@@ -191,7 +191,7 @@ class Processor:
                     start = max(0, sentence_index)
                     if (
                         i + 1 < len(header_indexes)
-                        and abs(sentence_index - header_indexes[i + 1]) <= 15
+                        and abs(sentence_index - header_indexes[i + 1]) <= 20
                     ):
                         end = min(len(domain_content) - 1, header_indexes[i + 1]-1)
                     else:
@@ -203,19 +203,19 @@ class Processor:
                 ):
                     start = (
                         current_header
-                        if abs(sentence_index - current_header) <= 15
+                        if abs(sentence_index - current_header) <= 20
                         else max(0, sentence_index - window_size)
                     )
                     end = (
                         header_indexes[i + 1]-1
-                        if abs(header_indexes[i + 1] - sentence_index) <= 15
+                        if abs(header_indexes[i + 1] - sentence_index) <= 20
                         else min(len(domain_content) - 1, sentence_index + window_size)
                     )
                     break
                 elif i == len(header_indexes) - 1 and current_header >= sentence_index:
                     start = (
                         max(0, sentence_index)
-                        if abs(current_header - sentence_index) <= 15
+                        if abs(current_header - sentence_index) <= 20
                         else max(0, sentence_index - window_size)
                     )
                     end = min(len(domain_content) - 1, sentence_index + window_size)
