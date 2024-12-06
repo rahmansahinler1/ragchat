@@ -1194,27 +1194,19 @@ class ChatManager extends Component {
     }
 
     formatMessage(text) {
-        // First process headers with proper styling
+        // First process headers
         let formattedText = text.replace(/\[header\](.*?)\[\/header\]/g, '<div class="message-header">$1</div>');
         
         // Process bold terms
         formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong class="message-bold">$1</strong>');
         
-        // Process substances (dashed items)
-        formattedText = formattedText.replace(/--\s*(.*?)(?=\n|$)/g, '<span class="message-substance">• $1</span>');
-        
-        // Process bullet points with proper indentation
-        formattedText = formattedText.replace(/\n-\s+/g, '\n<div class="message-bullet">• ');
-        formattedText = formattedText.replace(/(?<=• .*)\n/g, '</div>\n');
-        
-        // Handle nested bullet points (indentation)
-        formattedText = formattedText.replace(/\n\s{2}-\s+/g, '\n<div class="message-bullet message-bullet-nested">• ');
-        
-        // Convert new lines to breaks for proper spacing
-        formattedText = formattedText.replace(/\n/g, '<br>');
+        // Handle nested lists with proper indentation
+        formattedText = formattedText.replace(/^-\s*(.*?)$/gm, '<div class="message-item">$1</div>');
+        formattedText = formattedText.replace(/^\s{2}-\s*(.*?)$/gm, '<div class="message-item nested-1">$1</div>');
+        formattedText = formattedText.replace(/^\s{4}-\s*(.*?)$/gm, '<div class="message-item nested-2">$1</div>');
         
         return `<div class="message-content">${formattedText}</div>`;
-    }
+      }
 
     updateResources(resources, sentences) {
         const container = document.querySelector('.resources-list');

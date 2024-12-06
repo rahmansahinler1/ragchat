@@ -165,18 +165,26 @@ class ChatbotFunctions:
             Respond *strictly* in the following format:
 
             [header]Section Name[/header]
-            Content with [bold]bold terms[/bold] when needed
-            --substance when needed (without extra line breaks)
+            Content with [bold]bold terms[/bold] when needed. Use the following list format for any points:
+            - Main point
+            - Sub-point
+                - Further nested point
+
             [header]Another Section Name[/header]
             Content with [bold]bold terms[/bold] when needed
-            --substance when needed (without extra line breaks)
+            - Main point
+            - Sub-point
+                - Further nested point
 
             Rules:
             1. Each major section must start with [header]...[/header]
             2. Use [bold]...[/bold] for important terms or emphasis within content
             3. Headers should be one of: Definition, Purpose, Key Features, Operation, Context
-            4. Do not add extra line breaks between substances
-            5. Only use line breaks between major sections                          
+            4. Use single dash (-) for all list items
+            5. Indent nested list items with exactly 2 spaces per level
+            6. Place one empty line between major sections
+            7. Do not use any other list markers (bullets, dots, numbers)
+            8. Keep indentation consistent throughout the response                         
                                    
             Context Windows:
             {context}

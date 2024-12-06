@@ -684,6 +684,26 @@ body {
   line-height: 1.3;
 }
 
+.message-item {
+  margin: 8px 0;
+  padding-left: 24px;
+  position: relative;
+}
+
+.message-item:before {
+  content: "-";
+  position: absolute;
+  left: 8px;
+}
+
+.message-item.nested-1 {
+  margin-left: 24px;
+}
+
+.message-item.nested-2 {
+  margin-left: 48px;
+}
+
 .message-header {
   color: var(--primary-green);
   font-size: 16px;
