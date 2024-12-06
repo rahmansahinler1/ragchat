@@ -22,17 +22,22 @@ class ChatbotFunctions:
             Orijinal soruyu farklı açılardan ele alan, ancak yine de ilgili kalan 3 farklı soru oluşturun.
             Son 3 soruya, her biri 1-2 cümlelik kısa cevaplarla yanıt verin.
             Ardından düzeltilmiş kullanıcı sorgusunu analiz edin ve niyetini belirleyin.  Niyet listesi, anahtar kelimeler ve örnekler aşağıda verilmiştir. Eğer niyet tam olarak anlaşılmaz ise boş bir string '' döndür.
+            Sorgunun ifadeleri, bağlamı ve amacı doğrultusunda niyeti belirleyin. Anahtar kelimeler her zaman kullanıcının gerçek niyetini yansıtmayabilir. Sorgunun niyetini bütünsel olarak anlamaya öncelik verin.
+            Karşılaştırma ile ilgili anahtar kelimeler açıkça mevcutsa Karşılaştırma önceliklendirilir, özetle ilgili anahtar kelimeler Bilgi Verme odaklı anahtar kelimelerle birlikte mevcutsa Özetleme önceliklendirilir, daha yüksek öncelikli niyet anahtar kelimeleri tespit edilmediğinde ise Bilgi Verme atanır.
                                    
             Olası niyetler:
             1. Bilgi Edinme: Gerçek bilgileri, tanımları veya açıklamaları öğrenme talebi.
                 Niyet Anahtar Kelimeleri: Ne, tanımla, açıkla, detaylar, belirt, kim, neden, nasıl.
                 Niyet Örnekleri: Bu kuralı ihlal etmenin cezası nedir? → Bilgilendirme
+                Uç Durum: "Temel noktalar nelerdir?" gibi bir sorgu özetleme temelli görünebilir ancak detaylı bilgi istediği için bilgi odaklıdır.
             2. Özetleme: Karmaşık bilgilerin kısa bir özetini isteme.
                 Niyet Anahtar Kelimeleri: Özetle, genel bakış, ana noktalar, temel fikirler, kısa, öz, basitleştir.
                 Niyet Örnekleri: Bu belgenin ana noktalarını özetleyebilir misiniz? → Özetleme
+                Uç Durum: "Bu konsepti sadeleştirebilir misiniz?" sorgusu sadeleştirme ima etse de özetleme kapsamına girer.
             3. Karşılaştırma: Seçenekleri, yöntemleri veya teknolojileri değerlendirme.
                 Niyet Anahtar Kelimeleri: Karşılaştır, fark, benzerlik, karşılaştırma, daha iyi, alternatif, artılar ve eksiler.
                 Niyet Örnekleri: Bu iki yöntemin faydalarını karşılaştırın. → Karşılaştırma
+                Uç Durum: "Bu yöntemi daha iyi yapan nedir?" gibi bir sorgu değerlendirme yönü taşıdığı için karşılaştırma kapsamına girer.
                                    
             Çıktıyı **kesinlikle** şu formatta döndürün:
             [düzeltilmiş sorgu]  
@@ -79,17 +84,22 @@ class ChatbotFunctions:
             Create 3 different questions that approach the original query from different angles but stay related.
             Answer last 3 questions with concise responses, 1-2 sentences max each.
             Then, analyze the corrected user query and determine its intent, intention list is and their keywords, examples are given below. If intent can't be determined return empty '' string.
-                                                         
+            Determine the intent based on the query's phrasing, context, and purpose. Keywords alone may not always reflect the user's true intention. Prioritize understanding the query's intent holistically.
+            Prioritize Comparison if comparison-related keywords are explicitly present, prioritize Summarization when summary-related keywords coexist with informational keywords, assign Informational only when no higher-priority intent keywords are detected.
+                                                      
             The possible intents are:
             1. Informational: Seeking factual knowledge, definitions, or explanations. 
                 Intention Keywords: What, define, explain, details, specify, who, why, how. 
                 Intention Examples: What is the penalty for breaking this rule? → Informational
+                Edge Case: A query like "What are the key points?" might seem summarization-based but is informational because it seeks detailed information, not a concise overview.
             2. Summarization: Requesting a concise overview of complex information. 
                 Intention Keywords: Summarize, overview, main points, key ideas, brief, concise, simplify. 
                 Intention Examples: Can you summarize the key points of this document? → Summarization
+                Edge Case: A query like "Can you simplify this concept?" involves summarization even if simplification is implied.   
             3. Comparison: Evaluating options, methods, or technologies. 
                 Intention Keywords: Compare, difference, similarity, versus, contrast, better, alternative, pros and cons. 
                 Intention Examples: Compare the benefits of these two methods. → Comparison
+                Edge Case: A query like "What makes this method better?" falls under comparison due to the evaluative aspect.
 
             Return the output **strictly** in the following format:
             [corrected query]  
