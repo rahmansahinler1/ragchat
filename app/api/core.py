@@ -73,7 +73,6 @@ class Processor:
         if not queries:
             return None, None, None
 
-        intention = queries[-1]
         query_embeddings = self.ef.create_embeddings_from_sentences(
             sentences=queries[:-1]
         )
@@ -124,7 +123,7 @@ class Processor:
         )
 
         answer = self.cf.response_generation(
-            query=user_query, context=context, intention=intention
+            query=user_query, context=context, intention=queries[-1]
         )
 
         return answer, resources, context_windows
