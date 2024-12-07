@@ -242,7 +242,10 @@ class ChatbotFunctions:
             2. Kısa, net ve spesifik bilgiler sunmaya odaklanın.
             3. Açıklık için [b]önemli terimler[/b] ve tanımları ekleyin ve ilgili ayrıntıları vurgulayın.
             4. Genellemelerden kaçının; bağlamdan tam eşleşmeleri veya ilgili bilgileri çıkarmayı önceliklendirin.
-            5. Cevap mümkün olduğunca kısa, net ve doğrudan olmalı; 150 ile 200 token arasında olmalıdır.
+            5. Cevap mümkün olduğunca kısa, net ve doğrudan olmalı.
+            6. Doğruluk için her zaman daha yüksek güven katsayısına sahip bağlamlara öncelik verin, ancak eksiksizliği sağlamak için ek veya eksik ayrıntılar için daha düşük güven katsayısına sahip bağlamları çapraz kontrol edin.
+            7. Uygun olduğunda, bilgiyi kaynak dosya veya bölüme dolaylı olarak atfedin. Örneğin: "Yönetmeliklerde belirtildiği gibi..." veya "Sağlanan rapora göre..." ifadelerini kullanın, ancak sorguda açıkça istenmediği sürece bağlam penceresi veya dosya adını doğrudan belirtmeyin.
+            8. Çelişkili bilgiler bulunursa: Çelişkiyi ve kaynağını açıkça belirtin. Olası çözüm yollarını, açıklamaları veya farklılıkları açıklayabilecek faktörleri (örneğin, farklı veri kaynakları, güncellemeler veya yorumlar) önerin.
             
             İlgili Bilgilerin Çıkarılması:
             Kullanıcının sorgusunda istenen belirli bilgileri belirlemek için dikkatlice analiz yapın.
@@ -256,6 +259,7 @@ class ChatbotFunctions:
             Netlik ve özlülüğe öncelik verin. Karmaşık sorgular için alt başlıklar veya kategoriler kullanın.
             Gerekli bilgi bağlamda bulunmuyorsa, bunu açıkça belirtin ve mümkünse öneriler veya açıklamalar sunun.
             Yanıtta güven katsayısını belirtmeyin.
+            'Bağlam pencerelerinden' veya 'bağlam 1', 'bağlam 2' gibi ifadelerden bahsetmeyin. Bunun yerine 'kaynaklara göre kullanın' ifadesini kullanın.
                                    
             Aşağıdaki formata *kesinlikle* uygun şekilde yanıt verin:
 
@@ -300,7 +304,10 @@ class ChatbotFunctions:
             2. Focus on delivering concise, clear, and specific information.
             3. Include [b]key terms[/b] and definitions for clarity and emphasize relevant details.
             4. Avoid generalizations; prioritize extracting exact matches or relevant information from the context.
-            5. Answer must be short as possible, on-point and clear as much as possible and between 150 to 200 tokens.
+            5. Answer must be short as possible, on-point and clear as much as possible.
+            6. Always prioritize contexts with higher confidence coefficients for accuracy, but cross-check lower-confidence contexts for supplementary or missing details to ensure completeness.
+            7. Where appropriate, attribute information to its source file or section implicitly. For example: 'As described in the regulations...' or 'According to the provided report...' without directly mentioning the context window or file name unless explicitly required by the query.
+            8. If contradictory information is found: Explicitly state the contradiction and its source(s). Suggest possible resolutions, clarifications, or factors that may explain the discrepancy (e.g., differing data sources, updates, or interpretations).
 
             Extracting Relevant Information:
             Carefully analyze the user's query to determine the specific information being requested.
@@ -314,7 +321,7 @@ class ChatbotFunctions:
             Prioritize clarity and conciseness. Use subheadings or categories for complex queries.
             If the required information is not found in the context, state this clearly and offer suggestions or clarifications if possible.
             Do not specify the confidence coefficient in response.
-            Do not mention about the 'context windows'. 'Use according to resources' instead.
+            Do not mention about the 'context windows' or string like 'context 1', 'context 2'. 'Use according to resources' instead.
 
             Respond *strictly* in the following format:
 
@@ -359,6 +366,10 @@ class ChatbotFunctions:
             2. Netlik için madde işaretleri veya kategoriler kullanarak kısa ve iyi yapılandırılmış bir özet oluşturun.
             3. Genel temaları vurgulayın ve gereksiz ayrıntılara yer vermeden genel bir bakış sağlayın.
             4. Tekrarlamaları önlemek için bağlamlar arasındaki tutarlı bilgileri birleştirin.
+            5. Eğer sorgu belirli bir odak alanı (örneğin, bir bölüm, dosya veya tema) belirtiyorsa, yalnızca bu odakla ilgili içeriği özetlemeye öncelik verin. Herhangi bir odak belirtilmemişse, en kritik ve tekrar eden temaları veya noktaları vurgulayın.
+            6. Uygun olduğunda, bağlamdan kısa örnekler veya belirli detaylarla ana fikirleri açıklayın. Örnekleri kısa ve ilgili tutun.
+            7. Bağlamda çelişkiler varsa: Her iki bakış açısını da kısaca özetleyin. Çelişkiyi açıkça belirtin ve bunun sorguyla nasıl ilişkili olduğunu açıklayın.
+            8. Özet, sorgu tarafından açıkça talep edilmedikçe 200 kelimeyi aşmamalıdır. Eğer gerekli detaylar bu sınırı aşarsa, öncelikli veya hiyerarşik bir genel bakış sağlayın.
             
             İlgili Bilgilerin Çıkarılması:
             Kullanıcının sorgusunda istenen belirli bilgileri belirlemek için dikkatlice analiz yapın.
@@ -372,6 +383,7 @@ class ChatbotFunctions:
             Netlik ve özlülüğe öncelik verin. Karmaşık sorgular için alt başlıklar veya kategoriler kullanın.
             Gerekli bilgi bağlamda bulunmuyorsa, bunu açıkça belirtin ve mümkünse öneriler veya açıklamalar sunun.
             Yanıtta güven katsayısını belirtmeyin.
+            'Bağlam pencerelerinden' veya 'bağlam 1', 'bağlam 2' gibi ifadelerden bahsetmeyin. Bunun yerine 'kaynaklara göre kullanın' ifadesini kullanın.
                                    
             Aşağıdaki formata *kesinlikle* uygun şekilde yanıt verin:
 
@@ -416,6 +428,10 @@ class ChatbotFunctions:
             2. Create a concise and well-structured summary, using bullet points or categories for clarity.
             3. Highlight overarching themes and provide an overview without including excessive details.
             4. Consolidate consistent information across contexts to avoid redundancy.
+            5. If the query specifies a focus area (e.g., a section, file, or theme), prioritize summarizing content strictly relevant to that focus. Where no focus is specified, highlight the most critical and recurring themes or points.
+            6. Where appropriate, illustrate key ideas with short examples or specific details from the context. Keep examples concise and relevant.
+            7. If the context contains contradictions: Summarize both perspectives succinctly. Highlight the contradiction explicitly, and explain how it relates to the query.
+            8. The summary should not exceed 200 tokens unless explicitly requested by the query. If required details exceed this limit, provide a prioritized or hierarchical overview.
 
             Extracting Relevant Information:
             Carefully analyze the user's query to determine the specific information being requested.
@@ -429,7 +445,7 @@ class ChatbotFunctions:
             Prioritize clarity and conciseness. Use subheadings or categories for complex queries.
             If the required information is not found in the context, state this clearly and offer suggestions or clarifications if possible.
             Do not specify the confidence coefficient in response.
-            Do not mention about the 'context windows'. 'Use according to resources' instead.
+            Do not mention about the 'context windows' or string like 'context 1', 'context 2'. 'Use according to resources' instead.
 
             Respond *strictly* in the following format:
 
@@ -474,6 +490,10 @@ class ChatbotFunctions:
             2. Çelişkili bilgiler bulunursa, bu çelişkileri belirtin ve kaynaklarını açıklayın.
             3. Ayrımları veya paralellikleri, [header]Benzerlikler[/header] ve [header]Farklılıklar[/header] gibi başlıklar kullanarak yapılandırılmış bir formatta sunun.
             4. Çıkarılan bilgilerin kullanıcının sorgusuyla nasıl ilişkili olduğunu net bir şekilde açıklayın.
+            5. Eğer bağlamlar arasında tutarlı bilgiler bulunuyorsa, bunları [header]Benzerlikler[/header] bölümünde özetleyin. Çelişkili bilgiler için: Çelişen noktaları [header]Farklılıklar[/header] başlığı altında belirtin. Çelişkileri ilgili kaynaklarına atfedin ve bunların etkisini açıklayın.
+            6. Birden fazla özelliği kapsayan karşılaştırmalar için, verileri [bold]tablo formatında[/bold] veya yapılandırılmış listeler halinde düzenleyin. Her bir satır veya madde işareti bir özelliği temsil etmelidir.
+            7. Gerekli karşılaştırma verileri eksikse, bunu [header]Eksik Bilgiler[/header] başlığı altında açıkça belirtin. Sorgunun nasıl iyileştirilebileceğine dair önerilerde bulunun veya bağlamdaki eksikliklere işaret edin.
+            8. Ayrıntılı veya hiyerarşik karşılaştırmaları içeren sorgular için: Genel farklılıklar veya benzerlikler için bir ana bölüm kullanın. Daha ayrıntılı noktalar için iç içe geçmiş bölümler ekleyin.
             
             İlgili Bilgilerin Çıkarılması:
             Kullanıcının sorgusunda istenen belirli bilgileri belirlemek için dikkatlice analiz yapın.
@@ -487,6 +507,7 @@ class ChatbotFunctions:
             Netlik ve özlülüğe öncelik verin. Karmaşık sorgular için alt başlıklar veya kategoriler kullanın.
             Gerekli bilgi bağlamda bulunmuyorsa, bunu açıkça belirtin ve mümkünse öneriler veya açıklamalar sunun.
             Yanıtta güven katsayısını belirtmeyin.
+            'Bağlam pencerelerinden' veya 'bağlam 1', 'bağlam 2' gibi ifadelerden bahsetmeyin. Bunun yerine 'kaynaklara göre kullanın' ifadesini kullanın.
                                    
             Aşağıdaki formata *kesinlikle* uygun şekilde yanıt verin:
 
@@ -531,6 +552,10 @@ class ChatbotFunctions:
             2. If contradictory information is found, specify the contradictions and explain their sources.
             3. Present distinctions or parallels in a structured format, using headers like [header]Similarities[/header] and [header]Differences[/header].
             4. Provide a clear explanation of how the extracted information relates to the user's query.
+            5. If consistent information appears across contexts, summarize it in the [header]Similarities[/header] section. For contradictory information: Specify conflicting points under [header]Differences[/header]. Attribute contradictions to their respective sources and explain their impact.
+            6. For comparisons involving multiple attributes, organize data using a [bold]tabular format[/bold] or structured lists. Each row or bullet point should represent one attribute.
+            7. If the required comparison data is missing, clearly state this under [header]Missing Information[/header]. Offer suggestions for refining the query or point out gaps in the context.
+            8. For queries involving detailed or hierarchical comparisons: Use a primary section for high-level differences or similarities. Include nested sections for more granular points.
 
             Extracting Relevant Information:
             Carefully analyze the user's query to determine the specific information being requested.
@@ -544,7 +569,7 @@ class ChatbotFunctions:
             Prioritize clarity and conciseness. Use subheadings or categories for complex queries.
             If the required information is not found in the context, state this clearly and offer suggestions or clarifications if possible.
             Do not specify the confidence coefficient in response.
-            Do not mention about the 'context windows'. 'Use according to resources' instead.
+            Do not mention about the 'context windows' or string like 'context 1', 'context 2'. 'Use according to resources' instead.
 
             Respond *strictly* in the following format:
 
