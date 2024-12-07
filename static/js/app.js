@@ -1536,6 +1536,7 @@ class Sidebar extends Component {
         const fileItem = document.createElement('li');
         const extension = fileName.split('.').pop().toLowerCase();
         const icon = this.getFileIcon(extension);
+        const truncatedName = this.truncateFileName(fileName);
         
         fileItem.innerHTML = `
             <div class="d-flex align-items-center w-100">
@@ -1553,7 +1554,7 @@ class Sidebar extends Component {
                         </button>
                     </div>
                 </div>
-                <span class="file-name" title="${fileName}">${fileName}</span>
+                <span class="file-name" title="${fileName}">${truncatedName}</span>
                 <div class="checkbox-wrapper">
                     <input type="checkbox" class="file-checkbox" id="file-${fileID}" data-file-id="${fileID}">
                     <label class="checkbox-label" for="file-${fileID}"></label>
@@ -1619,6 +1620,17 @@ class Sidebar extends Component {
         });
 
         return fileItem;
+    }
+
+    truncateFileName(fileName, maxLength = 20) {
+        if (fileName.length <= maxLength) return fileName;
+        
+        const extension = fileName.split('.').pop();
+        const nameWithoutExt = fileName.slice(0, fileName.lastIndexOf('.'));
+        
+        // Leave room for ellipsis and extension
+        const truncatedLength = maxLength - 3 - extension.length - 1;
+        return `${nameWithoutExt.slice(0, truncatedLength)}...${extension}`;
     }
 
     getSelectedFileIds() {
