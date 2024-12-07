@@ -112,7 +112,6 @@ class Processor:
         sorted_dict = dict(
             sorted(dict_resource.items(), key=lambda item: item[1], reverse=True)
         )
-        # Here an early return must be implemented for frontend to return an "The question you asked cant be found in the document" string
         indexes = np.array(list(sorted_dict.keys()))
         sorted_sentence_indexes = indexes[:10]
 
