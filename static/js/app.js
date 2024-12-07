@@ -1163,6 +1163,17 @@ class ChatManager extends Component {
         return message;
     }
 
+    updateHeader(domainName = null) {
+        const headerTitle = document.querySelector('.header-title');
+        if (!headerTitle) return;
+        
+        if (domainName) {
+            headerTitle.innerHTML = `Chat with <span style="color: #10B981; font-size: 1.1em;">${domainName}</span>`;
+        } else {
+            headerTitle.textContent = 'Chat';
+        }
+    }
+
     addLoadingMessage() {
         const message = document.createElement('div');
         message.className = 'chat-message ai';
@@ -2017,6 +2028,9 @@ class App {
                     this.domainManager.selectDomain(domainId);
                     this.sidebar.updateDomainSelection(domain.data);
                     
+                    // Update header with domain name
+                    this.chatManager.updateHeader(domain.data.name);
+                    
                     const files = domain.data.files || [];
                     const fileIDS = domain.data.fileIDS || [];
                     this.sidebar.updateFileList(files, fileIDS);
@@ -2024,7 +2038,7 @@ class App {
                     // Update sources count
                     this.updateSourcesCount(files.length);
                     
-                    // Enabble chat
+                    // Enable chat
                     this.chatManager.enableChat();
                     
                     this.events.emit('message', {
