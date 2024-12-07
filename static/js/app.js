@@ -354,7 +354,7 @@ class DomainSettingsModal extends Component {
                             <h6 class="mb-3">I can't do it...</h6>
                             <p class="text-secondary mb-4" id="domainInfoMessage"></p>
                             <div class="d-flex justify-content-center">
-                                <button class="btn btn-primary" data-bs-dismiss="modal">Got it</button>
+                                <button class="btn" style="background-color: #10B981; color: #fff;" data-bs-dismiss="modal">Got it</button>
                             </div>
                         </div>
                     </div>
@@ -503,22 +503,36 @@ class DomainSettingsModal extends Component {
         const handleConfirm = async () => {
             const name = input.value.trim();
             if (name) {
-                if (name.length > 20) {
-                    this.events.emit('warning', 'Domain name must be less than 20 characters');
+                if (name.length > 20) {                  
+                    const alertElement = document.createElement('div');
+                    alertElement.className = 'alert-modal';
+                    alertElement.innerHTML = `
+                        <div class="alert-content">
+                            <h5 class="alert-title">I can't do it...</h5>
+                            <p class="alert-message">Domain name must be 20 characters or less. Please try again with a shorter name!</p>
+                            <button class="alert-button" style="background-color: #10B981">Got it</button>
+                        </div>
+                    `;
+    
+                    document.body.appendChild(alertElement);
+                    
+                    const closeButton = alertElement.querySelector('.alert-button');
+                    closeButton.addEventListener('click', () => {
+                        alertElement.classList.remove('show');
+                        document.body.style.overflow = '';
+                        setTimeout(() => alertElement.remove(), 300);
+                    });
+    
+                    requestAnimationFrame(() => {
+                        alertElement.classList.add('show');
+                        document.body.style.overflow = 'hidden';
+                    });
+                    
                     return;
                 }
     
                 const result = await window.createDomain(window.serverData.userId, name);
-                
-                if (result.success) {
-                    this.events.emit('domainCreate', {
-                        id: result.id,
-                        name: name
-                    });
-                    inputCard.remove();
-                } else {
-                    this.events.emit('warning', 'Failed to create domain');
-                }
+                // ... rest of the code
             }
         };
     
