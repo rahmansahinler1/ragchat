@@ -69,13 +69,25 @@ class Processor:
         index,
         index_header,
     ):
-        queries = self.query_preprocessing(user_query=user_query)
+        queries, lang = self.query_preprocessing(user_query=user_query)
         if not queries:
-            return None, None, None
+            if lang == "tr":
+                return (
+                    "Sorunu anlayamadım",
+                    None,
+                    None,
+                )
+            else:
+                return (
+                    f"I didn't understand {user_query}",
+                    None,
+                    None,
+                )
 
         query_embeddings = self.ef.create_embeddings_from_sentences(
             sentences=queries[:-1]
         )
+
         boost_array = self._create_boost_array(
             header_indexes=boost_info["header_indexes"],
             sentence_amount=index.ntotal,
@@ -106,13 +118,35 @@ class Processor:
 
         # Get average occurrences
         dict_resource = self._avg_resources(dict_resource)
+
         for key in dict_resource:
             dict_resource[key] *= combined_boost_array[key]
+
         sorted_dict = dict(
             sorted(dict_resource.items(), key=lambda item: item[1], reverse=True)
         )
-        indexes = np.array(list(sorted_dict.keys()))
-        sorted_sentence_indexes = indexes[:10]
+
+        filtered_indexes = [
+            sentence_index
+            for sentence_index in sorted_dict.keys()
+            if sorted_dict[sentence_index] >= 0.45
+        ]
+        sorted_sentence_indexes = filtered_indexes[:10]
+
+        # Early return with message
+        if not sorted_sentence_indexes:
+            if lang == "tr":
+                return (
+                    "Seçtiğin dokümanlarda bu sorunun cevabını bulamadım. Daha iyi cevaplar almanın yolunu senin için hazırladığımız kılavuzla konuşarak bulabilirsin!",
+                    None,
+                    None,
+                )
+            else:
+                return (
+                    "I couldn't find the answer from your question. For better answers you chat with the user guide we installed for you!",
+                    None,
+                    None,
+                )
 
         # Sentences to context creation
         context, context_windows, resources = self.context_creator(
@@ -129,11 +163,12 @@ class Processor:
         return answer, resources, context_windows
 
     def query_preprocessing(self, user_query):
-        generated_queries = self.cf.query_generation(query=user_query).split("\n")
+        generated_queries, lang = self.cf.query_generation(query=user_query)
+        splitted_queries = generated_queries.split("\n")
 
-        if len(generated_queries) > 1:
-            return generated_queries
-        return None
+        if len(splitted_queries) > 1:
+            return splitted_queries, lang
+        return None, lang
 
     def _create_boost_array(
         self,
@@ -143,14 +178,17 @@ class Processor:
         index_header,
     ):
         boost_array = np.ones(sentence_amount)
+
         if not index_header:
             return boost_array
+
         D, I = index_header.search(query_vector.reshape(1, -1), 10)  # noqa: E741
         filtered_header_indexes = [
             header_index
             for index, header_index in enumerate(I[0])
             if D[0][index] > 0.30
         ]
+
         if not filtered_header_indexes:
             return boost_array
         else:
@@ -330,39 +368,22 @@ class Processor:
         return boost_info
 
     def merge_tuples(self, widen_sentences):
-        indexed_tuples = sorted(enumerate(widen_sentences), key=lambda x: x[1][0])
+        sorted_dict = {0: widen_sentences[0]}
 
-        merged_groups = []
-        current_group = {
-            "start_index": indexed_tuples[0][0],
-            "tuple": indexed_tuples[0][1],
-            "indices": [indexed_tuples[0][0]],
-        }
+        for sentence_tuple in widen_sentences[1:]:
+            tuple_range = range(sentence_tuple[0], sentence_tuple[1])
+            is_in = 0
+            for index, value in sorted_dict.items():
+                current_range = range(value[0], value[1])
+                if set(tuple_range) & set(current_range):
+                    interval = (
+                        min(sorted_dict[index][0], sentence_tuple[0]),
+                        max(sorted_dict[index][1], sentence_tuple[1]),
+                    )
+                    sorted_dict[index] = interval
+                    is_in = 1
 
-        for index, current_tuple in indexed_tuples[1:]:
-            if current_tuple[0] <= current_group["tuple"][1] + 1:
-                current_group["tuple"] = (
-                    min(current_group["tuple"][0], current_tuple[0]),
-                    max(current_group["tuple"][1], current_tuple[1]),
-                )
-                current_group["indices"].append(index)
-            else:
-                merged_groups.append(current_group)
-                current_group = {
-                    "start_index": index,
-                    "tuple": current_tuple,
-                    "indices": [index],
-                }
-        merged_groups.append(current_group)
+            if not is_in:
+                sorted_dict[index + 1] = sentence_tuple
 
-        result = widen_sentences.copy()
-        for group in merged_groups:
-            min_index = min(group["indices"])
-            result[min_index] = group["tuple"]
-            for idx in group["indices"]:
-                if idx != min_index:
-                    result[idx] = None
-
-        merged_result = [x for x in result if x is not None]
-
-        return merged_result
+        return list(dict.fromkeys(sorted_dict.values()))

@@ -257,21 +257,29 @@ class ChatbotFunctions:
             Gerekli bilgi bağlamda bulunmuyorsa, bunu açıkça belirtin ve mümkünse öneriler veya açıklamalar sunun.
             Yanıtta güven katsayısını belirtmeyin.
                                    
-            *Kesinlikle* aşağıdaki formatta yanıt verin:
+            Aşağıdaki formata *kesinlikle* uygun şekilde yanıt verin:
 
-            [header]Bölüm Adı[/header]  
-            İçerik, gerektiğinde [b]kalın terimler[/b] ile
-            --madde eğer gerekliyse (ekstra satır başı olmadan)
-            [header]Başka Bir Bölüm Adı[/header]  
-            İçerik, gerektiğinde [b]kalın terimler[/b] ile
-            --madde eğer gerekliyse (ekstra satır başı olmadan)
+            [header]Bölüm Adı[/header]
+            Gerektiğinde [bold]kalın terimler[/bold] ile içerik. Maddeler için şu format kullanılmalı:
+            - Ana madde
+              - Alt madde
+                - Daha alt madde
 
-            Kurallar:  
-            1. Her ana bölüm [header]...[/header] ile başlamalıdır  
-            2. İçerikte önemli terimler veya vurgular için [b]...[/b] kullanın  
-            3. Başlıklar şu kategorilerden biri olmalıdır: Tanım, Amaç, Temel Özellikler, İşleyiş, Bağlam
-            4. Maddeler arasında ekstra olarak satır başı kullanmayın
-            5. Sadece ana bölümler arasında satır başı kullanın
+            [header]Diğer Bölüm Adı[/header]
+            Gerektiğinde [bold]kalın terimler[/bold] ile içerik
+            - Ana madde
+              - Alt madde
+                - Daha alt madde
+
+            Kurallar:
+            1. Her ana bölüm [header]...[/header] ile başlamalı
+            2. Önemli terimler veya vurgulamalar için [bold]...[/bold] kullanın
+            3. Bölüm başlıkları şunlardan biri olmalı: Tanım, Amaç, Temel Özellikler, İşleyiş, Bağlam
+            4. Tüm liste maddeleri için tek tire (-) kullanın
+            5. Alt maddelerde tam olarak 2 boşluk ile girintileme yapın
+            6. Ana bölümler arasında bir boş satır bırakın
+            7. Başka liste işaretleri kullanmayın (nokta, sayı vb.)
+            8. Yanıt boyunca tutarlı girintileme kullanın
 
             Bağlam Pencereleri:
             {context}
@@ -311,18 +319,26 @@ class ChatbotFunctions:
             Respond *strictly* in the following format:
 
             [header]Section Name[/header]
-            Content with [bold]bold terms[/bold] when needed
-            --substance when needed (without extra line breaks)
+            Content with [bold]bold terms[/bold] when needed. Use the following list format for any points:
+            - Main point
+            - Sub-point
+                - Further nested point
+
             [header]Another Section Name[/header]
             Content with [bold]bold terms[/bold] when needed
-            --substance when needed (without extra line breaks)
+            - Main point
+            - Sub-point
+                - Further nested point
 
             Rules:
             1. Each major section must start with [header]...[/header]
             2. Use [bold]...[/bold] for important terms or emphasis within content
             3. Headers should be one of: Definition, Purpose, Key Features, Operation, Context
-            4. Do not add extra line breaks between substances
-            5. Only use line breaks between major sections                          
+            4. Use single dash (-) for all list items
+            5. Indent nested list items with exactly 2 spaces per level
+            6. Place one empty line between major sections
+            7. Do not use any other list markers (bullets, dots, numbers)
+            8. Keep indentation consistent throughout the response                         
                                    
             Context Windows:
             {context}
@@ -357,21 +373,29 @@ class ChatbotFunctions:
             Gerekli bilgi bağlamda bulunmuyorsa, bunu açıkça belirtin ve mümkünse öneriler veya açıklamalar sunun.
             Yanıtta güven katsayısını belirtmeyin.
                                    
-            *Kesinlikle* aşağıdaki formatta yanıt verin:
+            Aşağıdaki formata *kesinlikle* uygun şekilde yanıt verin:
 
-            [header]Bölüm Adı[/header]  
-            İçerik, gerektiğinde [b]kalın terimler[/b] ile
-            --madde eğer gerekliyse (ekstra satır başı olmadan)
-            [header]Başka Bir Bölüm Adı[/header]  
-            İçerik, gerektiğinde [b]kalın terimler[/b] ile
-            --madde eğer gerekliyse (ekstra satır başı olmadan)
+            [header]Bölüm Adı[/header]
+            Gerektiğinde [bold]kalın terimler[/bold] ile içerik. Maddeler için şu format kullanılmalı:
+            - Ana madde
+              - Alt madde
+                - Daha alt madde
 
-            Kurallar:  
-            1. Her ana bölüm [header]...[/header] ile başlamalıdır  
-            2. İçerikte önemli terimler veya vurgular için [b]...[/b] kullanın  
-            3. Başlıklar şu kategorilerden biri olmalıdır: Tanım, Amaç, Temel Özellikler, İşleyiş, Bağlam
-            4. Maddeler arasında ekstra olarak satır başı kullanmayın
-            5. Sadece ana bölümler arasında satır başı kullanın
+            [header]Diğer Bölüm Adı[/header]
+            Gerektiğinde [bold]kalın terimler[/bold] ile içerik
+            - Ana madde
+              - Alt madde
+                - Daha alt madde
+
+            Kurallar:
+            1. Her ana bölüm [header]...[/header] ile başlamalı
+            2. Önemli terimler veya vurgulamalar için [bold]...[/bold] kullanın
+            3. Bölüm başlıkları şunlardan biri olmalı: Tanım, Amaç, Temel Özellikler, İşleyiş, Bağlam
+            4. Tüm liste maddeleri için tek tire (-) kullanın
+            5. Alt maddelerde tam olarak 2 boşluk ile girintileme yapın
+            6. Ana bölümler arasında bir boş satır bırakın
+            7. Başka liste işaretleri kullanmayın (nokta, sayı vb.)
+            8. Yanıt boyunca tutarlı girintileme kullanın
 
             Bağlam Pencereleri:
             {context}
@@ -410,18 +434,26 @@ class ChatbotFunctions:
             Respond *strictly* in the following format:
 
             [header]Section Name[/header]
-            Content with [bold]bold terms[/bold] when needed
-            --substance when needed (without extra line breaks)
+            Content with [bold]bold terms[/bold] when needed. Use the following list format for any points:
+            - Main point
+            - Sub-point
+                - Further nested point
+
             [header]Another Section Name[/header]
             Content with [bold]bold terms[/bold] when needed
-            --substance when needed (without extra line breaks)
+            - Main point
+            - Sub-point
+                - Further nested point
 
             Rules:
             1. Each major section must start with [header]...[/header]
             2. Use [bold]...[/bold] for important terms or emphasis within content
             3. Headers should be one of: Definition, Purpose, Key Features, Operation, Context
-            4. Do not add extra line breaks between substances
-            5. Only use line breaks between major sections                          
+            4. Use single dash (-) for all list items
+            5. Indent nested list items with exactly 2 spaces per level
+            6. Place one empty line between major sections
+            7. Do not use any other list markers (bullets, dots, numbers)
+            8. Keep indentation consistent throughout the response                         
                                    
             Context Windows:
             {context}
@@ -456,21 +488,29 @@ class ChatbotFunctions:
             Gerekli bilgi bağlamda bulunmuyorsa, bunu açıkça belirtin ve mümkünse öneriler veya açıklamalar sunun.
             Yanıtta güven katsayısını belirtmeyin.
                                    
-            *Kesinlikle* aşağıdaki formatta yanıt verin:
+            Aşağıdaki formata *kesinlikle* uygun şekilde yanıt verin:
 
-            [header]Bölüm Adı[/header]  
-            İçerik, gerektiğinde [b]kalın terimler[/b] ile
-            --madde eğer gerekliyse (ekstra satır başı olmadan)
-            [header]Başka Bir Bölüm Adı[/header]  
-            İçerik, gerektiğinde [b]kalın terimler[/b] ile
-            --madde eğer gerekliyse (ekstra satır başı olmadan)
+            [header]Bölüm Adı[/header]
+            Gerektiğinde [bold]kalın terimler[/bold] ile içerik. Maddeler için şu format kullanılmalı:
+            - Ana madde
+              - Alt madde
+                - Daha alt madde
 
-            Kurallar:  
-            1. Her ana bölüm [header]...[/header] ile başlamalıdır  
-            2. İçerikte önemli terimler veya vurgular için [b]...[/b] kullanın  
-            3. Başlıklar şu kategorilerden biri olmalıdır: Tanım, Amaç, Temel Özellikler, İşleyiş, Bağlam
-            4. Maddeler arasında ekstra olarak satır başı kullanmayın
-            5. Sadece ana bölümler arasında satır başı kullanın
+            [header]Diğer Bölüm Adı[/header]
+            Gerektiğinde [bold]kalın terimler[/bold] ile içerik
+            - Ana madde
+              - Alt madde
+                - Daha alt madde
+
+            Kurallar:
+            1. Her ana bölüm [header]...[/header] ile başlamalı
+            2. Önemli terimler veya vurgulamalar için [bold]...[/bold] kullanın
+            3. Bölüm başlıkları şunlardan biri olmalı: Tanım, Amaç, Temel Özellikler, İşleyiş, Bağlam
+            4. Tüm liste maddeleri için tek tire (-) kullanın
+            5. Alt maddelerde tam olarak 2 boşluk ile girintileme yapın
+            6. Ana bölümler arasında bir boş satır bırakın
+            7. Başka liste işaretleri kullanmayın (nokta, sayı vb.)
+            8. Yanıt boyunca tutarlı girintileme kullanın
 
             Bağlam Pencereleri:
             {context}
@@ -509,18 +549,26 @@ class ChatbotFunctions:
             Respond *strictly* in the following format:
 
             [header]Section Name[/header]
-            Content with [bold]bold terms[/bold] when needed
-            --substance when needed (without extra line breaks)
+            Content with [bold]bold terms[/bold] when needed. Use the following list format for any points:
+            - Main point
+            - Sub-point
+                - Further nested point
+
             [header]Another Section Name[/header]
             Content with [bold]bold terms[/bold] when needed
-            --substance when needed (without extra line breaks)
+            - Main point
+            - Sub-point
+                - Further nested point
 
             Rules:
             1. Each major section must start with [header]...[/header]
             2. Use [bold]...[/bold] for important terms or emphasis within content
             3. Headers should be one of: Definition, Purpose, Key Features, Operation, Context
-            4. Do not add extra line breaks between substances
-            5. Only use line breaks between major sections                          
+            4. Use single dash (-) for all list items
+            5. Indent nested list items with exactly 2 spaces per level
+            6. Place one empty line between major sections
+            7. Do not use any other list markers (bullets, dots, numbers)
+            8. Keep indentation consistent throughout the response                         
                                    
             Context Windows:
             {context}
@@ -557,7 +605,7 @@ class ChatbotFunctions:
             temperature=0,
         )
         new_queries = response.choices[0].message.content.strip()
-        return new_queries
+        return new_queries, lang
 
     def detect_language(self, query):
         lang = detect(text=query)

@@ -246,11 +246,9 @@ async def generate_answer(
             index_header=index_header,
         )
 
-        if not answer or not resources or not resource_sentences:
+        if not resources or not resource_sentences:
             return JSONResponse(
-                content={
-                    "message": f"Can you explain the question better? I did not understand '{user_message}'"
-                },
+                content={"message": answer},
                 status_code=200,
             )
 
