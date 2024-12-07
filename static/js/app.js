@@ -1264,12 +1264,6 @@ class ChatManager extends Component {
                 
             container.appendChild(item);
         });
-    
-        // Update sources count in UI
-        const sourcesNumber = document.querySelector('.sources-number');
-        if (sourcesNumber) {
-            sourcesNumber.textContent = resources.file_names.length;
-        }
     }
 
     scrollToBottom() {
