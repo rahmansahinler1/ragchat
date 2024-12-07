@@ -113,12 +113,8 @@ class Processor:
             sorted(dict_resource.items(), key=lambda item: item[1], reverse=True)
         )
         # Here an early return must be implemented for frontend to return an "The question you asked cant be found in the document" string
-        filtered_indexes = [
-            sentence_index
-            for sentence_index in sorted_dict.keys()
-            if sorted_dict[sentence_index] >= 0.45
-        ]
-        sorted_sentence_indexes = filtered_indexes[:10]
+        indexes = np.array(list(sorted_dict.keys()))
+        sorted_sentence_indexes = indexes[:10]
 
         # Sentences to context creation
         context, context_windows, resources = self.context_creator(
@@ -213,73 +209,68 @@ class Processor:
         context_windows = []
         widened_indexes = []
 
-        if not sentence_index_list:
-            return "", "", ""
-        else:
-            for i, sentence_index in enumerate(sentence_index_list):
-                window_size = 4 if i < 3 else 2
-                start = max(0, sentence_index - window_size)
-                end = min(len(domain_content) - 1, sentence_index + window_size)
+        for i, sentence_index in enumerate(sentence_index_list):
+            window_size = 4 if i < 3 else 2
+            start = max(0, sentence_index - window_size)
+            end = min(len(domain_content) - 1, sentence_index + window_size)
 
-                if table_indexes:
-                    for table_index in table_indexes:
-                        if sentence_index == table_index:
-                            widened_indexes.append((table_index, table_index))
-                            table_indexes.remove(table_index)
-                            break
+            if table_indexes:
+                for table_index in table_indexes:
+                    if sentence_index == table_index:
+                        widened_indexes.append((table_index, table_index))
+                        table_indexes.remove(table_index)
+                        break
 
-                if not header_indexes:
-                    widened_indexes.append((start, end))
-                else:
-                    for i, current_header in enumerate(header_indexes):
-                        if sentence_index == current_header:
-                            start = max(0, sentence_index)
-                            if (
-                                i + 1 < len(header_indexes)
-                                and abs(sentence_index - header_indexes[i + 1]) <= 20
-                            ):
-                                end = min(
-                                    len(domain_content) - 1, header_indexes[i + 1] - 1
-                                )
-                            else:
-                                end = min(
-                                    len(domain_content) - 1,
-                                    sentence_index + window_size,
-                                )
-                            break
-                        elif (
+            if not header_indexes:
+                widened_indexes.append((start, end))
+            else:
+                for i, current_header in enumerate(header_indexes):
+                    if sentence_index == current_header:
+                        start = max(0, sentence_index)
+                        if (
                             i + 1 < len(header_indexes)
-                            and current_header < sentence_index < header_indexes[i + 1]
+                            and abs(sentence_index - header_indexes[i + 1]) <= 20
                         ):
-                            start = (
-                                current_header
-                                if abs(sentence_index - current_header) <= 20
-                                else max(0, sentence_index - window_size)
-                            )
-                            end = (
-                                header_indexes[i + 1] - 1
-                                if abs(header_indexes[i + 1] - sentence_index) <= 20
-                                else min(
-                                    len(domain_content) - 1,
-                                    sentence_index + window_size,
-                                )
-                            )
-                            break
-                        elif (
-                            i == len(header_indexes) - 1
-                            and current_header >= sentence_index
-                        ):
-                            start = (
-                                max(0, sentence_index)
-                                if abs(current_header - sentence_index) <= 20
-                                else max(0, sentence_index - window_size)
-                            )
                             end = min(
-                                len(domain_content) - 1, sentence_index + window_size
+                                len(domain_content) - 1, header_indexes[i + 1] - 1
                             )
-                            break
-                    if (start, end) not in widened_indexes:
-                        widened_indexes.append((start, end))
+                        else:
+                            end = min(
+                                len(domain_content) - 1,
+                                sentence_index + window_size,
+                            )
+                        break
+                    elif (
+                        i + 1 < len(header_indexes)
+                        and current_header < sentence_index < header_indexes[i + 1]
+                    ):
+                        start = (
+                            current_header
+                            if abs(sentence_index - current_header) <= 20
+                            else max(0, sentence_index - window_size)
+                        )
+                        end = (
+                            header_indexes[i + 1] - 1
+                            if abs(header_indexes[i + 1] - sentence_index) <= 20
+                            else min(
+                                len(domain_content) - 1,
+                                sentence_index + window_size,
+                            )
+                        )
+                        break
+                    elif (
+                        i == len(header_indexes) - 1
+                        and current_header >= sentence_index
+                    ):
+                        start = (
+                            max(0, sentence_index)
+                            if abs(current_header - sentence_index) <= 20
+                            else max(0, sentence_index - window_size)
+                        )
+                        end = min(len(domain_content) - 1, sentence_index + window_size)
+                        break
+                if (start, end) not in widened_indexes:
+                    widened_indexes.append((start, end))
 
         merged_truples = self.merge_tuples(widen_sentences=widened_indexes)
 
