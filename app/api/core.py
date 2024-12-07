@@ -114,9 +114,6 @@ class Processor:
         )
         indexes = np.array(list(sorted_dict.keys()))
         sorted_sentence_indexes = indexes[:10]
-        resources = self._extract_resources(
-            sentence_indexes=sorted_sentence_indexes, domain_content=domain_content
-        )
 
         # Sentences to context creation
         context, context_windows, resources = self.context_creator(
