@@ -778,6 +778,7 @@ class FileUploadModal extends Component {
         const fileInput = this.element.querySelector('#fileInput');
         const uploadBtn = this.element.querySelector('#uploadBtn');
         const chooseText = this.element.querySelector('.choose-text');
+        const uploadIcon = this.element.querySelector('.upload-icon-wrapper');
 
         // Drag and drop handlers
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -806,6 +807,13 @@ class FileUploadModal extends Component {
             if (!this.isUploading) {
                 const files = e.dataTransfer.files;
                 this.handleFiles(files);
+            }
+        });
+
+        // Icon click handler
+        uploadIcon.addEventListener('click', () => {
+            if (!this.isUploading) {
+                fileInput.click();
             }
         });
 
@@ -1121,6 +1129,9 @@ class ChatManager extends Component {
     
         // Add loading message
         const loadingMessage = this.addLoadingMessage();
+
+        // Disable chat
+        this.disableChat();
     
         try {
             const selectedFileIds = window.app.sidebar.getSelectedFileIds();
@@ -1150,6 +1161,8 @@ class ChatManager extends Component {
             loadingMessage.remove();
             this.addMessage('Error generating message!', 'ai');
             console.error('Error:', error);
+        } finally {
+            this.enableChat();
         }
     }
 
