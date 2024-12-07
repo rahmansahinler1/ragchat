@@ -117,21 +117,29 @@ class ChatbotFunctions:
             Gerekli bilgi bağlamda bulunmuyorsa, bunu açıkça belirtin ve mümkünse öneriler veya açıklamalar sunun.
             Yanıtta güven katsayısını belirtmeyin.
                                    
-            *Kesinlikle* aşağıdaki formatta yanıt verin:
+            Aşağıdaki formata *kesinlikle* uygun şekilde yanıt verin:
 
-            [header]Bölüm Adı[/header]  
-            İçerik, gerektiğinde [b]kalın terimler[/b] ile
-            --madde eğer gerekliyse (ekstra satır başı olmadan)
-            [header]Başka Bir Bölüm Adı[/header]  
-            İçerik, gerektiğinde [b]kalın terimler[/b] ile
-            --madde eğer gerekliyse (ekstra satır başı olmadan)
+            [header]Bölüm Adı[/header]
+            Gerektiğinde [bold]kalın terimler[/bold] ile içerik. Maddeler için şu format kullanılmalı:
+            - Ana madde
+              - Alt madde
+                - Daha alt madde
 
-            Kurallar:  
-            1. Her ana bölüm [header]...[/header] ile başlamalıdır  
-            2. İçerikte önemli terimler veya vurgular için [b]...[/b] kullanın  
-            3. Başlıklar şu kategorilerden biri olmalıdır: Tanım, Amaç, Temel Özellikler, İşleyiş, Bağlam
-            4. Maddeler arasında ekstra olarak satır başı kullanmayın
-            5. Sadece ana bölümler arasında satır başı kullanın
+            [header]Diğer Bölüm Adı[/header]
+            Gerektiğinde [bold]kalın terimler[/bold] ile içerik
+            - Ana madde
+              - Alt madde
+                - Daha alt madde
+
+            Kurallar:
+            1. Her ana bölüm [header]...[/header] ile başlamalı
+            2. Önemli terimler veya vurgulamalar için [bold]...[/bold] kullanın
+            3. Bölüm başlıkları şunlardan biri olmalı: Tanım, Amaç, Temel Özellikler, İşleyiş, Bağlam
+            4. Tüm liste maddeleri için tek tire (-) kullanın
+            5. Alt maddelerde tam olarak 2 boşluk ile girintileme yapın
+            6. Ana bölümler arasında bir boş satır bırakın
+            7. Başka liste işaretleri kullanmayın (nokta, sayı vb.)
+            8. Yanıt boyunca tutarlı girintileme kullanın
 
             Bağlam Pencereleri:
             {context}
