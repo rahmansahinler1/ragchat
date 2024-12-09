@@ -323,7 +323,7 @@ class Processor:
                 context_windows.append(windened_sentence)
             else:
                 windened_sentence = " ".join(
-                    domain_content[index][0] for index in range(tuple[0], tuple[1])
+                    domain_content[index][0] for index in range(tuple[0], tuple[1] + 1)
                 )
                 context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sentence_index_list)-i)/len(sentence_index_list)}, {windened_sentence}\n\n"
                 context_windows.append(windened_sentence)
