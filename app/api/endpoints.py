@@ -564,7 +564,7 @@ async def signup(
                 db.insert_domain_info(
                     user_id=user_id,
                     domain_id=domain_id,
-                    domain_name="Default",
+                    domain_name="My First Domain",
                     domain_type=0,
                 )
                 db.insert_user_guide(user_id=user_id, domain_id=domain_id)
