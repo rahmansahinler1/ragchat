@@ -194,6 +194,7 @@ class ReadingFunctions:
             "sentences": [],
             "page_number": [],
             "is_header": [],
+            "is_table": [],
         }
         text = file_bytes.decode("utf-8", errors="ignore")
         valid_sentences = self._process_text(text=text)
