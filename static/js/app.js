@@ -2244,6 +2244,12 @@ class App {
             localStorage.setItem('firstTime', 0);
             const firstTimeMsg = `[header]Welcome to ragchat${this.userData.user_info.user_name ? `, ${this.userData.user_info.user_name}` : ''}👋[/header]\nI've automatically set up your first domain with helpful guide about using ragchat. You can always use this file to get any information about ragchat!\n[header]To get started[/header]\n- Ask any question about ragchat's features and capabilities \n- Try asking "What can ragchat do?" or "How do I organize my documents?"\n- The user guide has been uploaded to your first domain\n- All answers will include source references\n\n[header]Quick Tips[/header]\n- Open & close navigation bar by hovering\n- Click ⚙️ to manage domains and documents\n- Upload files via "Open File Menu" after selecting a domain\n- Check right panel for answer sources\n- Supports PDF, DOCX, and TXT formats\n- Create different domains for different topics\n- View highlighted source sections in answers\n- Use file checkboxes to control search scope`;
             this.chatManager.addMessage(firstTimeMsg, 'ai');
+
+            const domains = this.domainManager.getAllDomains();
+            if (domains.length > 0) {
+                this.domainSettingsModal.events.emit('domainSelected', domains[0].id);
+            }
+
         } else {
             // Regular welcome message for returning users
             this.chatManager.addMessage(
