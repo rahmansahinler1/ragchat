@@ -532,7 +532,15 @@ class DomainSettingsModal extends Component {
                 }
     
                 const result = await window.createDomain(window.serverData.userId, name);
-                // ... rest of the code
+                if (result.success) {
+                    this.events.emit('domainCreate', {
+                        id: result.id,
+                        name: name
+                    });
+                    inputCard.remove();
+                } else {
+                    this.events.emit('warning', 'Failed to create domain');
+                }
             }
         };
     
