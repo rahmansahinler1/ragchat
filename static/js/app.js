@@ -173,6 +173,28 @@ class DomainManager {
         }));
     }
 
+    updateDomainFileCount(domainId) {
+        const domain = this.domains.get(domainId);
+        if (domain) {
+            // Update fileCount based on current files array length
+            domain.data.fileCount = domain.data.files.length;
+            
+            // Update the domain card display
+            if (domain.component) {
+                const fileCountElement = domain.component.element.querySelector('.file-count');
+                if (fileCountElement) {
+                    fileCountElement.textContent = `${domain.data.fileCount} files`;
+                }
+            }
+            
+            // Emit an event for other components that might need this update
+            this.events.emit('domainFileCountUpdated', {
+                domainId: domainId,
+                newCount: domain.data.fileCount
+            });
+        }
+    }
+
     // Single method to handle selection state
     selectDomain(domainId) {
         // Deselect previous
@@ -269,7 +291,7 @@ class DomainCard extends Component {
 }
 
 class DomainSettingsModal extends Component {
-    constructor() {
+    constructor(domainManager) {
         const element = document.createElement('div');
         element.id = 'domainSelectModal';
         element.className = 'modal fade';
@@ -277,6 +299,7 @@ class DomainSettingsModal extends Component {
         element.setAttribute('aria-hidden', 'true');
         super(element);
         
+        this.domainManager = domainManager;
         this.domainToDelete = null;
         this.deleteModal = null;
         this.temporarySelectedId = null;
@@ -376,6 +399,17 @@ class DomainSettingsModal extends Component {
         const newDomainBtn = this.element.querySelector('#newDomainBtn');
         newDomainBtn?.addEventListener('click', () => {
             this.handleNewDomain();
+        });
+
+        // Domain deletion
+        this.domainManager.events.on('domainFileCountUpdated', ({ domainId, newCount }) => {
+            const domainCard = this.element.querySelector(`[data-domain-id="${domainId}"]`);
+            if (domainCard) {
+                const fileCountElement = domainCard.querySelector('.file-count');
+                if (fileCountElement) {
+                    fileCountElement.textContent = `${newCount} files`;
+                }
+            }
         });
 
         // Select button
@@ -1354,7 +1388,7 @@ class Sidebar extends Component {
                     </div>
                     <div class="file-add">
                         <button class="open-file-btn">
-                            Open File Menu
+                            Upload Files
                         </button>
                         <p class="helper-text">
                             Select domain first on ⚙️
@@ -1372,7 +1406,7 @@ class Sidebar extends Component {
                             <div class="user-email">ibrahimyasing@gmail.com</div>
                             <div class="user-status">
                                 <span class="status-dot"></span>
-                                Active
+                                Online
                             </div>
                         </div>
                         <div class="user-menu">
@@ -1423,9 +1457,9 @@ class Sidebar extends Component {
         });
     
         // Add hover handlers for desktop
-        if (window.innerWidth >= 992) {
+        const menuTrigger = document.querySelector('.menu-trigger');
+        if (window.innerWidth >= 992 && menuTrigger) {
             // Menu trigger hover
-            const menuTrigger = document.querySelector('.menu-trigger');
             if (menuTrigger) {
                 menuTrigger.addEventListener('mouseenter', () => {
                     console.log('Menu trigger hover');
@@ -1646,6 +1680,7 @@ class Sidebar extends Component {
                 // Update domain file count
                 selectedDomain.data.files = selectedDomain.data.files.filter(f => f !== fileName);
                 selectedDomain.data.fileIDS = selectedDomain.data.fileIDS.filter(id => id !== fileID);
+                this.domainManager.updateDomainFileCount(selectedDomain.data.id);
                 
                 // Update sources count
                 const sourcesCount = selectedDomain.data.files.length;
@@ -1972,7 +2007,7 @@ class App {
         this.domainManager = new DomainManager();
         this.sidebar = new Sidebar(this.domainManager);
         this.feedbackModal = new FeedbackModal();
-        this.domainSettingsModal = new DomainSettingsModal();
+        this.domainSettingsModal = new DomainSettingsModal(this.domainManager);
         this.fileUploadModal = new FileUploadModal();
         this.events = new EventEmitter();
         this.userData = null;
@@ -2151,6 +2186,7 @@ class App {
                 selectedDomain.data.fileIDS = data.file_ids;
                 this.sidebar.updateFileList(data.file_names, data.file_ids);
                 this.updateSourcesCount(data.file_names.length);
+                this.domainManager.updateDomainFileCount(selectedDomain.data.id);
             }
         });
 
@@ -2242,7 +2278,7 @@ class App {
         const isFirstTime = localStorage.getItem('firstTime') === '1';
         if (isFirstTime) {
             localStorage.setItem('firstTime', 0);
-            const firstTimeMsg = `[header]Welcome to ragchat${this.userData.user_info.user_name ? `, ${this.userData.user_info.user_name}` : ''}👋[/header]\nI've automatically set up your first domain with helpful guide about using ragchat. You can always use this file to get any information about ragchat!\n[header]To get started[/header]\n- Ask any question about ragchat's features and capabilities \n- Try asking "What can ragchat do?" or "How do I organize my documents?"\n- The user guide has been uploaded to your first domain\n- All answers will include source references\n\n[header]Quick Tips[/header]\n- Open & close navigation bar by hovering\n- Click ⚙️ to manage domains and documents\n- Upload files via "Open File Menu" after selecting a domain\n- Check right panel for answer sources\n- Supports PDF, DOCX, and TXT formats\n- Create different domains for different topics\n- View highlighted source sections in answers\n- Use file checkboxes to control search scope`;
+            const firstTimeMsg = `[header]Welcome to ragchat${this.userData.user_info.user_name ? `, ${this.userData.user_info.user_name}` : ''}👋[/header]\nI've automatically set up your first domain with helpful guide about using ragchat. You can always use this file to get any information about ragchat!\n[header]To get started[/header]\n- Ask any question about ragchat's features and capabilities \n- Try asking "What can ragchat do?" or "How do I organize my documents?"\n- The user guide has been uploaded to your first domain\n- All answers will include source references\n\n[header]Quick Tips[/header]\n- Open & close navigation bar by hovering\n- Click ⚙️ to manage domains and documents\n- Upload files via "Upload Files" button after selecting a domain\n- Check right panel for answer sources\n- Supports PDF, DOCX, and TXT formats\n- Create different domains for different topics\n- View highlighted source sections in answers\n- Use file checkboxes to control search scope`;
             this.chatManager.addMessage(firstTimeMsg, 'ai');
 
             const domains = this.domainManager.getAllDomains();
