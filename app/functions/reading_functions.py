@@ -74,12 +74,24 @@ class ReadingFunctions:
                         pdf_data["is_header"].append(True)
                         pdf_data["is_table"].append(False)
                         pdf_data["page_number"].append(i + 1)
-                    elif (split.page_content[0] == "*" and split.page_content[-1] == '*' and (re.match(r"(\*{2,})(\d+(?:\.\d+)*)\s*(\*{2,})?(.*)$",split.page_content) or re.match(r"(\*{1,3})?([A-Z][a-zA-Z\s\-]+)(\*{1,3})?$",split.page_content))
-                    ): # Sub-Header and Header variant detection
+                    elif (
+                        split.page_content[0] == "*"
+                        and split.page_content[-1] == "*"
+                        and (
+                            re.match(
+                                r"(\*{2,})(\d+(?:\.\d+)*)\s*(\*{2,})?(.*)$",
+                                split.page_content,
+                            )
+                            or re.match(
+                                r"(\*{1,3})?([A-Z][a-zA-Z\s\-]+)(\*{1,3})?$",
+                                split.page_content,
+                            )
+                        )
+                    ):  # Sub-Header and Header variant detection
                         pdf_data["sentences"].append(split.page_content)
                         pdf_data["is_header"].append(True)
                         pdf_data["is_table"].append(False)
-                        pdf_data["page_number"].append(i+1)
+                        pdf_data["page_number"].append(i + 1)
                     elif (
                         split.page_content[0] == "|" and split.page_content[-1] == "|"
                     ):  # Table detection
@@ -131,6 +143,7 @@ class ReadingFunctions:
             docx_data["is_header"].extend([False] * len(paragraph_sentences))
             current_length += len(text)
 
+        docx_data["is_table"] = [False] * len(docx_data["sentences"])
         return docx_data
 
     def _process_txt(self, file_bytes: bytes):
@@ -145,6 +158,7 @@ class ReadingFunctions:
         text_data["page_number"].extend([1] * len(valid_sentences))
         text_data["is_header"].extend([False] * len(valid_sentences))
 
+        text_data["is_table"] = [False] * len(text_data["sentences"])
         return text_data
 
     def _process_text(self, text):
