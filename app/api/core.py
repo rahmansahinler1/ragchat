@@ -86,7 +86,7 @@ class Processor:
                 )
         file_lang = self.file_lang_detection(domain_content=domain_content)
 
-        if not file_lang or file_lang != lang:
+        if file_lang != lang:
             translated = self.cf.translator(
                 query_lang=lang, file_lang=file_lang, query=queries[:-1]
             )
