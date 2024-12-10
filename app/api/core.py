@@ -70,6 +70,7 @@ class Processor:
         index,
         index_header,
     ):
+        filter_threshold = 0.4
         queries, lang = self.query_preprocessing(user_query=user_query)
         if not queries:
             if lang == "tr":
@@ -93,6 +94,7 @@ class Processor:
             query_embeddings = self.ef.create_embeddings_from_sentences(
                 sentences=translated
             )
+            filter_threshold = 0.30
 
         query_embeddings = self.ef.create_embeddings_from_sentences(
             sentences=queries[:-1]
@@ -139,7 +141,7 @@ class Processor:
         filtered_indexes = [
             sentence_index
             for sentence_index in sorted_dict.keys()
-            if sorted_dict[sentence_index] >= 0.35
+            if sorted_dict[sentence_index] >= filter_threshold
         ]
         sorted_sentence_indexes = filtered_indexes[:10]
 
