@@ -1,10 +1,14 @@
-from docx import Document
 import fitz
+import tempfile
 import io
 import re
 import spacy
 import pymupdf4llm
+from pathlib import Path
 from langchain_text_splitters import MarkdownHeaderTextSplitter
+from docling.document_converter import DocumentConverter, WordFormatOption
+from docling.datamodel.base_models import InputFormat
+from docling.pipeline.simple_pipeline import SimplePipeline
 
 
 class ReadingFunctions:
@@ -29,6 +33,14 @@ class ReadingFunctions:
         ]
         self.markdown_splitter = MarkdownHeaderTextSplitter(
             self.headers_to_split_on, strip_headers=False, return_each_line=True
+        )
+        self.converter = DocumentConverter(
+            allowed_formats=[
+                InputFormat.DOCX,
+            ],
+            format_options={
+                InputFormat.DOCX: WordFormatOption(pipeline_cls=SimplePipeline)
+            },
         )
 
     def read_file(self, file_bytes: bytes, file_name: str):
@@ -111,39 +123,70 @@ class ReadingFunctions:
             "sentences": [],
             "page_number": [],
             "is_header": [],
+            "is_table": [],
         }
-
-        docx_file = io.BytesIO(file_bytes)
-        doc = Document(docx_file)
-
         current_length = 0
         chars_per_page = 2000
         current_page = 1
 
-        for paragraph in doc.paragraphs:
-            text = paragraph.text.strip()
-            if not text:
-                continue
+        docx_file = io.BytesIO(file_bytes)
+        with tempfile.NamedTemporaryFile(delete=True, suffix=".docx") as temp_file:
+            temp_file.write(docx_file.getvalue())
+            docx_path = Path(temp_file.name)
+            md_text = self.converter.convert(docx_path).document.export_to_markdown()
+            splits = self.markdown_splitter.split_text(md_text)
+            for split in splits:
+                if current_length + len(split.page_content) > chars_per_page:
+                    current_page += 1
+                    current_length = 0
 
-            if current_length + len(text) > chars_per_page:
-                current_page += 1
-                current_length = 0
-
-            paragraph_style = paragraph.style.name
-            if ("Heading" in paragraph_style) or ("Title" in paragraph_style):
-                docx_data["sentences"].append(self._clean_text(text=text))
-                docx_data["page_number"].append(current_page)
-                docx_data["is_header"].append(True)
-                current_length += len(text)
-                continue
-
-            paragraph_sentences = self._process_text(text=text)
-            docx_data["sentences"].extend(paragraph_sentences)
-            docx_data["page_number"].extend([current_page] * len(paragraph_sentences))
-            docx_data["is_header"].extend([False] * len(paragraph_sentences))
-            current_length += len(text)
-
-        docx_data["is_table"] = [False] * len(docx_data["sentences"])
+                if (
+                    not len(split.page_content) > 5
+                    or re.match(r"^[^\w]*$", split.page_content)
+                    or split.page_content[:4] == "<!--"
+                ):
+                    continue
+                elif (
+                    split.metadata and split.page_content[0] == "#"
+                ):  # Header detection
+                    docx_data["sentences"].append(split.page_content)
+                    docx_data["is_header"].append(True)
+                    docx_data["is_table"].append(False)
+                    docx_data["page_number"].append(current_page)
+                    current_length += len(split.page_content)
+                elif (
+                    split.page_content[0] == "*"
+                    and split.page_content[-1] == "*"
+                    and (
+                        re.match(
+                            r"(\*{2,})(\d+(?:\.\d+)*)\s*(\*{2,})?(.*)$",
+                            split.page_content,
+                        )
+                        or re.match(
+                            r"(\*{1,3})?([A-Z][a-zA-Z\s\-]+)(\*{1,3})?$",
+                            split.page_content,
+                        )
+                    )
+                ):  # Sub-Header and Header variant detection
+                    docx_data["sentences"].append(split.page_content)
+                    docx_data["is_header"].append(True)
+                    docx_data["is_table"].append(False)
+                    docx_data["page_number"].append(current_page)
+                    current_length += len(split.page_content)
+                elif (
+                    split.page_content[0] == "|" and split.page_content[-1] == "|"
+                ):  # Table detection
+                    docx_data["sentences"].append(split.page_content)
+                    docx_data["is_header"].append(False)
+                    docx_data["is_table"].append(True)
+                    docx_data["page_number"].append(current_page)
+                    current_length += len(split.page_content)
+                else:
+                    docx_data["sentences"].append(split.page_content)
+                    docx_data["is_header"].append(False)
+                    docx_data["is_table"].append(False)
+                    docx_data["page_number"].append(current_page)
+                    current_length += len(split.page_content)
         return docx_data
 
     def _process_txt(self, file_bytes: bytes):
@@ -151,6 +194,7 @@ class ReadingFunctions:
             "sentences": [],
             "page_number": [],
             "is_header": [],
+            "is_table": [],
         }
         text = file_bytes.decode("utf-8", errors="ignore")
         valid_sentences = self._process_text(text=text)
