@@ -2,6 +2,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from langdetect import detect
 import textwrap
+from deep_translator import GoogleTranslator
 
 
 class ChatbotFunctions:
@@ -610,3 +611,10 @@ class ChatbotFunctions:
     def detect_language(self, query):
         lang = detect(text=query)
         return "tr" if lang == "tr" else "en"
+
+    def translator(self, query_lang, file_lang, query):
+        translated = GoogleTranslator(
+            source=query_lang, target=file_lang
+        ).translate_batch(query)
+
+        return translated

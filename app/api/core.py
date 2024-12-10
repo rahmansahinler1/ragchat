@@ -1,6 +1,7 @@
 from typing import List
 import numpy as np
 import bcrypt
+import re
 
 from ..functions.reading_functions import ReadingFunctions
 from ..functions.embedding_functions import EmbeddingFunctions
@@ -83,6 +84,15 @@ class Processor:
                     None,
                     None,
                 )
+        file_lang = self.file_lang_detection(domain_content=domain_content)
+
+        if file_lang != lang:
+            translated = self.cf.translator(
+                query_lang=lang, file_lang=file_lang, query=queries[:-1]
+            )
+            query_embeddings = self.ef.create_embeddings_from_sentences(
+                sentences=translated
+            )
 
         query_embeddings = self.ef.create_embeddings_from_sentences(
             sentences=queries[:-1]
@@ -129,7 +139,7 @@ class Processor:
         filtered_indexes = [
             sentence_index
             for sentence_index in sorted_dict.keys()
-            if sorted_dict[sentence_index] >= 0.45
+            if sorted_dict[sentence_index] >= 0.35
         ]
         sorted_sentence_indexes = filtered_indexes[:10]
 
@@ -387,3 +397,15 @@ class Processor:
                 sorted_dict[index + 1] = sentence_tuple
 
         return list(dict.fromkeys(sorted_dict.values()))
+
+    def file_lang_detection(self, domain_content):
+        file_lang = {}
+        for sentence, _, _, _, _, _ in domain_content:
+            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", sentence):
+                lang = self.cf.detect_language(sentence)
+                file_lang[lang] = file_lang.get(lang, 0) + 1
+
+        if len(file_lang.keys()) == 1:
+            return list(file_lang.keys())[0]
+
+        return max(file_lang, key=file_lang.get)
