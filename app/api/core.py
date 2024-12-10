@@ -70,7 +70,6 @@ class Processor:
         index,
         index_header,
     ):
-        filter_threshold = 0.4
         queries, lang = self.query_preprocessing(user_query=user_query)
         if not queries:
             if lang == "tr":
@@ -87,18 +86,17 @@ class Processor:
                 )
         file_lang = self.file_lang_detection(domain_content=domain_content)
 
-        if file_lang != lang:
+        if not file_lang or file_lang != lang:
             translated = self.cf.translator(
                 query_lang=lang, file_lang=file_lang, query=queries[:-1]
             )
             query_embeddings = self.ef.create_embeddings_from_sentences(
                 sentences=translated
             )
-            filter_threshold = 0.30
-
-        query_embeddings = self.ef.create_embeddings_from_sentences(
-            sentences=queries[:-1]
-        )
+        else:
+            query_embeddings = self.ef.create_embeddings_from_sentences(
+                sentences=queries[:-1]
+            )
 
         boost_array = self._create_boost_array(
             header_indexes=boost_info["header_indexes"],
@@ -141,7 +139,7 @@ class Processor:
         filtered_indexes = [
             sentence_index
             for sentence_index in sorted_dict.keys()
-            if sorted_dict[sentence_index] >= filter_threshold
+            if sorted_dict[sentence_index] >= 0.4
         ]
         sorted_sentence_indexes = filtered_indexes[:10]
 
