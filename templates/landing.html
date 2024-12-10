@@ -20,6 +20,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
     <link rel="manifest" href="/static/favicon/site.webmanifest">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -27,32 +28,356 @@
     <!-- External -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="static/css/landing.css">
+    <link rel="stylesheet" href="../static/css/landing.css">
 </head>
 
 <body>
-    <div class="hero-section">
-        <nav class="navbar">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top py-3">
+        <div class="container-fluid">
+            <!-- Logo aligned to the left -->
+            <a href="#" class="navbar-brand logo-text">ragchat</a>
+            
+            <!-- Navigation links aligned to the right -->
             <div class="nav-links">
                 <a href="/login" class="login-link">Log in</a>
                 <a href="/signup" class="signup-button">Sign Up</a>
-                <a href="https://twitter.com/ragchat_ai" class="social-link twitter" target="_blank">
+                <a href="https://twitter.com/ragchat_ai" class="social-link-nav twitter" target="_blank">
                     <i class="fab fa-twitter"></i>
                 </a>
-                <a href="#" class="social-link linkedin">
+                <a href="#" class="social-link-nav linkedin">
                     <i class="fab fa-linkedin-in"></i>
                 </a>
             </div>
-        </nav>
-        
-        <div class="hero-content">
-            <h1 class="main-heading">Transform Your Documents to Intelligent Library</h1>
-            <a href="/about" class="cta-button">Get Started</a>
         </div>
-    </div>
+    </nav>
+
+    <!-- Fullpage wrapper -->
+    <div id="fullpage">
+        <!-- Hero Section -->
+        <div class="section active" id="hero">
+            <div class="hero-section vh-100">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="hero-content">
+                                <h1 class="main-heading">Find Information Fast</h1>
+                                <p class="heading-description mb-4">Upload your documents and transform them into an intelligent library</p>
+                                <a href="../templates/signup.html" class="cta-button">Get Started</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- About Section -->
+        <div class="section" id="about">
+            <div class="about-section py-5">
+                <div class="container">
+                    <div class="row justify-content-center">
+                        <div class="col-12 text-center mb-5">
+                            <h2 class="section-title">What is ragchat?</h2>
+                        </div>
+                        
+                        <div class="col-lg-10">
+                            <div class="row g-4">
+                                <!-- Upload Documents Card -->
+                                <div class="col-md-6 mb-4">
+                                    <div class="feature-card fade-up">
+                                        <div class="card-header d-flex align-items-center mb-3">
+                                            <div class="feature-icon me-3">
+                                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                            </div>
+                                            <h3 class="mb-0">Upload Documents</h3>
+                                        </div>
+                                        <p class="mb-0">Upload your documents and transform them into an AI-powered intelligent library. Store up to 100MB of documents within your specialized domain folders. Currently supporting PDF, Word and Text files.</p>
+                                    </div>
+                                </div>
+        
+                                <!-- Chat Information Card -->
+                                <div class="col-md-6 mb-4">
+                                    <div class="feature-card fade-up">
+                                        <div class="card-header d-flex align-items-center mb-3">
+                                            <div class="feature-icon me-3">
+                                                <i class="fa-solid fa-comments"></i>
+                                            </div>
+                                            <h3 class="mb-0">Chat to Get Information</h3>
+                                        </div>
+                                        <p class="mb-0">Chat with your documents through AI-powered natural conversations. Ask questions in everyday language and get instant, accurate answers from your document storage.</p>
+                                    </div>
+                                </div>
+        
+                                <!-- Source Validation Card -->
+                                <div class="col-md-6 mb-4">
+                                    <div class="feature-card fade-up">
+                                        <div class="card-header d-flex align-items-center mb-3">
+                                            <div class="feature-icon me-3">
+                                                <i class="fa-solid fa-book-open"></i>
+                                            </div>
+                                            <h3 class="mb-0">Source Validation</h3>
+                                        </div>
+                                        <p class="mb-0">Get precise source validation for every answer with page numbers and direct references. Validate every step, save time and energy, and increase efficiency.</p>
+                                    </div>
+                                </div>
+        
+                                <!-- Connected Documents Card -->
+                                <div class="col-md-6 mb-4">
+                                    <div class="feature-card fade-up">
+                                        <div class="card-header d-flex align-items-center mb-3">
+                                            <div class="feature-icon me-3">
+                                                <i class="fa-solid fa-network-wired"></i>
+                                            </div>
+                                            <h3 class="mb-0">Connected Documents</h3>
+                                        </div>
+                                        <p class="mb-0">Analyze relationships across multiple documents. Discover hidden connections between your files and make better decisions with AI-powered analysis.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="section" id="demo">
+            <div class="demo-section py-5">
+                <div class="container">
+                    <div class="row justify-content-center mb-5">
+                        <div class="col-lg-8 text-center">
+                            <h2 class="demo-title mb-3">See ragchat in Action</h2>
+                            <p class="demo-description mb-4">Watch how our AI-powered document analysis transforms your research experience</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row justify-content-center">
+                        <div class="col-12">
+                                
+                                <!-- Demo Embed -->
+                                <div class="demo-container">
+                                    <div style="position: relative; box-sizing: content-box; max-height: 80vh; max-height: 80svh; width: 100%; aspect-ratio: 1.9929922915206728; padding: 40px 0 40px 0;"><iframe src="https://app.supademo.com/embed/cm4hpwkq3012827exo1j783sw?embed_v=2" loading="lazy" title="Ragchat Demo" allow="clipboard-write" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+                                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Intro 1 Section -->
+        <!-- Intro 1 Section -->
+        <div class="section" id="intro-1">
+            <div class="intro-section d-flex align-items-center py-5">
+                <div class="container py-lg-4">
+                    <div class="row align-items-center g-5">
+                        <!-- Image Column -->
+                        <div class="col-lg-6">
+                            <div class="intro-image-wrapper">
+                                <div class="intro-image rounded-4 h-100"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Content Column -->
+                        <div class="col-lg-6">
+                            <div class="intro-content">
+                                <h2 class="section-title fw-bold mb-4">Your Personal Researcher</h2>
+                                <p class="section-description mb-4">Transform your research experience with AI-powered document analysis. Our platform helps you extract key insights, connect related information, and discover hidden patterns across your entire document collection.</p>
+                                <a href="../templates/signup.html" class="cta-button">Get Started</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Intro 2 - İçerik ve görsel ters -->
+        <div class="section" id="intro-2">
+            <div class="intro-section d-flex align-items-center py-5">
+                <div class="container py-lg-4">
+                    <div class="row align-items-center g-5">
+                        <!-- Content Column -->
+                        <div class="col-lg-6 order-lg-1 order-2">
+                            <div class="intro-content">
+                                <h2 class="section-title fw-bold mb-4">Fast and Accurate Analysis</h2>
+                                <p class="section-description mb-4">Process your documents in seconds with our advanced AI technology. Get precise insights and analytics from your entire document collection instantly.</p>
+                                <a href="../templates/signup.html" class="cta-button">Learn More</a>
+                            </div>
+                        </div>
+                        
+                        <!-- Image Column -->
+                        <div class="col-lg-6 order-lg-2 order-1">
+                            <div class="intro-image-wrapper">
+                                <div class="intro-image rounded-4 h-100"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="section" id="intro-3">
+            <div class="intro-section d-flex align-items-center py-5">
+                <div class="container py-lg-4">
+                    <div class="row align-items-center g-5">
+                        <!-- Image Column -->
+                        <div class="col-lg-6">
+                            <div class="intro-image-wrapper">
+                                <div class="intro-image rounded-4 h-100"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Content Column -->
+                        <div class="col-lg-6">
+                            <div class="intro-content">
+                                <h2 class="section-title fw-bold mb-4">Smart Organization</h2>
+                                <p class="section-description mb-4">Keep your documents organized intelligently. Our system automatically categorizes and connects related information, making it easy to find exactly what you need when you need it.</p>
+                                <a href="../templates/signup.html" class="cta-button">Explore Now</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+
+        <!-- Info Section -->
+        <div class="section" id="info">
+            <div class="info-section py-5">
+                <div class="container">
+                    <div class="row justify-content-center">
+                        <div class="col-12 text-center mb-5">
+                            <h2 class="info-main-title mb-2">About Us</h2>
+                            <div class="title-line"></div>
+                        </div>
+                        
+                        <div class="col-lg-10">
+                            <div class="row g-4">
+                                <!-- Mission -->
+                                <div class="col-md-6 mb-4">
+                                    <div class="info-card fade-up">
+                                        <div class="card-header d-flex align-items-center mb-3">
+                                            <div class="info-card-icon me-3">
+                                                <i class="fas fa-rocket"></i>
+                                            </div>
+                                            <h3 class="info-card-title mb-0">Mission</h3>
+                                        </div>
+                                        <p class="info-card-text mb-0">We're on a mission to revolutionize how people interact with information. At ragchat, we believe knowledge should be accessible, interactive, and intelligent.</p>
+                                    </div>
+                                </div>
+        
+                                <!-- Who We Are -->
+                                <div class="col-md-6 mb-4">
+                                    <div class="info-card fade-up">
+                                        <div class="card-header d-flex align-items-center mb-3">
+                                            <div class="info-card-icon me-3">
+                                                <i class="fas fa-users"></i>
+                                            </div>
+                                            <h3 class="info-card-title mb-0">Who We Are</h3>
+                                        </div>
+                                        <p class="info-card-text mb-0">Created by passionate engineers pushing the limits of AI and RAG technologies. Currently in beta, we're offering our complete platform free of charge.</p>
+                                    </div>
+                                </div>
+        
+                                <!-- What We Do -->
+                                <div class="col-md-6 mb-4">
+                                    <div class="info-card fade-up">
+                                        <div class="card-header d-flex align-items-center mb-3">
+                                            <div class="info-card-icon me-3">
+                                                <i class="fas fa-bolt"></i>
+                                            </div>
+                                            <h3 class="info-card-title mb-0">What We Do</h3>
+                                        </div>
+                                        <p class="info-card-text mb-0">ragchat is your intelligent library, enabling natural conversations with your documents. Store up to 100MB and get instant, accurate answers.</p>
+                                    </div>
+                                </div>
+        
+                                <!-- Contact -->
+                                <div class="col-md-6 mb-4">
+                                    <div class="info-card fade-up">
+                                        <div class="card-header d-flex align-items-center mb-3">
+                                            <div class="info-card-icon me-3">
+                                                <i class="fas fa-envelope"></i>
+                                            </div>
+                                            <h3 class="info-card-title mb-0">Contact</h3>
+                                        </div>
+                                        <p class="info-card-text mb-0">Be part of our beta journey! We're personally activating accounts to ensure each user gets the most out of ragchat.</p>
+                                        <a href="mailto:rahmansahinler1@gmail.com" class="info-mail mt-2">rahmansahinler1@gmail.com</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Section -->
+        <footer class="footer py-5">
+            <div class="container">
+                <div class="row gy-4">
+                    <!-- Company Info -->
+                    <div class="col-lg-4">
+                        <h3 class="footer-logo mb-3">ragchat</h3>
+                        <p class="footer-description mb-4">Transform your documents into an intelligent library with AI-powered analysis and natural conversations.</p>
+                        <div class="social-links d-flex gap-3">
+                            <a href="https://twitter.com/ragchat_ai" class="social-link" target="_blank">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                            <a href="#" class="social-link">
+                                <i class="fab fa-linkedin-in"></i>
+                            </a>
+                            <a href="#" class="social-link">
+                                <i class="fab fa-github"></i>
+                            </a>
+                        </div>
+                    </div>
+        
+                    <!-- Quick Links -->
+                    <div class="col-lg-2 offset-lg-1">
+                        <h4 class="footer-title">Quick Links</h4>
+                        <ul class="footer-links list-unstyled">
+                            <li><a href="#about">About</a></li>
+                            <li><a href="#features">Features</a></li>
+                            <li><a href="#pricing">Pricing</a></li>
+                            <li><a href="#contact">Contact</a></li>
+                        </ul>
+                    </div>
+        
+                    <!-- Product -->
+                    <div class="col-lg-2">
+                        <h4 class="footer-title">Product</h4>
+                        <ul class="footer-links list-unstyled">
+                            <li><a href="#upload">Document Upload</a></li>
+                            <li><a href="#chat">AI Chat</a></li>
+                            <li><a href="#validation">Source Validation</a></li>
+                            <li><a href="#analytics">Analytics</a></li>
+                        </ul>
+                    </div>
+        
+                    <!-- Contact Info -->
+                    <div class="col-lg-3">
+                        <h4 class="footer-title">Contact</h4>
+                        <ul class="footer-contact list-unstyled">
+                            <li class="d-flex align-items-center mb-3">
+                                <i class="fas fa-envelope me-2"></i>
+                                <a href="mailto:rahmansahinler1@gmail.com">rahmansahinler1@gmail.com</a>
+                            </li>
+                            <li class="d-flex align-items-center">
+                                <i class="fas fa-map-marker-alt me-2"></i>
+                                <span>Istanbul, Turkey</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+        
+                <!-- Copyright -->
+                <div class="border-top border-secondary mt-4 pt-4 text-center">
+                    <p class="mb-0">&copy; 2024 ragchat. All rights reserved.</p>
+                </div>
+            </div>
+        </footer>
 
     <!-- Scripts -->
+     <script src="../static/js/landing.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+        </body>
+        </html>
