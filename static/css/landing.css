@@ -145,9 +145,9 @@ html, body {
 .hero-content {
     position: absolute;
     top: 50%;
-    left: 0;
-    transform: translate(-15%, -50%);
-    text-align: center;
+    left: 20%;
+    transform: translate(-1%, -50%);
+    text-align: left;
     width: 100%;
     padding: 6rem 0;
 }
@@ -653,8 +653,34 @@ html, body {
 .footer-contact i {
     color: #10B981;
 }
+.footer .social-links {
+    display: flex;
+    flex-direction: column; /* Dikey sıralama */
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+.footer .social-link {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: rgba(16, 185, 129, 0.1);
+    color: #10B981;
+    display: flex;
+    align-items: center;     /* Dikey ortalama */
+    justify-content: center; /* Yatay ortalama */
+    transition: all 0.3s ease;
+}
+.footer .social-link i {
+    display: flex;           /* Icon için ek ortalama */
+    align-items: center;
+    justify-content: center;
+}
 
-
+.footer .social-link:hover {
+    background: #10B981;
+    color: #F8F9FA;
+    transform: translateX(5px); /* Y yerine X ekseni animasyonu */
+}
 /* Copyright Section */
 .footer-bottom {
     margin-top: 3rem;
@@ -734,6 +760,11 @@ html, body {
     position: relative;
     z-index: 1;
     bottom: 2.5rem;
+}
+#demo .cta-button {
+    position: absolute;
+    left: 43%;
+    bottom: 5%;
 }
 /* Demo Section End */
 
