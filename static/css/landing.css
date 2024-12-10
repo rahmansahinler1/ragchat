@@ -52,7 +52,7 @@ html, body {
     height: 100vh;
     width: 100%;
     background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
-                url('/static/images/lots_of_books_rc.svg') no-repeat center center;
+                url('/static/images/lots_of_books_rc.webp') no-repeat center center;
     background-size: cover;
     color: white;
     position: relative;
@@ -201,13 +201,13 @@ html, body {
     align-items: center;
 }
 #intro-1 .intro-image{
-    background-image: url('../images/research_assistant.png');
+    background-image: url('../images/research_assistant.webp');
 }
 #intro-2 .intro-image{
-    background-image: url('../images/business_analyzer.png');
+    background-image: url('../images/business_analyzer.webp');
 }
 #intro-3 .intro-image{
-    background-image: url('../images/information_tracker.png');
+    background-image: url('../images/organization.webp');
 }
 .feature-card, .info-card {
     background: linear-gradient(145deg, rgba(23, 28, 35, 0.95), rgba(16, 20, 25, 0.95));
@@ -408,17 +408,7 @@ html, body {
 .intro-image:hover {
     transform: scale(1.02);
 }
-#intro-1 .intro-image {
-    background-image: url('../images/research_assistant.png');
-}
 
-#intro-2 .intro-image {
-    background-image: url('../images/business_analyzer.png');
-}
-
-#intro-3 .intro-image {
-    background-image: url('../images/information_tracker.png');
-}
 /* Content Styles */
 .intro-content {
     color: #F8F9FA;
