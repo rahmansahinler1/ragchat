@@ -3,12 +3,16 @@ from dotenv import load_dotenv
 from langdetect import detect
 import textwrap
 from deep_translator import GoogleTranslator
+import yaml
 
 
 class ChatbotFunctions:
     def __init__(self):
         load_dotenv()
         self.client = OpenAI()
+
+        with open("app/functions/prompt.yml", "r", encoding="utf-8") as file:
+            self.prompt_data = yaml.safe_load(file)
 
     def _prompt_query_generation(self, query, lang):
         if lang == "tr":
@@ -618,3 +622,11 @@ class ChatbotFunctions:
         ).translate_batch(query)
 
         return translated
+
+    def get_prompt(self, language, category, **kwargs):
+        try:
+            prompt = self.prompt_data["prompts"]["languages"][language][category]
+            return prompt
+        except KeyError:
+            print(f"No template found for {language}/{category}")
+            return None
