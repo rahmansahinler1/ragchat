@@ -4,6 +4,8 @@ from langdetect import detect
 import textwrap
 from deep_translator import GoogleTranslator
 import yaml
+import re
+from typing import Dict, Any, Match
 
 
 class ChatbotFunctions:
@@ -15,120 +17,16 @@ class ChatbotFunctions:
             self.prompt_data = yaml.safe_load(file)
 
     def _prompt_query_generation(self, query, lang):
-        if lang == "tr":
-            return textwrap.dedent(f"""
-             Görev: Analiz Et, Düzelt ve İlgili Sorular & Cevaplar Oluştur.
-
-            Talimatlar: 
-            Kullanıcı sorgusu size verilmiştir.
-            Öncelikle Kullanıcı sorusunu kontrol edin. Eğer anlamsızsa, boş bir string '' döndürün. Anlamlıysa, şu işlemleri yapın:
-            Herhangi bir yazım veya dilbilgisi hatası olup olmadığını kontrol edin ve düzeltilmiş soruyu çıktıdaki ilk soru olarak döndürün.
-            Ardından, Düzeltmiş soruyla aynı anlamı koruyan 3 semantik olarak benzer sorgu oluşturun.
-            Orijinal soruyu farklı açılardan ele alan, ancak yine de ilgili kalan 3 farklı soru oluşturun.
-            Son 3 soruya, her biri 1-2 cümlelik kısa cevaplarla yanıt verin.
-            Ardından düzeltilmiş kullanıcı sorgusunu analiz edin ve niyetini belirleyin.  Niyet listesi, anahtar kelimeler ve örnekler aşağıda verilmiştir. Eğer niyet tam olarak anlaşılmaz ise boş bir string '' döndür.
-                                   
-            Olası niyetler:
-            1. Bilgi Edinme: Gerçek bilgileri, tanımları veya açıklamaları öğrenme talebi.
-                Niyet Anahtar Kelimeleri: Ne, tanımla, açıkla, detaylar, belirt, kim, neden, nasıl.
-                Niyet Örnekleri: Bu kuralı ihlal etmenin cezası nedir? → Bilgilendirme
-            2. Özetleme: Karmaşık bilgilerin kısa bir özetini isteme.
-                Niyet Anahtar Kelimeleri: Özetle, genel bakış, ana noktalar, temel fikirler, kısa, öz, basitleştir.
-                Niyet Örnekleri: Bu belgenin ana noktalarını özetleyebilir misiniz? → Özetleme
-            3. Karşılaştırma: Seçenekleri, yöntemleri veya teknolojileri değerlendirme.
-                Niyet Anahtar Kelimeleri: Karşılaştır, fark, benzerlik, karşılaştırma, daha iyi, alternatif, artılar ve eksiler.
-                Niyet Örnekleri: Bu iki yöntemin faydalarını karşılaştırın. → Karşılaştırma
-                                   
-            Çıktıyı **kesinlikle** şu formatta döndürün:
-            [düzeltilmiş sorgu]  
-            [birinci semantik olarak benzer sorgu]  
-            [ikinci semantik olarak benzer sorgu]  
-            [üçüncü semantik olarak benzer sorgu]  
-            [birinci farklı-açıdan soru]  
-            [ikinci farklı-açıdan soru]  
-            [üçüncü farklı-açıdan soru]  
-            [birinci farklı-açıdan cevap]  
-            [ikinci farklı-açıdan cevap]  
-            [üçüncü farklı-açıdan cevap]  
-            [kullanıcı niyeti]   
-                                   
-            Kullanıcı Sorgusu: {query}
-
-            Örnek:
-            Kullanıcı sorgusu: "Retrieval-augmented generation yapay zeka sistemlerinde nasıl çalışır?"
-
-            Çıktı:
-            Retrieval-augmented generation yapay zeka sistemlerinde nasıl çalışır?
-            Retrieval-augmented generation süreci yapay zekada nasıl işler?
-            RAG, yapay zeka sistemlerine bilgi getirme ve oluşturma konusunda nasıl yardımcı olur?
-            Retrieval-augmented generation yapay zeka uygulamalarında nasıl işlev görür?
-            RAG kullanmanın yapay zeka için temel avantajları nelerdir?
-            RAG, geleneksel makine öğrenimi modellerinden nasıl farklıdır?
-            RAG’in uygulanmasında karşılaşılan zorluklar nelerdir?
-            RAG, yapay zekayı dış verileri getirerek daha doğru yanıtlar sağlamada geliştirir.
-            RAG, geleneksel modellerden farklı olarak çıkarım sırasında harici bilgilere erişim sağlar.
-            Başlıca zorluklar arasında getirme gecikmesi, getirilen verilerin uygunluğu ve bilgilerin güncel tutulması yer alır.
-            Bilgi Edinme
-            
-            Kullanıcı sorusu: {query}
-            """)
-        else:
-            return textwrap.dedent(f"""
-            Task: Analyze, Correct, and Generate Related Questions & Answers
-            Instructions:
-            You are given a user query.
-
-            First, check the user question. If it has no meaning, return an empty string. If it is meaningful, do the following:
-            Correct any spelling or grammatical errors and return the corrected question as the first line of the output.
-            Generate 3 semantically similar queries that retain the same meaning as the corrected query.
-            Create 3 different questions that approach the original query from different angles but stay related.
-            Answer last 3 questions with concise responses, 1-2 sentences max each.
-            Then, analyze the corrected user query and determine its intent, intention list is and their keywords, examples are given below. If intent can't be determined return empty '' string.
-                                                         
-            The possible intents are:
-            1. Informational: Seeking factual knowledge, definitions, or explanations. 
-                Intention Keywords: What, define, explain, details, specify, who, why, how. 
-                Intention Examples: What is the penalty for breaking this rule? → Informational
-            2. Summarization: Requesting a concise overview of complex information. 
-                Intention Keywords: Summarize, overview, main points, key ideas, brief, concise, simplify. 
-                Intention Examples: Can you summarize the key points of this document? → Summarization
-            3. Comparison: Evaluating options, methods, or technologies. 
-                Intention Keywords: Compare, difference, similarity, versus, contrast, better, alternative, pros and cons. 
-                Intention Examples: Compare the benefits of these two methods. → Comparison
-
-            Return the output **strictly** in the following format:
-            [corrected query]  
-            [first semantically similar query]  
-            [second semantically similar query]  
-            [third semantically similar query]  
-            [first different-angle question]  
-            [second different-angle question]  
-            [third different-angle question]  
-            [first different-angle answer]  
-            [second different-angle answer]  
-            [third different-angle answer]
-	        [user intention] 
-
-            User query: {query}
-
-            Example:
-            User query: "How does retrieval-augmented generation work in AI systems?"
-
-            Output:
-            How does retrieval-augmented generation work in AI systems?
-            What is the process of retrieval-augmented generation in AI?
-            How does RAG help AI systems retrieve and generate information?
-            Can you explain how retrieval-augmented generation functions in AI applications?
-            What are the key advantages of using RAG in AI?
-            How does RAG differ from traditional machine learning models?
-            What challenges does RAG face in implementation?
-            RAG enhances AI by providing more accurate responses by retrieving relevant external data.
-            Unlike traditional models, RAG integrates search capabilities to access external knowledge during inference.
-            Major challenges include latency in retrieval, ensuring relevance of fetched data, and maintaining up-to-date information.
-	        Informational
-            """)
+        return textwrap.dedent(
+            self.get_prompt(language=lang, category="queries", query=query)
+        )
 
     def _prompt_answer_generation(self, query, context, lang, intention):
+        return textwrap.dedent(
+            self.get_prompt(
+                language=lang, category=intention, query=query, context=context
+            )
+        )
         if lang == "tr" and intention == "":
             return textwrap.dedent(f"""
             Göreviniz verilen bağlam pencerelerini analiz etmek, kullanıcının sorgusuna göre ilgili verileri çıkarmak ve yanıtınızı geliştirmek için dosya bilgilerini kullanmaktır. Birincil amacınız, yalnızca bağlam penceresinde sağlanan bilgileri kullanarak kapsamlı, yapılandırılmış ve kullanıcı dostu bir yanıt sunmaktır.
@@ -623,10 +521,23 @@ class ChatbotFunctions:
 
         return translated
 
+    def replace_variables(self, match: Match, kwargs: Dict[str, Any]):
+        variables = match.group(1) or match.group(2)
+        value = kwargs.get(variables)
+        return str(value)
+
     def get_prompt(self, language, category, **kwargs):
+        variable_pattern = r"\${?(\w+)}?|\{(\w+)\}"
         try:
-            prompt = self.prompt_data["prompts"]["languages"][language][category]
-            return prompt
+            prompt = self.prompt_data["prompts"]["languages"][language][category][0][
+                "text"
+            ]
+
+            def replace_wrapper(match):
+                return self.replace_variables(match, kwargs)
+
+            full_prompt = re.sub(variable_pattern, replace_wrapper, prompt)
+            return full_prompt
         except KeyError:
             print(f"No template found for {language}/{category}")
             return None
