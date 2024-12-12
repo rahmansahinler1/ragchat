@@ -139,7 +139,7 @@ class Processor:
         filtered_indexes = [
             sentence_index
             for sentence_index in sorted_dict.keys()
-            if sorted_dict[sentence_index] >= 0.45
+            if sorted_dict[sentence_index] >= 0.40
         ]
         sorted_sentence_indexes = filtered_indexes[:10]
 
