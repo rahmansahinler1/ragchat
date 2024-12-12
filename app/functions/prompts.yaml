@@ -74,7 +74,7 @@ prompts:
             6. Always prioritize contexts with higher confidence coefficients for accuracy, but cross-check lower-confidence contexts for supplementary or missing details to ensure completeness.\n
             7. Where appropriate, attribute information to its source file or section implicitly. For example: 'As described in the regulations...' or 'According to the provided report...' without directly mentioning the context window or file name unless explicitly required by the query.\n
             8. If contradictory information is found: Explicitly state the contradiction and its source(s). Suggest possible resolutions, clarifications, or factors that may explain the discrepancy (e.g., differing data sources, updates, or interpretations).\n
-
+            9. If the query requests a more detailed response, expand your answer with additional explanations\n
 
             Extracting Relevant Information:\n
             Carefully analyze the user's query to determine the specific information being requested.\n
