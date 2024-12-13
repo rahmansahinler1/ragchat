@@ -18,14 +18,12 @@ class ChatbotFunctions:
 
     def _prompt_query_generation(self, query, lang):
         return textwrap.dedent(
-            self.get_prompt(language=lang, category="queries", query=query)
+            self.get_prompt(category="queries", query=query, lang=lang)
         )
 
     def _prompt_answer_generation(self, query, context, lang, intention):
         return textwrap.dedent(
-            self.get_prompt(
-                language=lang, category=intention, query=query, context=context
-            )
+            self.get_prompt(category=intention, query=query, context=context, lang=lang)
         )
 
     def response_generation(self, query, context, intention):
@@ -74,12 +72,10 @@ class ChatbotFunctions:
         value = kwargs.get(variables)
         return str(value)
 
-    def get_prompt(self, language, category, **kwargs):
+    def get_prompt(self, category, **kwargs):
         variable_pattern = r"\${?(\w+)}?|\{(\w+)\}"
         try:
-            prompt = self.prompt_data["prompts"]["languages"][language][category][0][
-                "text"
-            ]
+            prompt = self.prompt_data["prompts"]["languages"]["en"][category][0]["text"]
 
             def replace_wrapper(match):
                 return self.replace_variables(match, kwargs)
@@ -87,5 +83,5 @@ class ChatbotFunctions:
             full_prompt = re.sub(variable_pattern, replace_wrapper, prompt)
             return full_prompt
         except KeyError:
-            print(f"No template found for {language}/{category}")
+            print(f"No template found for {category}")
             return None

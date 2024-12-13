@@ -5,6 +5,7 @@ prompts:
         - id: gp_001
           text: "
             Your task is to analyze the given context windows, extract relevant data based on the user's query, and use file information to enhance your response. Your primary goal is to provide a comprehensive, structured, and user-friendly answer using solely the information provided in the context window.\n
+            Please respond in the language of the user's query, specified by the {lang} variable (e.g., 'en' for English, 'tr' for Turkish), ensuring the tone and style align with the query's language and context.\n
 
             Instructions:\n
             You will be provided with context windows, each containing several sentences along with the two following metadata: \n
@@ -54,12 +55,16 @@ prompts:
 
             User Query:\n
             {query}\n
+
+            User Query language:\n
+            {lang}\n
             "
 
       Informational:
         - id: info_001
           text: "
             Your task is to analyze the given context windows, extract relevant data based on the user's query, and use file information to enhance your response. Your primary goal is to provide a comprehensive, structured, and user-friendly answer using solely the information provided in the context window.\n
+            Please respond in the language of the user's query, specified by the {lang} variable (e.g., 'en' for English, 'tr' for Turkish), ensuring the tone and style align with the query's language and context.\n
 
             Instructions:\n
             You will be provided with context windows, each containing several sentences along with the two following metadata:\n
@@ -119,12 +124,16 @@ prompts:
 
             User Query:\n
             {query}\n
+
+            User Query language:\n
+            {lang}\n
             "
 
       Comparison:
         - id: comp_001
           text: "
             Your task is to analyze the given context windows, extract relevant data based on the user's query, and use file information to enhance your response. Your primary goal is to provide a comprehensive, structured, and user-friendly answer using solely the information provided in the context window.\n
+            Please respond in the language of the user's query, specified by the {lang} variable (e.g., 'en' for English, 'tr' for Turkish), ensuring the tone and style align with the query's language.\n
 
             Instructions:\n
             You will be provided with context windows, each containing several sentences along with the two following metadata:\n
@@ -183,12 +192,16 @@ prompts:
 
             User Query:\n
             {query}\n
+
+            User Query language:\n
+            {lang}\n
             "
 
       Summarization:
         - id: sum_001
           text: "
             Your task is to analyze the given context windows, extract relevant data based on the user's query, and use file information to enhance your response. Your primary goal is to provide a comprehensive, structured, and user-friendly answer using solely the information provided in the context window.\n
+            Please respond in the language of the user's query, specified by the {lang} variable (e.g., 'en' for English, 'tr' for Turkish), ensuring the tone and style align with the query's language.\n
 
             Instructions:\n
             You will be provided with context windows, each containing several sentences along with the two following metadata:\n
@@ -247,6 +260,9 @@ prompts:
 
             User Query:\n
             {query}\n
+
+            User Query language:\n
+            {lang}\n
             "
 
       queries:
@@ -262,7 +278,9 @@ prompts:
             Create 3 different questions that approach the original query from different angles but stay related.\n
             Answer last 3 questions with concise responses, 1-2 sentences max each.\n
             Then, analyze the corrected user query and determine its intent, intention list is and their keywords, examples are given below. If intent can't be determined return empty '' string.\n
-                                                         
+            Please respond in the language of the user's query, specified by the {lang} variable (e.g., 'en' for English, 'tr' for Turkish), ensuring the tone and style align with the query's language.\n
+            If user query language is diferent than english look for the intention keywords that provided for intent detection below in user query language.\n
+
             The possible intents are:\n
             1. Informational: Seeking factual knowledge, definitions, or explanations.\n
                 Intention Keywords: What, define, explain, details, specify, who, why, how.\n
@@ -289,8 +307,13 @@ prompts:
 
             User query: {query}\n
 
+            User Query language:\n
+            {lang}\n
+
             Example:\n
             User query: How does retrieval-augmented generation work in AI systems?\n
+
+            User Query language: en\n
 
             Output:
             How does retrieval-augmented generation work in AI systems?\n
