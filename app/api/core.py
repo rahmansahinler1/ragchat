@@ -93,10 +93,10 @@ class Processor:
             query_embeddings = self.ef.create_embeddings_from_sentences(
                 sentences=translated
             )
-        else:
-            query_embeddings = self.ef.create_embeddings_from_sentences(
-                sentences=queries[:-1]
-            )
+
+        query_embeddings = self.ef.create_embeddings_from_sentences(
+            sentences=queries[:-1]
+        )
 
         boost_array = self._create_boost_array(
             header_indexes=boost_info["header_indexes"],
@@ -139,7 +139,7 @@ class Processor:
         filtered_indexes = [
             sentence_index
             for sentence_index in sorted_dict.keys()
-            if sorted_dict[sentence_index] >= 0.40
+            if sorted_dict[sentence_index] >= 0.35
         ]
         sorted_sentence_indexes = filtered_indexes[:10]
 
@@ -400,9 +400,9 @@ class Processor:
 
     def file_lang_detection(self, domain_content):
         file_lang = {}
-        for sentence, _, _, _, _, _ in domain_content:
-            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", sentence):
-                lang = self.cf.detect_language(sentence)
+        for i in range(0, 25):
+            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", domain_content[i][0]):
+                lang = self.cf.detect_language(domain_content[i][0])
                 file_lang[lang] = file_lang.get(lang, 0) + 1
         if len(file_lang.keys()) == 1:
             return list(file_lang.keys())[0]
