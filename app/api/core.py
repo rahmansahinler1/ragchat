@@ -400,7 +400,12 @@ class Processor:
 
     def file_lang_detection(self, domain_content):
         file_lang = {}
-        for i in range(0, 25):
+        length = 25
+
+        if len(domain_content) < 25:
+            length = len(domain_content)
+
+        for i in range(0, length):
             if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", domain_content[i][0]):
                 lang = self.cf.detect_language(domain_content[i][0])
                 file_lang[lang] = file_lang.get(lang, 0) + 1
