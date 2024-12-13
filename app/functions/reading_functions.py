@@ -63,6 +63,8 @@ class ReadingFunctions:
                 return self._process_txt(file_bytes=file_bytes)
             elif file_type in ["pptx"]:
                 return self._process_pptx(file_bytes=file_bytes)
+            elif file_type in ["xlsx"]:
+                return self._process_xlsx(file_bytes=file_bytes)
             else:
                 raise ValueError(f"Unsupported file type: {file_type}")
 
@@ -202,7 +204,7 @@ class ReadingFunctions:
             "is_table": [],
         }
         current_length = 0
-        chars_per_page = 200
+        chars_per_page = 500
         current_page = 1
 
         pptx_file = io.BytesIO(file_bytes)
@@ -264,6 +266,77 @@ class ReadingFunctions:
                     pptx_data["page_number"].append(current_page)
                     current_length += len(split.page_content)
         return pptx_data
+
+    def _process_xlsx(self, file_bytes: bytes):
+        xlsx_data = {
+            "sentences": [],
+            "page_number": [],
+            "is_header": [],
+            "is_table": [],
+        }
+        current_length = 0
+        chars_per_page = 2000
+        current_page = 1
+
+        xlsx_file = io.BytesIO(file_bytes)
+        with tempfile.NamedTemporaryFile(delete=True, suffix=".xlsx") as temp_file:
+            temp_file.write(xlsx_file.getvalue())
+            xlsx_path = Path(temp_file.name)
+            md_text = self.converter.convert(xlsx_path).document.export_to_markdown()
+            splits = self.markdown_splitter.split_text(md_text)
+            for split in splits:
+                if current_length + len(split.page_content) > chars_per_page:
+                    current_page += 1
+                    current_length = 0
+
+                if (
+                    not len(split.page_content) > 5
+                    or re.match(r"^[^\w]*$", split.page_content)
+                    or split.page_content[:4] == "<!--"
+                ):
+                    continue
+                elif (
+                    split.metadata and split.page_content[0] == "#"
+                ):  # Header detection
+                    xlsx_data["sentences"].append(split.page_content)
+                    xlsx_data["is_header"].append(True)
+                    xlsx_data["is_table"].append(False)
+                    xlsx_data["page_number"].append(current_page)
+                    current_length += len(split.page_content)
+                elif (
+                    split.page_content[0] == "*"
+                    and split.page_content[-1] == "*"
+                    and (
+                        re.match(
+                            r"(\*{2,})(\d+(?:\.\d+)*)\s*(\*{2,})?(.*)$",
+                            split.page_content,
+                        )
+                        or re.match(
+                            r"(\*{1,3})?([A-Z][a-zA-Z\s\-]+)(\*{1,3})?$",
+                            split.page_content,
+                        )
+                    )
+                ):  # Sub-Header and Header variant detection
+                    xlsx_data["sentences"].append(split.page_content)
+                    xlsx_data["is_header"].append(True)
+                    xlsx_data["is_table"].append(False)
+                    xlsx_data["page_number"].append(current_page)
+                    current_length += len(split.page_content)
+                elif (
+                    split.page_content[0] == "|" and split.page_content[-1] == "|"
+                ):  # Table detection
+                    xlsx_data["sentences"].append(split.page_content)
+                    xlsx_data["is_header"].append(False)
+                    xlsx_data["is_table"].append(True)
+                    xlsx_data["page_number"].append(current_page)
+                    current_length += len(split.page_content)
+                else:
+                    xlsx_data["sentences"].append(split.page_content)
+                    xlsx_data["is_header"].append(False)
+                    xlsx_data["is_table"].append(False)
+                    xlsx_data["page_number"].append(current_page)
+                    current_length += len(split.page_content)
+        return xlsx_data
 
     def _process_txt(self, file_bytes: bytes):
         text_data = {

@@ -401,7 +401,9 @@ class Processor:
     def file_lang_detection(self, domain_content):
         file_lang = {}
         for sentence, _, _, _, _, _ in domain_content:
-            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", sentence):
+            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", sentence) or (
+                sentence[0] == "|" and sentence[-1] == "|"
+            ):
                 lang = self.cf.detect_language(sentence)
                 file_lang[lang] = file_lang.get(lang, 0) + 1
         if len(file_lang.keys()) == 1:
