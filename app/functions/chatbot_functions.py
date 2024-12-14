@@ -2,7 +2,6 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from langdetect import detect
 import textwrap
-from deep_translator import GoogleTranslator
 import yaml
 import re
 from typing import Dict, Any, Match
@@ -16,9 +15,9 @@ class ChatbotFunctions:
         with open("app/functions/prompts.yaml", "r", encoding="utf-8") as file:
             self.prompt_data = yaml.safe_load(file)
 
-    def _prompt_query_generation(self, query, lang):
+    def _prompt_query_generation(self, query, file_lang):
         return textwrap.dedent(
-            self.get_prompt(category="queries", query=query, lang=lang)
+            self.get_prompt(category="queries", query=query, file_lang=file_lang)
         )
 
     def _prompt_answer_generation(self, query, context, lang, intention):
@@ -42,9 +41,9 @@ class ChatbotFunctions:
         answer = response.choices[0].message.content.strip()
         return answer
 
-    def query_generation(self, query):
+    def query_generation(self, query, file_lang):
         lang = self.detect_language(query=query)
-        prompt = self._prompt_query_generation(query, lang=lang)
+        prompt = self._prompt_query_generation(query, file_lang=file_lang)
         response = self.client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -59,13 +58,6 @@ class ChatbotFunctions:
     def detect_language(self, query):
         lang = detect(text=query)
         return "tr" if lang == "tr" else "en"
-
-    def translator(self, query_lang, file_lang, query):
-        translated = GoogleTranslator(
-            source=query_lang, target=file_lang
-        ).translate_batch(query)
-
-        return translated
 
     def replace_variables(self, match: Match, kwargs: Dict[str, Any]):
         variables = match.group(1) or match.group(2)

@@ -70,7 +70,10 @@ class Processor:
         index,
         index_header,
     ):
-        queries, lang = self.query_preprocessing(user_query=user_query)
+        file_lang = self.file_lang_detection(domain_content=domain_content)
+        queries, lang = self.query_preprocessing(
+            user_query=user_query, file_lang=file_lang
+        )
         if not queries:
             if lang == "tr":
                 return (
@@ -84,15 +87,6 @@ class Processor:
                     None,
                     None,
                 )
-        file_lang = self.file_lang_detection(domain_content=domain_content)
-
-        if file_lang != lang:
-            translated = self.cf.translator(
-                query_lang=lang, file_lang=file_lang, query=queries[:-1]
-            )
-            query_embeddings = self.ef.create_embeddings_from_sentences(
-                sentences=translated
-            )
 
         query_embeddings = self.ef.create_embeddings_from_sentences(
             sentences=queries[:-1]
@@ -172,8 +166,10 @@ class Processor:
 
         return answer, resources, context_windows
 
-    def query_preprocessing(self, user_query):
-        generated_queries, lang = self.cf.query_generation(query=user_query)
+    def query_preprocessing(self, user_query, file_lang):
+        generated_queries, lang = self.cf.query_generation(
+            query=user_query, file_lang=file_lang
+        )
         splitted_queries = generated_queries.split("\n")
 
         if len(splitted_queries) > 1:
