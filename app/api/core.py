@@ -402,7 +402,9 @@ class Processor:
             length = len(domain_content)
 
         for i in range(0, length):
-            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", domain_content[i][0]):
+            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", domain_content[i][0]) or (
+                domain_content[i][0][0] == "|" and domain_content[i][0][-1] == "|"
+            ):
                 lang = self.cf.detect_language(domain_content[i][0])
                 file_lang[lang] = file_lang.get(lang, 0) + 1
         if len(file_lang.keys()) == 1:
