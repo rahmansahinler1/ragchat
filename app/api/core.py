@@ -394,19 +394,16 @@ class Processor:
 
         return list(dict.fromkeys(sorted_dict.values()))
 
-    def file_lang_detection(self, domain_content):
+    def file_lang_detection(self, domain_content: List[tuple]):
         file_lang = {}
-        length = 25
+        detected_sentence_amount = (
+            25 if len(domain_content) > 25 else len(domain_content)
+        )
 
-        if len(domain_content) < 25:
-            length = len(domain_content)
-
-        for i in range(0, length):
+        for i in range(0, detected_sentence_amount):
             if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", domain_content[i][0]) or (
                 domain_content[i][0][0] == "|" and domain_content[i][0][-1] == "|"
             ):
                 lang = self.cf.detect_language(domain_content[i][0])
                 file_lang[lang] = file_lang.get(lang, 0) + 1
-        if len(file_lang.keys()) == 1:
-            return list(file_lang.keys())[0]
         return max(file_lang, key=file_lang.get)

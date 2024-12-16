@@ -42,7 +42,6 @@ class ReadingFunctions:
             allowed_formats=[InputFormat.DOCX, InputFormat.PPTX, InputFormat.XLSX],
             format_options={
                 InputFormat.DOCX: WordFormatOption(pipeline_cls=SimplePipeline),
-                InputFormat.DOCX: WordFormatOption(pipeline_cls=SimplePipeline),
                 InputFormat.PPTX: PowerpointFormatOption(pipeline_cls=SimplePipeline),
             },
         )
