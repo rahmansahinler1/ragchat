@@ -77,7 +77,7 @@ class ReadingFunctions:
         with fitz.open(stream=pdf_file, filetype="pdf") as pdf:
             # Process each page
             markdown_pages = pymupdf4llm.to_markdown(
-                pdf, page_chunks=True, show_progress=False
+                pdf, page_chunks=True, show_progress=False, margins=0
             )
             for i, page in enumerate(markdown_pages):
                 splits = self.markdown_splitter.split_text(page["text"])
