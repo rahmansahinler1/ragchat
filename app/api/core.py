@@ -1,6 +1,7 @@
 from typing import List
 import numpy as np
 import bcrypt
+import re
 
 from ..functions.reading_functions import ReadingFunctions
 from ..functions.embedding_functions import EmbeddingFunctions
@@ -69,7 +70,10 @@ class Processor:
         index,
         index_header,
     ):
-        queries, lang = self.query_preprocessing(user_query=user_query)
+        file_lang = self.file_lang_detection(domain_content=domain_content)
+        queries, lang = self.query_preprocessing(
+            user_query=user_query, file_lang=file_lang
+        )
         if not queries:
             if lang == "tr":
                 return (
@@ -129,7 +133,7 @@ class Processor:
         filtered_indexes = [
             sentence_index
             for sentence_index in sorted_dict.keys()
-            if sorted_dict[sentence_index] >= 0.45
+            if sorted_dict[sentence_index] >= 0.35
         ]
         sorted_sentence_indexes = filtered_indexes[:10]
 
@@ -162,8 +166,10 @@ class Processor:
 
         return answer, resources, context_windows
 
-    def query_preprocessing(self, user_query):
-        generated_queries, lang = self.cf.query_generation(query=user_query)
+    def query_preprocessing(self, user_query, file_lang):
+        generated_queries, lang = self.cf.query_generation(
+            query=user_query, file_lang=file_lang
+        )
         splitted_queries = generated_queries.split("\n")
 
         if len(splitted_queries) > 1:
@@ -387,3 +393,17 @@ class Processor:
                 sorted_dict[index + 1] = sentence_tuple
 
         return list(dict.fromkeys(sorted_dict.values()))
+
+    def file_lang_detection(self, domain_content: List[tuple]):
+        file_lang = {}
+        detected_sentence_amount = (
+            25 if len(domain_content) > 25 else len(domain_content)
+        )
+
+        for i in range(0, detected_sentence_amount):
+            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", domain_content[i][0]) or (
+                domain_content[i][0][0] == "|" and domain_content[i][0][-1] == "|"
+            ):
+                lang = self.cf.detect_language(domain_content[i][0])
+                file_lang[lang] = file_lang.get(lang, 0) + 1
+        return max(file_lang, key=file_lang.get)
