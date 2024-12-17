@@ -67,7 +67,9 @@ class ChatbotFunctions:
     def get_prompt(self, category, **kwargs):
         variable_pattern = r"\${?(\w+)}?|\{(\w+)\}"
         try:
-            prompt = self.prompt_data["prompts"]["languages"]["en"][category][0]["text"]
+            prompt = self.prompt_data["prompts"]["languages"]["en"][category.strip()][
+                0
+            ]["text"]
 
             def replace_wrapper(match):
                 return self.replace_variables(match, kwargs)
