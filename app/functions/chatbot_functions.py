@@ -12,7 +12,7 @@ class ChatbotFunctions:
         load_dotenv()
         self.client = OpenAI()
 
-        with open("app/functions/prompts.yaml", "r", encoding="utf-8") as file:
+        with open("app/utils/prompts.yaml", "r", encoding="utf-8") as file:
             self.prompt_data = yaml.safe_load(file)
 
     def _prompt_query_generation(self, query, file_lang):
