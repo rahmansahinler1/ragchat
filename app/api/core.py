@@ -70,7 +70,10 @@ class Processor:
         index,
         index_header,
     ):
-        queries, lang = self.query_preprocessing(user_query=user_query)
+        file_lang = self.file_lang_detection(domain_content=domain_content)
+        queries, lang = self.query_preprocessing(
+            user_query=user_query, file_lang=file_lang
+        )
         if not queries:
             if lang == "tr":
                 return (
@@ -84,15 +87,6 @@ class Processor:
                     None,
                     None,
                 )
-        file_lang = self.file_lang_detection(domain_content=domain_content)
-
-        if file_lang != lang:
-            translated = self.cf.translator(
-                query_lang=lang, file_lang=file_lang, query=queries[:-1]
-            )
-            query_embeddings = self.ef.create_embeddings_from_sentences(
-                sentences=translated
-            )
 
         query_embeddings = self.ef.create_embeddings_from_sentences(
             sentences=queries[:-1]
@@ -172,8 +166,10 @@ class Processor:
 
         return answer, resources, context_windows
 
-    def query_preprocessing(self, user_query):
-        generated_queries, lang = self.cf.query_generation(query=user_query)
+    def query_preprocessing(self, user_query, file_lang):
+        generated_queries, lang = self.cf.query_generation(
+            query=user_query, file_lang=file_lang
+        )
         splitted_queries = generated_queries.split("\n")
 
         if len(splitted_queries) > 1:
@@ -398,17 +394,16 @@ class Processor:
 
         return list(dict.fromkeys(sorted_dict.values()))
 
-    def file_lang_detection(self, domain_content):
+    def file_lang_detection(self, domain_content: List[tuple]):
         file_lang = {}
-        length = 25
+        detected_sentence_amount = (
+            25 if len(domain_content) > 25 else len(domain_content)
+        )
 
-        if len(domain_content) < 25:
-            length = len(domain_content)
-
-        for i in range(0, length):
-            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", domain_content[i][0]):
+        for i in range(0, detected_sentence_amount):
+            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", domain_content[i][0]) or (
+                domain_content[i][0][0] == "|" and domain_content[i][0][-1] == "|"
+            ):
                 lang = self.cf.detect_language(domain_content[i][0])
                 file_lang[lang] = file_lang.get(lang, 0) + 1
-        if len(file_lang.keys()) == 1:
-            return list(file_lang.keys())[0]
         return max(file_lang, key=file_lang.get)

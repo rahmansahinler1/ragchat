@@ -278,8 +278,8 @@ prompts:
             Create 3 different questions that approach the original query from different angles but stay related.\n
             Answer last 3 questions with concise responses, 1-2 sentences max each.\n
             Then, analyze the corrected user query and determine its intent, intention list is and their keywords, examples are given below. If intent can't be determined return empty '' string.\n
-            Please respond in the language of the user's query, specified by the {lang} variable (e.g., 'en' for English, 'tr' for Turkish), ensuring the tone and style align with the query's language.\n
-            If user query language is diferent than english look for the intention keywords that provided for intent detection below in user query language.\n
+            Please respond in the file language, specified by the {file lang} variable (e.g., 'en' for English, 'tr' for Turkish) regardless of user query's language , ensuring the tone and style align with the file's language.\n
+            If file language is diferent than english look for the intention keywords that provided for intent detection below in file language.\n
 
             The possible intents are:\n
             1. Informational: Seeking factual knowledge, definitions, or explanations.\n
@@ -307,13 +307,13 @@ prompts:
 
             User query: {query}\n
 
-            User Query language:\n
-            {lang}\n
+            File language:\n
+            {file_lang}\n
 
             Example:\n
             User query: How does retrieval-augmented generation work in AI systems?\n
 
-            User Query language: en\n
+            File language: en\n
 
             Output:
             How does retrieval-augmented generation work in AI systems?\n
