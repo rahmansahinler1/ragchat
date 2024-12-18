@@ -62,11 +62,27 @@ function validatePassword() {
 }
 
 function displayError(message, loginButton, loginForm) {
+
+    const existingErrorDiv = loginForm.querySelector('.alert-danger');
+
+    if(existingErrorDiv) {
+        existingErrorDiv.remove();
+    }
+
     const errorDiv = document.createElement('div');
     errorDiv.className = 'alert alert-danger mt-3';
     errorDiv.textContent = message;
     loginForm.insertBefore(errorDiv, loginButton.parentElement);
-    setTimeout(() => errorDiv.remove(), 5000);
+
+    if (this.errorTimeout) {
+        clearTimeout(this.errorTimeout);
+    }
+    
+    this.errorTimeout = setTimeout(() => {
+        if (errorDiv.parentNode) {
+            errorDiv.remove();
+        }
+    }, 5000);
 }
 
 function displayMessage(message, loginButton, loginForm) {
