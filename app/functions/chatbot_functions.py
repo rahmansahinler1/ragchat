@@ -56,8 +56,10 @@ class ChatbotFunctions:
         return new_queries, lang
 
     def detect_language(self, query):
-        lang = detect(text=query)
-        return "tr" if lang == "tr" else "en"
+        if query.isalpha():
+            lang = detect(text=query)
+            return "tr" if lang == "tr" else "en"
+        return None
 
     def replace_variables(self, match: Match, kwargs: Dict[str, Any]):
         variables = match.group(1) or match.group(2)
