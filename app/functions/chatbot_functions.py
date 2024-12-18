@@ -56,8 +56,10 @@ class ChatbotFunctions:
         return new_queries, lang
 
     def detect_language(self, query):
-        lang = detect(text=query)
-        return "tr" if lang == "tr" else "en"
+        if query.isalpha():
+            lang = detect(text=query)
+            return "tr" if lang == "tr" else "en"
+        return None
 
     def replace_variables(self, match: Match, kwargs: Dict[str, Any]):
         variables = match.group(1) or match.group(2)
@@ -67,7 +69,9 @@ class ChatbotFunctions:
     def get_prompt(self, category, **kwargs):
         variable_pattern = r"\${?(\w+)}?|\{(\w+)\}"
         try:
-            prompt = self.prompt_data["prompts"]["languages"]["en"][category][0]["text"]
+            prompt = self.prompt_data["prompts"]["languages"]["en"][category.strip()][
+                0
+            ]["text"]
 
             def replace_wrapper(match):
                 return self.replace_variables(match, kwargs)
