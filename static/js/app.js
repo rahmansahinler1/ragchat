@@ -784,7 +784,7 @@ class FileUploadModal extends Component {
                                     </div>
                                     <h5 class="mb-2">Upload Files</h5>
                                     <p class="mb-3">Drag & drop or <span class="text-primary-green choose-text">choose files</span> to upload</p>
-                                    <small class="text-secondary">Supported file types: PDF, DOCX, EXCEL, POWERPOINT and TXT</small>
+                                    <small class="text-secondary">Supported file types: PDF, DOCX, XLSX, PPTX and TXT</small>
                                     <input type="file" id="fileInput" multiple accept=".pdf,.docx,.xlsx,.pptx,.txt" class="d-none">
                                 </div>
                             </div>

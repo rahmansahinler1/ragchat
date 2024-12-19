@@ -141,13 +141,13 @@ class Processor:
         if not sorted_sentence_indexes:
             if lang == "tr":
                 return (
-                    "Seçtiğin dokümanlarda bu sorunun cevabını bulamadım. Daha iyi cevaplar almanın yolunu senin için hazırladığımız kılavuzla konuşarak bulabilirsin!",
+                    "Seçtiğin dokümanlarda bu sorunun cevabını bulamadım",
                     None,
                     None,
                 )
             else:
                 return (
-                    "I couldn't find the answer from your question. For better answers you chat with the user guide we installed for you!",
+                    "I couldn't find the answer of the question within the selected files",
                     None,
                     None,
                 )
