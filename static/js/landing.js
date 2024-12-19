@@ -10,19 +10,34 @@ document.addEventListener('DOMContentLoaded', function() {
         return window.innerWidth >= 992;
     }
 
+    function isTablet() {
+        return window.innerWidth >= 992 && window.innerWidth <= 1200;
+    }
+
     function updateScrollBehavior() {
-        if (isLargeScreen()) {
-            document.body.style.overflow = 'hidden';
-            document.documentElement.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'auto';
+        if (isTablet()) {
+            // Tablet için normal scroll davranışı
             document.documentElement.style.overflow = 'auto';
+            document.body.style.overflow = 'auto';
+            
+            // Section yüksekliklerini sıfırla
+            document.querySelectorAll('.section').forEach(section => {
+                section.style.height = 'auto';
+                section.style.minHeight = 'auto';
+            });
+        } else if (isLargeScreen()) {
+            // Desktop için mevcut davranış
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'visible';
+        } else {
+            // Mobil için davranış
+            document.documentElement.style.overflow = 'auto';
+            document.body.style.overflow = 'auto';
         }
     }
 
-    // Daha hızlı scroll animasyonu
-    function smoothScrollTo(element, duration = 300) { // 400ms'den 300ms'e düşürdük
-        if (!isLargeScreen()) return;
+    function smoothScrollTo(element, duration = 300) {
+        if (!isLargeScreen() || isTablet()) return;
 
         const targetPosition = element.offsetTop;
         const startPosition = window.pageYOffset;
@@ -33,8 +48,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (startTime === null) startTime = currentTime;
             const timeElapsed = currentTime - startTime;
             const progress = Math.min(timeElapsed / duration, 1);
-
-            // Daha hızlı easing
             const ease = progress === 1 ? 1 : 1 - Math.pow(1 - progress, 3);
 
             window.scrollTo(0, startPosition + (distance * ease));
@@ -42,11 +55,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (timeElapsed < duration) {
                 requestAnimationFrame(animation);
             } else {
-                // Animasyon biter bitmez scroll state'ini resetle
                 setTimeout(() => {
                     isScrolling = false;
                     lastScrollTime = Date.now();
-                }, 50); // Çok kısa bir bekleme süresi
+                }, 50);
             }
         }
 
@@ -54,13 +66,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     window.addEventListener('wheel', function(e) {
-        if (!isLargeScreen()) return;
+        if (!isLargeScreen() || isTablet()) return;
 
         const now = Date.now();
         const timeSinceLastScroll = now - lastScrollTime;
 
-        // Minimum scroll aralığını düşürdük
-        if (timeSinceLastScroll < 80) return; // 150ms'den 80ms'e düşürdük
+        if (timeSinceLastScroll < 80) return;
 
         const isFooterVisible = footer.getBoundingClientRect().top < window.innerHeight;
         const isLastSection = currentSection === sections.length - 1;
@@ -97,34 +108,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 lastScrollTime = now;
-            }, 10); // Throttle süresini 25ms'den 10ms'e düşürdük
+            }, 10);
         }
     }, { passive: false });
 
-    // Touch olayları için hızlı yanıt
     let touchStartY;
     
     window.addEventListener('touchstart', function(e) {
+        if (!isLargeScreen() || isTablet()) return;
         touchStartY = e.touches[0].clientY;
     }, { passive: true });
 
     window.addEventListener('touchend', function(e) {
-        if (!isLargeScreen()) return;
+        if (!isLargeScreen() || isTablet()) return;
         
         const touchEndY = e.changedTouches[0].clientY;
         const deltaY = touchStartY - touchEndY;
 
-        if (Math.abs(deltaY) > 30) { // Swipe mesafesini 50'den 30'a düşürdük
+        if (Math.abs(deltaY) > 30) {
             const event = new WheelEvent('wheel', {
                 deltaY: deltaY
             });
             window.dispatchEvent(event);
         }
     }, { passive: true });
-
-    // Başlangıç ayarları
-    updateScrollBehavior();
-    window.addEventListener('resize', updateScrollBehavior);
 
     // Fade efekti
     const fadeElements = document.querySelectorAll('.fade-up');
@@ -147,4 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
     fadeElements.forEach(element => {
         observer.observe(element);
     });
+
+    updateScrollBehavior();
+    window.addEventListener('resize', updateScrollBehavior);
 });

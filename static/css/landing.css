@@ -18,8 +18,17 @@ html, body {
     overflow: hidden;
     margin: 0;
     padding: 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+html::-webkit-scrollbar {
+    display: none;
+}
+#fullpage {
+    overflow: hidden;
 }
 .section {
+    border: none !important;
     height: 100vh;
     position: relative;
     overflow: hidden;
@@ -541,6 +550,7 @@ html, body {
     background-color: #0B0F17;
     color: #F8F9FA;
     padding: 4rem 0 2rem;
+    overflow: hidden;
 }
 
 .footer::before {
@@ -762,6 +772,165 @@ html, body {
 
 /* Footer Section End */
 /* Info Section End */
+@media screen and (min-width: 992px) and (max-width: 1200px) {
+    .about-section {
+        min-height: auto;
+        padding: 2rem 0; /* 4rem'den 2rem'e düşürüldü */
+    }
+    .info-section {
+        min-height: 0;
+    }
+    .about-section .container {
+        padding-top: 1rem; /* Üst boşluğu azalt */
+        padding-bottom: 1rem; /* Alt boşluğu azalt */
+    }
+
+    .feature-card {
+        height: calc(100% - 1.5rem); /* Kart yüksekliğini azalt */
+        margin-bottom: 1.5rem; /* Kartlar arası mesafeyi azalt */
+    }
+
+    /* Section boşluklarını azalt */
+    .section {
+        min-height: auto;
+        height: auto !important;
+        border: none !important;
+        border-top: none !important;
+        border-bottom: none !important;
+        margin-bottom: 0 !important;
+        margin-top: 0 !important;
+        background-clip: padding-box;
+    }
+    
+    /* Intro section boşluk düzenlemesi */
+    .intro-section {
+        min-height: auto;
+        padding: 2rem 0; /* 4rem'den 2rem'e düşürüldü */
+    }
+
+    .intro-section .container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+    
+
+    /* Text spacing düzenlemesi */
+    .section-title {
+        margin-bottom: 1rem; /* 1.5rem'den 1rem'e düşürüldü */
+    }
+
+    /* Container spacing düzenlemesi */
+    .container {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+
+    /* Row spacing düzenlemesi */
+    .row.g-5 {
+        --bs-gutter-y: 1.5rem; /* Row'lar arası mesafeyi azalt */
+    }
+}
+
+/* iPad Pro dikey kullanım için ek düzenlemeler */
+@media screen and (min-width: 992px) and (max-width: 1200px) and (orientation: portrait) {
+    .about-section {
+        padding: 2rem 0; /* 3rem'den 2rem'e düşürüldü */
+    }
+
+    .feature-card {
+        padding: 1.25rem; /* 1.5rem'den azaltıldı */
+        margin-bottom: 1rem; /* 1.5rem'den azaltıldı */
+    }
+
+    .intro-section {
+        padding: 2rem 0; /* 3rem'den 2rem'e düşürüldü */
+    }
+
+    /* Section arası boşlukları azalt */
+    .section + .section {
+        margin-top: 0;
+    }
+}
+@media screen and (min-width: 768px) and (max-width: 991px) {
+    /* Genel section düzenlemeleri */
+    .section {
+        min-height: auto !important;
+        height: auto !important;
+        background-color: #0B0F17;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* About section düzenlemeleri */
+    .about-section {
+        padding: 3rem 0 !important;
+        background-color: #0B0F17;
+        min-height: auto;
+    }
+
+    /* Intro section düzenlemeleri */
+    .intro-section {
+        padding: 3rem 0 !important;
+        background-color: #0B0F17;
+        min-height: auto;
+    }
+
+    /* Info section düzenlemeleri */
+    .info-section {
+        padding: 3rem 0 !important;
+        background-color: #0B0F17;
+        min-height: auto;
+    }
+
+    /* Footer düzenlemeleri */
+
+
+    /* What is ragchat section altındaki boşluğu düzelt */
+    #about {
+        margin-bottom: 0 !important;
+    }
+
+    /* Fullpage wrapper düzenlemesi */
+    #fullpage {
+        background-color: #0B0F17;
+    }
+
+    /* Container spacing düzenlemesi */
+    .container {
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    /* Feature cards düzenlemesi */
+    .feature-card {
+        margin-bottom: 1.5rem;
+    }
+
+    /* Son feature card için margin düzeltmesi */
+    .feature-card:last-child {
+        margin-bottom: 0;
+    }
+}
+
+/* iPad Air Portrait özel düzenlemeler */
+@media screen and (width: 820px) and (height: 1180px) {
+    .about-section, 
+    .intro-section, 
+    .info-section {
+        min-height: auto;
+        background-color: #0B0F17;
+    }
+
+    /* Section arası boşlukları temizle */
+    .section:not(:first-child) {
+        margin-top: 0 !important;
+    }
+
+    /* Footer öncesi boşluğu düzelt */
+    .info-section + footer {
+        margin-top: 0 !important;
+    }
+}
 @media (min-width: 1200px) {
     #demo {
         display: block;
@@ -799,8 +968,10 @@ html, body {
 @media (max-width: 991px) {
     /* Intro 1 Section Start */
     html, body {
+        overflow-x: hidden !important;
         overflow-y: auto !important;
-        overflow-x: hidden;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
     }
     body {
         position: relative;
@@ -843,10 +1014,56 @@ html, body {
     }
     .footer {
         padding: 3rem 0 1.5rem;
+        text-align: center;
     }
-    
+    .footer .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
     .footer-title {
         margin-top: 1rem;
+    }
+    .footer .row {
+        width: 100%;
+        justify-content: center;
+    }
+    .footer-logo {
+        margin-bottom: 1rem;
+    }
+    .footer-description {
+        max-width: 80%;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 1.5rem;
+    }
+    .footer .social-links {
+        justify-content: center;
+        margin: 1.5rem 0;
+    }
+    .footer .cta-button {
+        margin: 0 auto;
+    }
+    .footer .col-lg-4,
+    .footer .col-lg-3 {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 2rem;
+    }
+
+    .footer-contact {
+        align-items: center;
+    }
+
+    .footer-title {
+        margin-bottom: 1rem;
+    }
+
+    .border-top {
+        width: 80%;
+        margin: 2rem auto 1rem;
     }
     .about-section,
     .info-section {
@@ -1032,6 +1249,22 @@ html, body {
     /* Intro 1 Section End */
     .demo-title {
         font-size: 1.5rem;
+    }
+    .footer-description {
+        max-width: 90%;
+    }
+
+    .footer .social-links {
+        gap: 1.5rem;
+    }
+
+    .footer .social-link {
+        width: 35px;
+        height: 35px;
+    }
+
+    .border-top {
+        width: 90%;
     }
 }
 @media (max-width: 480px) {
