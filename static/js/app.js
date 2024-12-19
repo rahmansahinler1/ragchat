@@ -2019,7 +2019,6 @@ class App {
         this.successAlert = new SuccessAlert();
         this.logoutModal = new LogoutModal();
         this.chatManager.disableChat();
-        
         this.setupEventListeners();
     }
 
@@ -2300,4 +2299,42 @@ class App {
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new App();
     window.app.init();
+
+    const resourcesTrigger = document.querySelector('.resources-trigger');
+    const resourcesContainer = document.querySelector('.resources-container');
+    const mainContent = document.querySelector('.chat-container'); // Ana içerik
+
+    if (resourcesTrigger && resourcesContainer) {
+        resourcesTrigger.addEventListener('click', () => {
+            resourcesContainer.classList.toggle('show');
+            mainContent.classList.toggle('blur-content'); // Blur sınıfını ekle/kaldır
+
+            if (resourcesContainer.classList.contains('show')) {
+                backdrop.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            } else {
+                backdrop.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Backdrop'a tıklandığında resources'ı ve blur'u kapat
+        backdrop.addEventListener('click', () => {
+            resourcesContainer.classList.remove('show');
+            mainContent.classList.remove('blur-content'); // Blur'u kaldır
+            backdrop.classList.remove('show');
+            document.body.style.overflow = '';
+        });
+
+        // Escape tuşu ile kapatma
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && resourcesContainer.classList.contains('show')) {
+                resourcesContainer.classList.remove('show');
+                mainContent.classList.remove('blur-content'); // Blur'u kaldır
+                backdrop.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        });
+    }
+    
 });
