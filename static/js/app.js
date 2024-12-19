@@ -784,8 +784,8 @@ class FileUploadModal extends Component {
                                     </div>
                                     <h5 class="mb-2">Upload Files</h5>
                                     <p class="mb-3">Drag & drop or <span class="text-primary-green choose-text">choose files</span> to upload</p>
-                                    <small class="text-secondary">Supported file types: PDF, DOCX and TXT</small>
-                                    <input type="file" id="fileInput" multiple accept=".pdf,.docx,.txt" class="d-none">
+                                    <small class="text-secondary">Supported file types: PDF, DOCX, EXCEL, POWERPOINT and TXT</small>
+                                    <input type="file" id="fileInput" multiple accept=".pdf,.docx,.xlsx,.pptx,.txt" class="d-none">
                                 </div>
                             </div>
 
@@ -1061,7 +1061,9 @@ class FileUploadModal extends Component {
             pdf: 'bi-file-pdf',
             docx: 'bi-file-word',
             doc: 'bi-file-word',
-            txt: 'bi-file-text'
+            txt: 'bi-file-text',
+            pptx: 'bi-file-ppt',
+            xlsx: 'bi-file-excel'
         };
         return iconMap[extension] || 'bi-file';
     }
@@ -1750,7 +1752,9 @@ class Sidebar extends Component {
             pdf: 'bi-file-pdf',
             docx: 'bi-file-word',
             doc: 'bi-file-word',
-            txt: 'bi-file-text'
+            txt: 'bi-file-text',
+            pptx: 'bi-file-ppt',
+            xlsx: 'bi-file-excel'
         };
         return iconMap[extension] || 'bi-file';
     }
@@ -2278,7 +2282,7 @@ class App {
         const isFirstTime = localStorage.getItem('firstTime') === '1';
         if (isFirstTime) {
             localStorage.setItem('firstTime', 0);
-            const firstTimeMsg = `[header]Welcome to ragchat${this.userData.user_info.user_name ? `, ${this.userData.user_info.user_name}` : ''}👋[/header]\nI've automatically set up your first domain with helpful guide about using ragchat. You can always use this file to get any information about ragchat!\n[header]To get started[/header]\n- Ask any question about ragchat's features and capabilities \n- Try asking "What can ragchat do?" or "How do I organize my documents?"\n- The user guide has been uploaded to your first domain\n- All answers will include source references\n\n[header]Quick Tips[/header]\n- Open & close navigation bar by hovering\n- Click ⚙️ to manage domains and documents\n- Upload files via "Upload Files" button after selecting a domain\n- Check right panel for answer sources\n- Supports PDF, DOCX, and TXT formats\n- Create different domains for different topics\n- View highlighted source sections in answers\n- Use file checkboxes to control search scope`;
+            const firstTimeMsg = `[header]Welcome to ragchat${this.userData.user_info.user_name ? `, ${this.userData.user_info.user_name}` : ''}👋[/header]\nI've automatically set up your first domain with helpful guide about using ragchat. You can always use this file to get any information about ragchat!\n[header]To get started[/header]\n- Ask any question about ragchat's features and capabilities \n- Try asking "What can ragchat do?" or "How do I organize my documents?"\n- The user guide has been uploaded to your first domain\n- All answers will include source references\n\n[header]Quick Tips[/header]\n- Open & close navigation bar by hovering\n- Click ⚙️ to manage domains and documents\n- Upload files via "Upload Files" button after selecting a domain\n- Check right panel for answer sources\n- Supports PDF, DOCX, Excel, PowerPoint and TXT formats\n- Create different domains for different topics\n- View highlighted source sections in answers\n- Use file checkboxes to control search scope`;
             this.chatManager.addMessage(firstTimeMsg, 'ai');
 
             const domains = this.domainManager.getAllDomains();
