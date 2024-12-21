@@ -4,6 +4,8 @@ import io
 import re
 import spacy
 import pymupdf4llm
+import xml.etree.ElementTree as ET
+import zipfile
 from pathlib import Path
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 from docling.datamodel.base_models import InputFormat
@@ -68,6 +70,8 @@ class ReadingFunctions:
                 return self._process_pptx(file_bytes=file_bytes)
             elif file_type == "xlsx":
                 return self._process_xlsx(file_bytes=file_bytes)
+            elif file_type == "udf":
+                return self._process_udf(file_bytes=file_bytes)
             elif file_type in ["txt", "rtf"]:
                 return self._process_txt(file_bytes=file_bytes)
             else:
@@ -401,6 +405,78 @@ class ReadingFunctions:
                     xlsx_data["page_number"].append(current_page)
                     current_length += len(split.page_content)
         return xlsx_data
+
+    def _process_udf(self, file_bytes: bytes):
+        udf_data = {
+            "sentences": [],
+            "page_number": [],
+            "is_header": [],
+            "is_table": [],
+        }
+        current_length = 0
+        chars_per_page = 2000
+        current_page = 1
+
+        udf_file = io.BytesIO(file_bytes)
+        with zipfile.ZipFile(udf_file, "r") as zip_ref:
+            xml_content = zip_ref.read("content.xml")
+            dataTree = ET.parse(io.BytesIO(xml_content))
+            splits = self.markdown_splitter.split_text(
+                dataTree.find(".//content").text.strip()
+            )
+            for split in splits:
+                if current_length + len(split.page_content) > chars_per_page:
+                    current_page += 1
+                    current_length = 0
+
+                if (
+                    not len(split.page_content) > 5
+                    or re.match(r"^[^\w]*$", split.page_content)
+                    or split.page_content[:4] == "<!--"
+                ):
+                    continue
+                elif (
+                    split.metadata and split.page_content[0] == "#"
+                ):  # Header detection
+                    udf_data["sentences"].append(split.page_content)
+                    udf_data["is_header"].append(True)
+                    udf_data["is_table"].append(False)
+                    udf_data["page_number"].append(current_page)
+                    current_length += len(split.page_content)
+                elif (
+                    split.page_content[0] == "*"
+                    and split.page_content[-1] == "*"
+                    and (
+                        re.match(
+                            r"(\*{2,})(\d+(?:\.\d+)*)\s*(\*{2,})?(.*)$",
+                            split.page_content,
+                        )
+                        or re.match(
+                            r"(\*{1,3})?([A-Z][a-zA-Z\s\-]+)(\*{1,3})?$",
+                            split.page_content,
+                        )
+                    )
+                ):  # Sub-Header and Header variant detection
+                    udf_data["sentences"].append(split.page_content)
+                    udf_data["is_header"].append(True)
+                    udf_data["is_table"].append(False)
+                    udf_data["page_number"].append(current_page)
+                    current_length += len(split.page_content)
+                elif (
+                    split.page_content[0] == "|" and split.page_content[-1] == "|"
+                ):  # Table detection
+                    udf_data["sentences"].append(split.page_content)
+                    udf_data["is_header"].append(False)
+                    udf_data["is_table"].append(True)
+                    udf_data["page_number"].append(current_page)
+                    current_length += len(split.page_content)
+                else:
+                    udf_data["sentences"].append(split.page_content)
+                    udf_data["is_header"].append(False)
+                    udf_data["is_table"].append(False)
+                    udf_data["page_number"].append(current_page)
+                    current_length += len(split.page_content)
+        return udf_data
 
     def _process_txt(self, file_bytes: bytes):
         text_data = {

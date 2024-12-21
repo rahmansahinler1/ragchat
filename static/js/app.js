@@ -1063,7 +1063,8 @@ class FileUploadModal extends Component {
             doc: 'bi-file-word',
             txt: 'bi-file-text',
             pptx: 'bi-file-ppt',
-            xlsx: 'bi-file-excel'
+            xlsx: 'bi-file-excel',
+            udf: 'bi-file-post'
         };
         return iconMap[extension] || 'bi-file';
     }
@@ -1754,7 +1755,8 @@ class Sidebar extends Component {
             doc: 'bi-file-word',
             txt: 'bi-file-text',
             pptx: 'bi-file-ppt',
-            xlsx: 'bi-file-excel'
+            xlsx: 'bi-file-excel',
+            udf: 'bi-file-post'
         };
         return iconMap[extension] || 'bi-file';
     }
