@@ -939,6 +939,9 @@ class FileUploadModal extends Component {
     setLoadingState(isLoading) {
         const loadingOverlay = this.element.querySelector('.upload-loading-overlay');
         const closeButton = this.element.querySelector('.close-button');
+        closeButton.addEventListener('click', () => {
+            this.hide();
+        });
         const uploadBtn = this.element.querySelector('#uploadBtn');
         const modal = bootstrap.Modal.getInstance(this.element);
     
@@ -990,7 +993,10 @@ class FileUploadModal extends Component {
                         text: `Successfully uploaded ${successCount} files`,
                         type: 'success'
                     });
-                    setTimeout(() => this.hide(), 500);
+                    setTimeout(() =>  {
+                        this.hide();
+                        this.events.emit('modalClose');
+                    }, 500);
                 } else {
                     throw new Error(uploadResult.error);
                 }
@@ -1120,6 +1126,7 @@ class FileUploadModal extends Component {
         const modal = bootstrap.Modal.getInstance(this.element);
         if (modal) {
             modal.hide();
+            this.events.emit('modalClose');
             this.resetUploadUI();
         }
     }
@@ -1363,6 +1370,7 @@ class Sidebar extends Component {
         this.selectedFiles = new Set();
         this.render();
         this.setupEventListeners();
+        this.isModalOpen = false;
     }
 
     render() {
@@ -1452,6 +1460,7 @@ class Sidebar extends Component {
         const fileMenuBtn = this.element.querySelector('.open-file-btn');
         fileMenuBtn.addEventListener('click', () => {
             this.events.emit('fileMenuClick');
+            this.events.emit('modalOpen');
         });
     
         this.backdrop.addEventListener('click', () => {
@@ -1477,7 +1486,7 @@ class Sidebar extends Component {
                     }, 300);
                 });
             }
-    
+
             // Sidebar hover
             this.element.addEventListener('mouseenter', () => {
                 console.log('Sidebar hover');
@@ -1486,6 +1495,9 @@ class Sidebar extends Component {
             });
     
             this.element.addEventListener('mouseleave', () => {
+                console.log('isModalOpen:', this.isModalOpen);
+                if (this.isModalOpen) return;  // Prevent closing if modal is open
+
                 this.timeout = setTimeout(() => {
                     if (!document.querySelector('.menu-trigger')?.matches(':hover')) {
                         this.toggle(false);
@@ -1493,7 +1505,16 @@ class Sidebar extends Component {
                 }, 300);
             });
         }
-    
+
+        this.events.on('modalOpen', () => {
+            this.isModalOpen = true;
+        });
+
+        this.events.on('modalClose', () => {
+            this.isModalOpen = false;
+            this.toggle(false);
+        });
+        
         // Mobile menu trigger handler
         this.events.on('menuTrigger', () => {
             if (window.innerWidth < 992) {
