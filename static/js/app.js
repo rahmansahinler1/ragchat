@@ -756,6 +756,7 @@ class FileUploadModal extends Component {
         
         this.render();
         this.setupEventListeners();
+        this.setupCloseButton();
     }
 
     render() {
@@ -936,12 +937,17 @@ class FileUploadModal extends Component {
         return fileItem;
     }
 
+    setupCloseButton() {
+        const closeButton = this.element.querySelector('.close-button');
+        closeButton.addEventListener('click', () => {
+            console.log('Close button clicked');
+            this.hide();
+        });
+    }
+    
     setLoadingState(isLoading) {
         const loadingOverlay = this.element.querySelector('.upload-loading-overlay');
         const closeButton = this.element.querySelector('.close-button');
-        closeButton.addEventListener('click', () => {
-            this.hide();
-        });
         const uploadBtn = this.element.querySelector('#uploadBtn');
         const modal = bootstrap.Modal.getInstance(this.element);
     
@@ -1495,7 +1501,6 @@ class Sidebar extends Component {
             });
     
             this.element.addEventListener('mouseleave', () => {
-                console.log('isModalOpen:', this.isModalOpen);
                 if (this.isModalOpen) return;  // Prevent closing if modal is open
 
                 this.timeout = setTimeout(() => {
@@ -1512,7 +1517,6 @@ class Sidebar extends Component {
 
         this.events.on('modalClose', () => {
             this.isModalOpen = false;
-            this.toggle(false);
         });
         
         // Mobile menu trigger handler
@@ -2227,6 +2231,13 @@ class App {
                 text: message,
                 type: 'error'
             });
+        });
+
+        this.fileUploadModal.events.on('modalClose', () => {
+            this.sidebar.events.emit('modalClose');
+            setTimeout(() => {
+                this.sidebar.toggle(false);  // Force close the sidebar
+            }, 500);
         });
 
         // Feedback Modal events
