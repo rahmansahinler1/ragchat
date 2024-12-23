@@ -1517,6 +1517,9 @@ class Sidebar extends Component {
 
         this.events.on('modalClose', () => {
             this.isModalOpen = false;
+            setTimeout(() => {
+                this.toggle(false);  // Force close the sidebar
+            }, 200);
         });
         
         // Mobile menu trigger handler
@@ -2235,9 +2238,6 @@ class App {
 
         this.fileUploadModal.events.on('modalClose', () => {
             this.sidebar.events.emit('modalClose');
-            setTimeout(() => {
-                this.sidebar.toggle(false);  // Force close the sidebar
-            }, 500);
         });
 
         // Feedback Modal events
