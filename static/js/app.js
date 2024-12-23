@@ -1466,7 +1466,6 @@ class Sidebar extends Component {
         const fileMenuBtn = this.element.querySelector('.open-file-btn');
         fileMenuBtn.addEventListener('click', () => {
             this.events.emit('fileMenuClick');
-            this.events.emit('modalOpen');
         });
     
         this.backdrop.addEventListener('click', () => {
@@ -2085,6 +2084,7 @@ class App {
                 return;
             }
             this.fileUploadModal.show(selectedDomain.data.name);
+            this.sidebar.events.emit('modalOpen');
         });
 
         this.sidebar.events.on('feedbackClick', () => {
