@@ -875,6 +875,10 @@ class FileUploadModal extends Component {
         uploadBtn.addEventListener('click', () => {
             this.startUpload();
         });
+
+        this.element.addEventListener('hidden.bs.modal', () => {
+            this.events.emit('modalClose');
+        });
     }
 
     handleFiles(newFiles) {
