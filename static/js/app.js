@@ -756,6 +756,7 @@ class FileUploadModal extends Component {
         
         this.render();
         this.setupEventListeners();
+        this.setupCloseButton();
     }
 
     render() {
@@ -874,6 +875,10 @@ class FileUploadModal extends Component {
         uploadBtn.addEventListener('click', () => {
             this.startUpload();
         });
+
+        this.element.addEventListener('hidden.bs.modal', () => {
+            this.events.emit('modalClose');
+        });
     }
 
     handleFiles(newFiles) {
@@ -936,6 +941,14 @@ class FileUploadModal extends Component {
         return fileItem;
     }
 
+    setupCloseButton() {
+        const closeButton = this.element.querySelector('.close-button');
+        closeButton.addEventListener('click', () => {
+            console.log('Close button clicked');
+            this.hide();
+        });
+    }
+    
     setLoadingState(isLoading) {
         const loadingOverlay = this.element.querySelector('.upload-loading-overlay');
         const closeButton = this.element.querySelector('.close-button');
@@ -990,7 +1003,10 @@ class FileUploadModal extends Component {
                         text: `Successfully uploaded ${successCount} files`,
                         type: 'success'
                     });
-                    setTimeout(() => this.hide(), 500);
+                    setTimeout(() =>  {
+                        this.hide();
+                        this.events.emit('modalClose');
+                    }, 500);
                 } else {
                     throw new Error(uploadResult.error);
                 }
@@ -1121,6 +1137,7 @@ class FileUploadModal extends Component {
         const modal = bootstrap.Modal.getInstance(this.element);
         if (modal) {
             modal.hide();
+            this.events.emit('modalClose');
             this.resetUploadUI();
         }
     }
@@ -1364,6 +1381,7 @@ class Sidebar extends Component {
         this.selectedFiles = new Set();
         this.render();
         this.setupEventListeners();
+        this.isModalOpen = false;
     }
 
     render() {
@@ -1478,7 +1496,7 @@ class Sidebar extends Component {
                     }, 300);
                 });
             }
-    
+
             // Sidebar hover
             this.element.addEventListener('mouseenter', () => {
                 console.log('Sidebar hover');
@@ -1487,6 +1505,8 @@ class Sidebar extends Component {
             });
     
             this.element.addEventListener('mouseleave', () => {
+                if (this.isModalOpen) return;  // Prevent closing if modal is open
+
                 this.timeout = setTimeout(() => {
                     if (!document.querySelector('.menu-trigger')?.matches(':hover')) {
                         this.toggle(false);
@@ -1494,7 +1514,18 @@ class Sidebar extends Component {
                 }, 300);
             });
         }
-    
+
+        this.events.on('modalOpen', () => {
+            this.isModalOpen = true;
+        });
+
+        this.events.on('modalClose', () => {
+            this.isModalOpen = false;
+            setTimeout(() => {
+                this.toggle(false);  // Force close the sidebar
+            }, 200);
+        });
+        
         // Mobile menu trigger handler
         this.events.on('menuTrigger', () => {
             if (window.innerWidth < 992) {
@@ -2058,6 +2089,7 @@ class App {
                 return;
             }
             this.fileUploadModal.show(selectedDomain.data.name);
+            this.sidebar.events.emit('modalOpen');
         });
 
         this.sidebar.events.on('feedbackClick', () => {
@@ -2207,6 +2239,10 @@ class App {
                 text: message,
                 type: 'error'
             });
+        });
+
+        this.fileUploadModal.events.on('modalClose', () => {
+            this.sidebar.events.emit('modalClose');
         });
 
         // Feedback Modal events
