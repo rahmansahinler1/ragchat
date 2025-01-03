@@ -237,6 +237,14 @@ async def generate_answer(
                 status_code=400,
             )
 
+        # Get and increase question count
+        question_count = redis_manager.get_data(f"user:{userID}:question_count")
+        if not question_count:
+            question_count = 1
+        else:
+            question_count += 1
+        redis_manager.set_data(f"user:{userID}:question_count", question_count)
+
         # Process search
         answer, resources, resource_sentences = processor.search_index(
             user_query=user_message,
