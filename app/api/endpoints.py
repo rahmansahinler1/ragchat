@@ -202,6 +202,7 @@ async def select_domain(
 async def generate_answer(
     request: Request,
     userID: str = Query(...),
+    sessionID: str = Query(...),
 ):
     try:
         data = await request.json()
@@ -237,13 +238,8 @@ async def generate_answer(
                 status_code=400,
             )
 
-        # Get and increase question count
-        question_count = redis_manager.get_data(f"user:{userID}:question_count")
-        if not question_count:
-            question_count = 1
-        else:
-            question_count += 1
-        redis_manager.set_data(f"user:{userID}:question_count", question_count)
+        with Database() as db:
+            db.update_session_info(user_id=userID, session_id=sessionID)
 
         # Process search
         answer, resources, resource_sentences = processor.search_index(

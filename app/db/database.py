@@ -530,6 +530,18 @@ class Database:
             self.conn.rollback()
             raise e
 
+    def update_session_info(self, user_id: str, session_id: str):
+        query = """
+        UPDATE session_info 
+        SET question_count = question_count + 1
+        WHERE user_id = %s AND session_id = %s
+        """
+        try:
+            self.cursor.execute(query, (user_id, session_id))
+        except Exception as e:
+            self.conn.rollback()
+            raise e
+
     def clear_file_info(self, user_id: str, file_ids: list):
         query = """
         DELETE FROM file_info

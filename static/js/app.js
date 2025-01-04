@@ -1201,6 +1201,7 @@ class ChatManager extends Component {
             const response = await window.sendMessage(
                 message, 
                 window.serverData.userId,
+                window.serverData.sessionId,
                 selectedFileIds
             );
     
