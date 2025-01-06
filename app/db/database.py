@@ -535,12 +535,9 @@ class Database:
         UPDATE session_info 
         SET question_count = question_count + 1
         WHERE user_id = %s AND session_id = %s
-        RETURNING question_count
         """
         try:
             self.cursor.execute(query, (user_id, session_id))
-            question_count = self.cursor.fetchone()[0]
-            return question_count
         except Exception as e:
             self.conn.rollback()
             raise e

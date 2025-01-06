@@ -1213,11 +1213,7 @@ class ChatManager extends Component {
                 return;
             }
     
-            if (response.answer && response.question_count == 10) {
-                this.addMessage(response.answer, 'ai');
-                this.updateResources(response.resources, response.resource_sentences);
-                this.events.emit('feedbackModalOpen');
-            } else if (response.answer) {
+            if (response.answer) {
                 this.addMessage(response.answer, 'ai');
                 this.updateResources(response.resources, response.resource_sentences);
             } 
@@ -2220,11 +2216,6 @@ class App {
             }
         });
 
-        this.chatManager.events.on('feedbackModalOpen', () => {
-            setTimeout(() => {
-                this.feedbackModal.show();
-            }, 2000);
-        });
 
         // File Upload Modal events
         this.fileUploadModal.events.on('filesUploaded', (data) => {

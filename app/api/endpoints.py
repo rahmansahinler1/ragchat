@@ -239,9 +239,7 @@ async def generate_answer(
             )
 
         with Database() as db:
-            question_count = db.update_session_info(
-                user_id=userID, session_id=sessionID
-            )
+            db.update_session_info(user_id=userID, session_id=sessionID)
 
         # Process search
         answer, resources, resource_sentences = processor.search_index(
@@ -265,7 +263,6 @@ async def generate_answer(
                 "answer": answer,
                 "resources": resources,
                 "resource_sentences": resource_sentences,
-                "question_count": question_count,
             },
             status_code=200,
         )
