@@ -1213,7 +1213,7 @@ class ChatManager extends Component {
                 return;
             }
     
-            if (response.answer && response.question_count > 0) {
+            if (response.answer && response.question_count == 10) {
                 this.addMessage(response.answer, 'ai');
                 this.updateResources(response.resources, response.resource_sentences);
                 this.events.emit('ratingModalOpen');
