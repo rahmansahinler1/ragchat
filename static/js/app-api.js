@@ -353,3 +353,34 @@ window.sendFeedback = async function(formData, userId) {
         };
     }
 }
+
+window.sendRating = async function(ratingData, userId) {
+    try {
+        const url = `/api/v1/db/insert_rating?userID=${encodeURIComponent(userId)}`;
+        const formData = new FormData();
+        formData.append('rating', ratingData);
+
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to submit rating');
+        }
+
+        const data = await response.json();
+        
+        return {
+            success: true,
+            message: data.message || 'Thank you for your feedback!'
+        };
+
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        return {
+            success: false,
+            message: 'Failed to submit feedback. Please try again.'
+        };
+    }
+}
