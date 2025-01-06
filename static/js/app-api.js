@@ -354,11 +354,15 @@ window.sendFeedback = async function(formData, userId) {
     }
 }
 
-window.sendRating = async function(ratingData, userId) {
+window.sendRating = async function(ratingData, userNote, userId) {
     try {
         const url = `/api/v1/db/insert_rating?userID=${encodeURIComponent(userId)}`;
         const formData = new FormData();
         formData.append('rating', ratingData);
+        
+        if (userNote){
+        formData.append('user_note', userNote);
+        }
 
         const response = await fetch(url, {
             method: 'POST',

@@ -2497,7 +2497,7 @@ textarea.form-control {
 
 #ratingModal .modal-title {
   color: #0da271;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 500;
   margin: 0;
   width: 100%;
@@ -2525,18 +2525,18 @@ textarea.form-control {
 
 /* Stars Container Styles */
 .stars-container {
-  padding: 2rem 0;
+  padding: 0.3rem 0;
 }
 
 .stars {
   display: flex;
   justify-content: center;
-  gap: 1.5rem;
+  gap: 2rem;
   margin-bottom: 1.5rem;
 }
 
 .stars i {
-  font-size: 2rem;
+  font-size: 2.5rem;
   color: #6C757D;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2557,6 +2557,48 @@ textarea.form-control {
   color: #0da271;
   padding: 0 1.5rem;
   font-size: 14px;
+}
+
+.feedback-container {
+  margin-top: 1rem;
+}
+
+.feedback-input {
+  width: 100%;
+  background-color: rgb(11, 15, 23);
+  border: 1px solid rgb(45, 55, 72);
+  border-radius: 8px;
+  color: #fff;
+  padding: 20px;
+  resize: none;
+  height: 150px;
+  font-size: 14px;
+}
+
+.feedback-input:focus {
+  outline: none;
+  border-color: #0da271;
+  height: 150px;
+}
+
+.feedback-input::placeholder {
+  color: rgb(255, 255, 255, 0.6);
+}
+
+.submit-button {
+  background-color: var(--primary-green);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+  background-color: rgb(13, 162, 113);
 }
 
 /* Modal Animation */

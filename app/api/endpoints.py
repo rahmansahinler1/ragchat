@@ -171,6 +171,7 @@ async def insert_feedback(
 async def insert_rating(
     userID: str = Query(...),
     rating: int = Form(...),
+    user_note: str = Form(""),
 ):
     try:
         rating_id = str(uuid.uuid4())
@@ -179,6 +180,7 @@ async def insert_rating(
                 rating_id=rating_id,
                 user_id=userID,
                 rating=rating,
+                user_note=user_note if user_note else None,
             )
             db.conn.commit()
 

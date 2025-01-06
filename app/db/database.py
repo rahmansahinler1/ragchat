@@ -545,13 +545,15 @@ class Database:
             self.conn.rollback()
             raise e
 
-    def insert_user_rating(self, rating_id: str, user_id: str, rating: int):
+    def insert_user_rating(
+        self, rating_id: str, user_id: str, rating: int, user_note: str
+    ):
         query = """
-        INSERT INTO user_rating (rating_id, user_id, rating)
-        VALUES (%s, %s, %s)
+        INSERT INTO user_rating (rating_id, user_id, rating, user_note)
+        VALUES (%s, %s, %s, %s)
         """
         try:
-            self.cursor.execute(query, (rating_id, user_id, rating))
+            self.cursor.execute(query, (rating_id, user_id, rating, user_note))
         except Exception as e:
             self.conn.rollback()
             raise e

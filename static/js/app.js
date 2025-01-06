@@ -1213,7 +1213,7 @@ class ChatManager extends Component {
                 return;
             }
     
-            if (response.answer && response.question_count == 10) {
+            if (response.answer && response.question_count > 0) {
                 this.addMessage(response.answer, 'ai');
                 this.updateResources(response.resources, response.resource_sentences);
                 this.events.emit('ratingModalOpen');
@@ -2063,33 +2063,35 @@ class RatingModal extends Component {
 
     render() {
         this.element.innerHTML = `
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="domain-modal-wrapper">
-                        <div class="modal-header border-0">
-                            <h5 class="modal-title">How would you rate ragchat?</h5>
-                            <button type="button" class="close-button" data-bs-dismiss="modal">
-                                <i class="bi bi-x"></i>
-                            </button>
-                        </div>
-                        <div class="modal-body text-center">
-                            <div class="stars-container">
-                                <div class="stars">
-                                    <i class="bi bi-star" data-rating="1"></i>
-                                    <i class="bi bi-star" data-rating="2"></i>
-                                    <i class="bi bi-star" data-rating="3"></i>
-                                    <i class="bi bi-star" data-rating="4"></i>
-                                    <i class="bi bi-star" data-rating="5"></i>
-                                </div>
-                                <div class="rating-labels">
-                                    <span>Bad</span>
-                                    <span>Great!</span>
-                                </div>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="domain-modal-wrapper">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title">How would you rate ragchat?</h5>
+                        <button type="button" class="close-button" data-bs-dismiss="modal">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <div class="stars-container">
+                            <div class="stars">
+                                <i class="bi bi-star" data-rating="1"></i>
+                                <i class="bi bi-star" data-rating="2"></i>
+                                <i class="bi bi-star" data-rating="3"></i>
+                                <i class="bi bi-star" data-rating="4"></i>
+                                <i class="bi bi-star" data-rating="5"></i>
                             </div>
+                        </div>
+                        <div class="feedback-container">
+                            <textarea class="feedback-input" placeholder="Share your thoughts..."></textarea>
+                        </div>
+                        <div class="text-center">
+                            <button class="submit-button">Submit</button>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
         `;
 
         document.body.appendChild(this.element);
@@ -2109,6 +2111,16 @@ class RatingModal extends Component {
         const closeButton = this.element.querySelector('.close-button');
         closeButton.addEventListener('click', () => this.hide());
 
+        // Submit button handler
+        const submitButton = this.element.querySelector('.submit-button');
+        submitButton.addEventListener('click', () => {
+            const feedbackInput = this.element.querySelector('.feedback-input');
+            this.sendRating(this.rating,feedbackInput.value)
+            setTimeout(() => {
+                this.hide();
+            }, 1000);
+        });
+
         // Click outside to close
         this.element.addEventListener('click', (e) => {
             if (e.target === this.element) {
@@ -2120,17 +2132,11 @@ class RatingModal extends Component {
     handleStarClick(index) {
         this.rating = index + 1;
         this.updateStars();
-        
-        // Send rating to backend
-        this.sendRating(this.rating);
-        setTimeout(() => {
-            this.hide();
-        }, 1000);
     }
 
-    async sendRating(rating) {
+    async sendRating(rating,user_note) {
         try {
-            const result = await window.sendRating(rating,window.serverData.userId);
+            const result = await window.sendRating(rating, user_note, window.serverData.userId);
 
             if (result.success) {
                 this.hide()
@@ -2186,6 +2192,10 @@ class RatingModal extends Component {
     reset() {
         this.rating = 0;
         this.updateStars();
+        const feedbackInput = this.element.querySelector('.feedback-input');
+        if (feedbackInput) {
+        feedbackInput.value = '';
+        }
     }
 }
 
