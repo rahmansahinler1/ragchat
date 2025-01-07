@@ -150,6 +150,32 @@ html::-webkit-scrollbar {
     background-color: #e9ecef;
 }
 
+.lang-toggle {
+    color: #F8F9FA;
+    font-size: 1.2rem;
+    padding: 2px 8px;
+    text-decoration: none;
+    width: 24px;
+    height: 24px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+}
+
+.lang-toggle:hover {
+    color: #e9ecef;
+    text-decoration: none;
+}
+
+@media (max-width: 768px) {
+    .lang-toggle {
+        font-size: 0.9rem;
+        padding: 2px 6px;
+    }
+}
+
 /* Hero Content */
 .hero-content {
     position: absolute;
