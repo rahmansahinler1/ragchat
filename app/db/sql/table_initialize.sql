@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS session_info (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL,
     session_id UUID NOT NULL,
+    question_count INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES user_info(user_id)
 );

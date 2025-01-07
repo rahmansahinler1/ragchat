@@ -202,6 +202,7 @@ async def select_domain(
 async def generate_answer(
     request: Request,
     userID: str = Query(...),
+    sessionID: str = Query(...),
 ):
     try:
         data = await request.json()
@@ -236,6 +237,9 @@ async def generate_answer(
                 content={"message": "Nothing in here..."},
                 status_code=400,
             )
+
+        with Database() as db:
+            db.update_session_info(user_id=userID, session_id=sessionID)
 
         # Process search
         answer, resources, resource_sentences = processor.search_index(

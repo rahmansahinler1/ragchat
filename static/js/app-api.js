@@ -283,7 +283,7 @@ window.removeFile = async function(fileId, domainId, userId) {
     }
 };
 
-window.sendMessage = async function(message, userId, fileIds) {
+window.sendMessage = async function(message, userId, sessionId, fileIds) {
     if (!message) {
         return {
             message: "Please enter your sentence!",
@@ -292,7 +292,7 @@ window.sendMessage = async function(message, userId, fileIds) {
     }
 
     try {
-        const url = `/api/v1/qa/generate_answer?userID=${encodeURIComponent(userId)}`;
+        const url = `/api/v1/qa/generate_answer?userID=${encodeURIComponent(userId)}&sessionID=${encodeURIComponent(sessionId)}`;
         const response = await fetch(url, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},

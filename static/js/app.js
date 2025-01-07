@@ -1201,6 +1201,7 @@ class ChatManager extends Component {
             const response = await window.sendMessage(
                 message, 
                 window.serverData.userId,
+                window.serverData.sessionId,
                 selectedFileIds
             );
     
@@ -1215,7 +1216,8 @@ class ChatManager extends Component {
             if (response.answer) {
                 this.addMessage(response.answer, 'ai');
                 this.updateResources(response.resources, response.resource_sentences);
-            } else {
+            } 
+            else {
                 this.addMessage(response.message, 'ai');
             }
     
@@ -2213,6 +2215,7 @@ class App {
                 });
             }
         });
+
 
         // File Upload Modal events
         this.fileUploadModal.events.on('filesUploaded', (data) => {
