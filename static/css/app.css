@@ -1,7 +1,7 @@
 :root {
-  --primary-green: #10B981;
+  --primary-green: #10b981;
   --sidebar-bg: #141924;
-  --main-bg: #0B0F17;
+  --main-bg: #0b0f17;
 }
 
 body {
@@ -2466,8 +2466,149 @@ textarea.form-control {
 }
 
 .btn-submit:hover {
-  background: #0da271;
+  background: rgb(13, 162, 113);
   transform: translateY(-1px);
+}
+
+#ratingModal .modal-dialog {
+  max-width: 400px;
+  margin: 1.75rem auto;
+}
+
+#ratingModal .modal-content {
+  background-color: rgb(11, 15, 23) !important;
+  border-radius: 12px;
+  border: 1px solid rgb(11, 15, 23);
+}
+
+#ratingModal .domain-modal-wrapper {
+  padding: 24px;
+}
+
+#ratingModal .modal-header {
+  padding: 0;
+  margin-bottom: 20px;
+  border: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+}
+
+#ratingModal .modal-title {
+  color: #0da271;
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0;
+  width: 100%;
+  text-align: center;
+}
+
+#ratingModal .close-button {
+  background: transparent;
+  border: none;
+  color: rgb(255, 255, 255, 0.6);
+  font-size: 24px;
+  padding: 0;
+  margin: -8px -8px 0 0;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+#ratingModal .close-button:hover {
+  color: #fff;
+}
+
+#ratingModal .modal-body {
+  padding: 0;
+}
+
+/* Stars Container Styles */
+.stars-container {
+  padding: 0.3rem 0;
+}
+
+.stars {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.stars i {
+  font-size: 2.5rem;
+  color: #6C757D;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stars i:hover {
+  transform: scale(1.1);
+  color: #0da271;
+}
+
+.stars i.active {
+  color: #0da271;
+}
+
+.rating-labels {
+  display: flex;
+  justify-content: space-between;
+  color: #0da271;
+  padding: 0 1.5rem;
+  font-size: 14px;
+}
+
+.feedback-container {
+  margin-top: 1rem;
+}
+
+.feedback-input {
+  width: 100%;
+  background-color: rgb(11, 15, 23);
+  border: 1px solid rgb(45, 55, 72);
+  border-radius: 8px;
+  color: #fff;
+  padding: 20px;
+  resize: none;
+  height: 150px;
+  font-size: 14px;
+}
+
+.feedback-input:focus {
+  outline: none;
+  border-color: #0da271;
+  height: 150px;
+}
+
+.feedback-input::placeholder {
+  color: rgb(255, 255, 255, 0.6);
+}
+
+.submit-button {
+  background-color: var(--primary-green);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+  background-color: rgb(13, 162, 113);
+}
+
+/* Modal Animation */
+.modal.fade .modal-dialog {
+  transform: scale(0.8);
+  transition: transform 0.2s ease-in-out;
+}
+
+.modal.show .modal-dialog {
+  transform: scale(1);
 }
 
 @media (max-width: 1600px) {

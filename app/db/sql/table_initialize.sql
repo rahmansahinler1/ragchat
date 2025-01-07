@@ -66,3 +66,12 @@ CREATE TABLE IF NOT EXISTS default_content (
     page_number INTEGER,
     embedding BYTEA
 );
+
+CREATE TABLE IF NOT EXISTS user_rating (
+    rating_id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    rating INTEGER NOT NULL,
+    user_note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user_info(user_id)
+);

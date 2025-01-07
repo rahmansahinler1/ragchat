@@ -1213,7 +1213,12 @@ class ChatManager extends Component {
                 return;
             }
     
-            if (response.answer) {
+            if (response.answer && response.question_count == 10) {
+                this.addMessage(response.answer, 'ai');
+                this.updateResources(response.resources, response.resource_sentences);
+                this.events.emit('ratingModalOpen');
+            } 
+            else if (response.answer) {
                 this.addMessage(response.answer, 'ai');
                 this.updateResources(response.resources, response.resource_sentences);
             } 
@@ -2040,6 +2045,160 @@ class LogoutModal extends Component {
     }
 }
 
+// Rating Modal
+class RatingModal extends Component {
+    constructor() {
+        const element = document.createElement('div');
+        element.className = 'modal fade';
+        element.id = 'ratingModal';
+        element.setAttribute('tabindex', '-1');
+        element.setAttribute('aria-hidden', 'true');
+        super(element);
+        
+        this.rating = 0;
+        
+        this.render();
+        this.setupEventListeners();
+    }
+
+    render() {
+        this.element.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="domain-modal-wrapper">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title">How would you rate ragchat?</h5>
+                        <button type="button" class="close-button" data-bs-dismiss="modal">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <div class="stars-container">
+                            <div class="stars">
+                                <i class="bi bi-star" data-rating="1"></i>
+                                <i class="bi bi-star" data-rating="2"></i>
+                                <i class="bi bi-star" data-rating="3"></i>
+                                <i class="bi bi-star" data-rating="4"></i>
+                                <i class="bi bi-star" data-rating="5"></i>
+                            </div>
+                        </div>
+                        <div class="feedback-container">
+                            <textarea class="feedback-input" placeholder="Share your thoughts..."></textarea>
+                        </div>
+                        <div class="text-center">
+                            <button class="submit-button">Submit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+
+        document.body.appendChild(this.element);
+        this.modal = new bootstrap.Modal(this.element);
+    }
+
+    setupEventListeners() {
+        // Star rating handlers
+        const stars = this.element.querySelectorAll('.stars i');
+        stars.forEach((star, index) => {
+            star.addEventListener('click', () => this.handleStarClick(index));
+            star.addEventListener('mouseover', () => this.highlightStars(index));
+            star.addEventListener('mouseout', () => this.updateStars());
+        });
+
+        // Close button handler
+        const closeButton = this.element.querySelector('.close-button');
+        closeButton.addEventListener('click', () => this.hide());
+
+        // Submit button handler
+        const submitButton = this.element.querySelector('.submit-button');
+        submitButton.addEventListener('click', () => {
+            const feedbackInput = this.element.querySelector('.feedback-input');
+            this.sendRating(this.rating,feedbackInput.value)
+            setTimeout(() => {
+                this.hide();
+            }, 1000);
+        });
+
+        // Click outside to close
+        this.element.addEventListener('click', (e) => {
+            if (e.target === this.element) {
+                this.hide();
+            }
+        });
+    }
+
+    handleStarClick(index) {
+        this.rating = index + 1;
+        this.updateStars();
+    }
+
+    async sendRating(rating,user_note) {
+        try {
+            const result = await window.sendRating(rating, user_note, window.serverData.userId);
+
+            if (result.success) {
+                this.hide()
+                this.events.emit('success', result.message);
+            } else {
+                this.events.emit('error', result.message);
+            }
+        } catch (error) {
+            console.error('Error in rating submission:', error);
+            this.events.emit('error', 'An unexpected error occurred');
+        } finally {
+            this.reset();
+        }
+    }
+
+    highlightStars(index) {
+        const stars = this.element.querySelectorAll('.stars i');
+        stars.forEach((star, i) => {
+            star.classList.remove('bi-star-fill', 'bi-star');
+            if (i <= index) {
+                star.classList.add('bi-star-fill');
+                star.classList.add('active');
+            } else {
+                star.classList.add('bi-star');
+                star.classList.remove('active');
+            }
+        });
+    }
+
+    updateStars() {
+        const stars = this.element.querySelectorAll('.stars i');
+        stars.forEach((star, i) => {
+            star.classList.remove('bi-star-fill', 'bi-star', 'active');
+            if (i < this.rating) {
+                star.classList.add('bi-star-fill');
+                star.classList.add('active');
+            } else {
+                star.classList.add('bi-star');
+            }
+        });
+    }
+
+    show() {
+        this.modal.show();
+        document.body.style.overflow = 'hidden';
+    }
+
+    hide() {
+        this.modal.hide();
+        document.body.style.overflow = '';
+    }
+
+    reset() {
+        this.rating = 0;
+        this.updateStars();
+        const feedbackInput = this.element.querySelector('.feedback-input');
+        if (feedbackInput) {
+        feedbackInput.value = '';
+        }
+    }
+}
+
 // Application
 class App {
     constructor() {
@@ -2057,6 +2216,7 @@ class App {
         this.premiumModal = new PremiumModal();
         this.successAlert = new SuccessAlert();
         this.logoutModal = new LogoutModal();
+        this.ratingModal = new RatingModal();
         this.chatManager.disableChat();
         this.setupEventListeners();
     }
@@ -2215,7 +2375,12 @@ class App {
                 });
             }
         });
-
+        
+        this.chatManager.events.on('ratingModalOpen', () => {
+            setTimeout(() => {
+                this.ratingModal.show();
+            }, 500);
+        });
 
         // File Upload Modal events
         this.fileUploadModal.events.on('filesUploaded', (data) => {
