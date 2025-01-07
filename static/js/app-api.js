@@ -283,7 +283,7 @@ window.removeFile = async function(fileId, domainId, userId) {
     }
 };
 
-window.sendMessage = async function(message, userId, fileIds) {
+window.sendMessage = async function(message, userId, sessionId, fileIds) {
     if (!message) {
         return {
             message: "Please enter your sentence!",
@@ -292,7 +292,7 @@ window.sendMessage = async function(message, userId, fileIds) {
     }
 
     try {
-        const url = `/api/v1/qa/generate_answer?userID=${encodeURIComponent(userId)}`;
+        const url = `/api/v1/qa/generate_answer?userID=${encodeURIComponent(userId)}&sessionID=${encodeURIComponent(sessionId)}`;
         const response = await fetch(url, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -336,6 +336,41 @@ window.sendFeedback = async function(formData, userId) {
 
         if (!response.ok) {
             throw new Error('Failed to submit feedback');
+        }
+
+        const data = await response.json();
+        
+        return {
+            success: true,
+            message: data.message || 'Thank you for your feedback!'
+        };
+
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        return {
+            success: false,
+            message: 'Failed to submit feedback. Please try again.'
+        };
+    }
+}
+
+window.sendRating = async function(ratingData, userNote, userId) {
+    try {
+        const url = `/api/v1/db/insert_rating?userID=${encodeURIComponent(userId)}`;
+        const formData = new FormData();
+        formData.append('rating', ratingData);
+        
+        if (userNote){
+        formData.append('user_note', userNote);
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to submit rating');
         }
 
         const data = await response.json();

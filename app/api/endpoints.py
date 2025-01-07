@@ -170,6 +170,31 @@ async def insert_feedback(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/db/insert_rating")
+async def insert_rating(
+    userID: str = Query(...),
+    rating: int = Form(...),
+    user_note: str = Form(""),
+):
+    try:
+        rating_id = str(uuid.uuid4())
+        with Database() as db:
+            db.insert_user_rating(
+                rating_id=rating_id,
+                user_id=userID,
+                rating=rating,
+                user_note=user_note if user_note else None,
+            )
+            db.conn.commit()
+
+        return JSONResponse(
+            content={"message": "Thank you for the rating!"}, status_code=200
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/qa/select_domain")
 async def select_domain(
     request: Request,
@@ -205,6 +230,7 @@ async def select_domain(
 async def generate_answer(
     request: Request,
     userID: str = Query(...),
+    sessionID: str = Query(...),
 ):
     try:
         data = await request.json()
@@ -240,6 +266,11 @@ async def generate_answer(
                 status_code=400,
             )
 
+        with Database() as db:
+            question_count = db.update_session_info(
+                user_id=userID, session_id=sessionID
+            )
+
         # Process search
         answer, resources, resource_sentences = processor.search_index(
             user_query=user_message,
@@ -262,6 +293,7 @@ async def generate_answer(
                 "answer": answer,
                 "resources": resources,
                 "resource_sentences": resource_sentences,
+                "question_count": question_count,
             },
             status_code=200,
         )

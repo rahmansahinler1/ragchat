@@ -530,6 +530,34 @@ class Database:
             self.conn.rollback()
             raise e
 
+    def update_session_info(self, user_id: str, session_id: str):
+        query = """
+        UPDATE session_info 
+        SET question_count = question_count + 1
+        WHERE user_id = %s AND session_id = %s
+        RETURNING question_count
+        """
+        try:
+            self.cursor.execute(query, (user_id, session_id))
+            question_count = self.cursor.fetchone()[0]
+            return question_count
+        except Exception as e:
+            self.conn.rollback()
+            raise e
+
+    def insert_user_rating(
+        self, rating_id: str, user_id: str, rating: int, user_note: str
+    ):
+        query = """
+        INSERT INTO user_rating (rating_id, user_id, rating, user_note)
+        VALUES (%s, %s, %s, %s)
+        """
+        try:
+            self.cursor.execute(query, (rating_id, user_id, rating, user_note))
+        except Exception as e:
+            self.conn.rollback()
+            raise e
+
     def clear_file_info(self, user_id: str, file_ids: list):
         query = """
         DELETE FROM file_info
