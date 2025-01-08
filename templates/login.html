@@ -32,7 +32,7 @@
     <link rel="stylesheet" href="/static/css/login.css">
 </head>
 
-<body>
+<body data-page="login">
     <!-- Navigation -->
     <nav class="navbar">
         <a href="/" class="brand">
@@ -41,7 +41,14 @@
             </button>
         </a>
         <div class="nav-links">
-            <a href="/signup" class="signup-button">Sign Up</a>
+            <a href="/signup" class="signup-button" data-lang-key="sign_up">Sign Up</a>
+            <select class="lang-select">
+                <option value="EN">EN</option>
+                <option value="TR">TR</option>
+                <option value="GE">GE</option>
+                <option value="FR">FR</option>
+                <option value="ES">ES</option>
+            </select>
         </div>
     </nav>
 
@@ -49,7 +56,7 @@
     <header class="page-header">
         <div class="header-content">
             <i class="fas fa-door-open header-icon"></i>
-            <h1>LOG IN</h1>
+            <h1 data-lang-key="log_in">LOG IN</h1>
         </div>
     </header>
 
@@ -68,7 +75,7 @@
 
                 <!-- Password Field -->
                 <div class="form-group user-info-form">
-                    <label for="password" class="form-label dai-banna-sil-medium required">Password</label>
+                    <label for="password" class="form-label dai-banna-sil-medium required" data-lang-key="password">Password</label>
                     <div class="input-wrapper">
                         <i class="fas fa-lock"></i>
                         <input type="password" class="form-control" id="password" required>
@@ -81,18 +88,18 @@
                 <!-- Login Button -->
                 <div class="d-grid mt-4">
                     <button type="submit" id="login-button" class="btn btn-login login-btn">
-                        <p class="dai-banna-sil-medium">Login</p>
+                        <p class="dai-banna-sil-medium" data-lang-key="login">Login</p>
                     </button>
                 </div>
 
                 <!-- Forgot Password Link -->
-                <a href="#" class="forgot-link">Forgot password?</a>
+                <a href="#" class="forgot-link" data-lang-key="forgot_password">Forgot password?</a>
 
                 <!-- Divider -->
-                <div class="divider">or</div>
+                <div class="divider" data-lang-key="or">or</div>
 
                 <!-- Create Account Button -->
-                <a href="/signup" class="create-account-btn">
+                <a href="/signup" class="create-account-btn" data-lang-key="create_account">
                     Create new account
                 </a>
             </form>
@@ -102,5 +109,6 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
     <script src="/static/js/login-initializer.js"></script>
+    <script src="../static/js/landing.js"></script>
 </body>
 </html>

@@ -76,6 +76,46 @@ body {
   background-color: #e9ecef;
 }
 
+.lang-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.lang-select {
+  appearance: none;
+  background-color: transparent;
+  color: #F8F9FA;
+  font-size: 1.2rem;
+  padding: 2px 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none !important;
+}
+
+.lang-select:hover {
+  color: #e9ecef;
+  text-decoration: none;
+  border: none;
+  scrollbar-highlight-color: none;
+}
+
+.lang-select option {
+  background-color: rgba(15, 15, 15);
+  font-size: 1.2rem;
+}
+
+.lang-select:focus-visible {
+  outline: none;
+}
+
+@media (max-width: 768px) {
+  .lang-select {
+      font-size: 0.9rem;
+      padding: 2px 6px;
+  }
+}
+
 /* Header Styles */
 .page-header {
   height: 300px;

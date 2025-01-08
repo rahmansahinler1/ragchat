@@ -2513,6 +2513,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const resourcesTrigger = document.querySelector('.resources-trigger');
     const resourcesContainer = document.querySelector('.resources-container');
     const mainContent = document.querySelector('.chat-container'); // Ana içerik
+    const currentLang = localStorage.getItem('language') || 'EN'; // Dil seçeneği
+    const pageName = document.body.getAttribute('data-page');
+    setPageLanguage(currentLang, pageName);
 
     if (resourcesTrigger && resourcesContainer) {
         resourcesTrigger.addEventListener('click', () => {

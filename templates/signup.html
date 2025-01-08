@@ -31,7 +31,7 @@
     <link rel="stylesheet" href="/static/css/signup.css">
 </head>
 
-<body>
+<body data-page="signup">
     <!-- Navigation -->
     <nav class="navbar">
         <a href="/" class="brand">
@@ -40,7 +40,14 @@
             </button>
         </a>
         <div class="nav-links">
-            <a href="/login" class="login-button">Log In</a>
+            <a href="/login" class="login-button" data-lang-key="login">Log In</a>
+            <select class="lang-select">
+                <option value="EN">EN</option>
+                <option value="TR">TR</option>
+                <option value="GE">GE</option>
+                <option value="FR">FR</option>
+                <option value="ES">ES</option>
+            </select>
         </div>
     </nav>
 
@@ -48,7 +55,7 @@
     <header class="page-header">
         <div class="header-content">
             <i class="fas fa-user-plus header-icon"></i>
-            <h1>SIGN UP</h1>
+            <h1 data-lang-key="sign_up">SIGN UP</h1>
         </div>
     </header>
 
@@ -58,7 +65,7 @@
             <form id="signup-form">
                 <!-- Name Field -->
                 <div class="form-group">
-                    <label for="name" class="form-label">Name <span class="required">*</span></label>
+                    <label for="name" class="form-label" data-lang-key="name">Name <span class="required">*</span></label>
                     <div class="input-wrapper">
                         <i class="fas fa-user"></i>
                         <input type="text" id="name" required>
@@ -67,7 +74,7 @@
 
                 <!-- Surname Field -->
                 <div class="form-group">
-                    <label for="surname" class="form-label">Surname <span class="required">*</span></label>
+                    <label for="surname" class="form-label" data-lang-key="surname">Surname <span class="required">*</span></label>
                     <div class="input-wrapper">
                         <i class="fas fa-user"></i>
                         <input type="text" id="surname" required>
@@ -85,7 +92,7 @@
 
                 <!-- Password Field -->
                 <div class="form-group">
-                    <label for="password" class="form-label">Password <span class="required">*</span></label>
+                    <label for="password" class="form-label" data-lang-key="password">Password <span class="required">*</span></label>
                     <div class="input-wrapper">
                         <i class="fas fa-lock"></i>
                         <input type="password" id="password" required>
@@ -97,14 +104,15 @@
 
                 <!-- Signup Button -->
                 <div class="d-grid mt-4">
-                    <button type="submit" id="signup-button" class="signup-btn">
+                    <button type="submit" id="signup-button" class="signup-btn" data-lang-key="sign_up">
                         Sign Up
                     </button>
                 </div>
 
                 <!-- Login Link -->
                 <div class="login-link">
-                    Already have an account? <a href="/login">Log in</a>
+                    <span data-lang-key="already_have_account">Already have an account ? </span> 
+                    <a href="/login" data-lang-key="log_in">Log in</a>
                 </div>
             </form>
         </div>
@@ -112,5 +120,6 @@
 
     <!-- Scripts -->
     <script src="/static/js/signup-initializer.js"></script>
+    <script src="../static/js/landing.js"></script>
 </body>
 </html>

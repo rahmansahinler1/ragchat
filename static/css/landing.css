@@ -150,27 +150,41 @@ html::-webkit-scrollbar {
     background-color: #e9ecef;
 }
 
-.lang-toggle {
+.lang-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.lang-select {
+    appearance: none;
+    background-color: transparent;
     color: #F8F9FA;
     font-size: 1.2rem;
     padding: 2px 8px;
-    text-decoration: none;
-    width: 24px;
-    height: 24px;
+    border: none;
+    cursor: pointer;
     transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
+    outline: none !important;
 }
 
-.lang-toggle:hover {
+.lang-select:hover {
     color: #e9ecef;
     text-decoration: none;
+    border: none;
+    scrollbar-highlight-color: none;
+}
+
+.lang-select option {
+    background-color: rgba(15, 15, 15);
+    font-size: 1.2rem;
+}
+
+.lang-select:focus-visible {
+    outline: none;
 }
 
 @media (max-width: 768px) {
-    .lang-toggle {
+    .lang-select {
         font-size: 0.9rem;
         padding: 2px 6px;
     }
