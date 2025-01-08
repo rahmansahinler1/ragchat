@@ -2515,7 +2515,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainContent = document.querySelector('.chat-container'); // Ana içerik
     const currentLang = localStorage.getItem('language') || 'EN'; // Dil seçeneği
     const pageName = document.body.getAttribute('data-page');
-    setPageLanguage(currentLang, pageName);
+    
+    if (typeof window.setPageLanguage === 'function') {
+        window.setPageLanguage(currentLang, pageName);
+    } else {
+        console.warn('setPageLanguage function not found');
+    }
 
     if (resourcesTrigger && resourcesContainer) {
         resourcesTrigger.addEventListener('click', () => {

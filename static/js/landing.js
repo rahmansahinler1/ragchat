@@ -653,8 +653,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const langSelect = document.querySelector('.lang-select');
     let currentLang = localStorage.getItem('language') || 'EN';
     const pageName = document.body.getAttribute('data-page');
-    langSelect.value = currentLang;
-    setPageLanguage(currentLang, pageName);
 
     function setPageLanguage(lang, pageName) {
         document.querySelectorAll('[data-lang-key]').forEach(el => {
@@ -662,13 +660,15 @@ document.addEventListener('DOMContentLoaded', function() {
             el.innerHTML = translations[lang][pageName][key];
         });
     }
+    
+    window.setPageLanguage = setPageLanguage;
+    langSelect.value = currentLang;
+    setPageLanguage(currentLang, pageName);
 
     langSelect.addEventListener('change', function(e) {
         currentLang = this.value;
             localStorage.setItem('language', currentLang);
             setPageLanguage(currentLang, pageName);
     });
-
-    window.setPageLanguage = setPageLanguage;
 
 });
