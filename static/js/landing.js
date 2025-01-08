@@ -37,7 +37,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function smoothScrollTo(element, duration = 300) {
-        if (!isLargeScreen() || isTablet()) return;
+        if (!isLargeScreen() || isTablet()) {
+            // For mobile and tablet, use standard scroll
+            element.scrollIntoView({ behavior: 'smooth' });
+            return;
+        }
 
         const targetPosition = element.offsetTop;
         const startPosition = window.pageYOffset;
@@ -63,6 +67,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         requestAnimationFrame(animation);
+    }
+
+    // Function to show tutorial (add this new function)
+    function showTutorial() {
+        const demoSection = document.getElementById('demo');
+        
+        if (demoSection) {
+            // Find the index of the demo section
+            const demoSectionIndex = Array.from(sections).indexOf(demoSection);
+            
+            // Update current section for smooth scrolling behavior
+            currentSection = demoSectionIndex;
+            
+            // Scroll to demo section
+            smoothScrollTo(demoSection);
+        }
+    }
+
+    // Add event listener for the tutorial button
+    const tutorialButton = document.querySelector('button[onclick="showTutorial()"]');
+    if (tutorialButton) {
+        tutorialButton.addEventListener('click', showTutorial);
     }
 
     window.addEventListener('wheel', function(e) {
@@ -158,3 +184,13 @@ document.addEventListener('DOMContentLoaded', function() {
     updateScrollBehavior();
     window.addEventListener('resize', updateScrollBehavior);
 });
+
+// Remove the inline onclick attribute from the HTML and handle Google Sign In
+function handleGoogleSignIn() {
+    window.location.href = '/auth/google/login';
+}
+
+const startFreeTrialButton = document.querySelector('.start-free-trial-btn');
+    if (startFreeTrialButton) {
+        startFreeTrialButton.addEventListener('click', handleGoogleSignIn);
+    }
