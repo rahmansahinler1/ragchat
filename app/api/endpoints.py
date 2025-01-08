@@ -4,6 +4,8 @@ from google.auth.transport import requests
 from google_auth_oauthlib.flow import Flow
 from fastapi.responses import JSONResponse
 from datetime import datetime
+from dotenv import load_dotenv
+import os
 import logging
 import uuid
 import base64
@@ -14,13 +16,21 @@ from .core import Authenticator
 from ..db.database import Database
 from ..redis_manager import RedisManager, RedisConnectionError
 
+# services
 router = APIRouter()
 processor = Processor()
 authenticator = Authenticator()
 redis_manager = RedisManager()
 
+# logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# environment variables
+load_dotenv()
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI_DEV")
 
 
 # request functions
@@ -631,6 +641,82 @@ async def signup(
         raise HTTPException(
             content={"message": f"Failed deleting, error: {e}"}, status_code=500
         )
+
+
+@router.get("/auth/google/login")
+async def google_login():
+    flow = Flow.from_client_config(
+        {
+            "web": {
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [REDIRECT_URI],
+            }
+        },
+        scopes=["openid", "email", "profile"],
+    )
+
+    authorization_url, state = flow.authorization_url(
+        access_type="offline", include_granted_scopes="true"
+    )
+
+    return {"authorization_url": authorization_url}
+
+
+@router.get("/auth/callback")
+async def google_callback(request: Request, code: str):
+    try:
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": [REDIRECT_URI],
+                }
+            },
+            scopes=["openid", "email", "profile"],
+            state=request.session.get("state"),
+        )
+
+        flow.fetch_token(code=code)
+
+        credentials = flow.credentials
+        id_info = id_token.verify_oauth2_token(
+            credentials.id_token, requests.Request(), GOOGLE_CLIENT_ID
+        )
+
+        # Here we can see what data Google sends us
+        print("Google User Data:", id_info)
+
+        # Handle user creation/login based on email
+        email = id_info.get("email")
+        name = id_info.get("name")
+        picture = id_info.get("picture")
+
+        # Create session
+        session_id = str(uuid.uuid4())
+
+        response = JSONResponse(
+            content={"message": "success", "session_id": session_id},
+            status_code=200,
+        )
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+        )
+
+        return response
+
+    except Exception as e:
+        print("Error in callback:", e)
+        return {"error": "Authentication failed"}
 
 
 # local functions

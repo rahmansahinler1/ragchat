@@ -75,11 +75,11 @@ html::-webkit-scrollbar {
     justify-content: flex-end;
     align-items: center;
     padding: 1rem 2rem;
-    position: fixed; /* sticky yerine fixed kullanıyoruz */
+    position: fixed;
     top: 0;
     right: 0;
     left: 0;
-    z-index: 1030; /* Yüksek z-index değeri */
+    z-index: 1030;
     transition: background-color 0.3s ease;
 }
 .navbar-brand.logo-text {
@@ -92,33 +92,6 @@ html::-webkit-scrollbar {
     display: flex;
     align-items: center;
     gap: 1.5rem;
-}
-
-/* Auth Buttons */
-.login-link {
-    color: #F8F9FA;
-    text-decoration: none;
-    font-size: 1rem;
-    transition: color 0.3s ease;
-}
-
-.login-link:hover {
-    color: #e9ecef;
-}
-
-.signup-button {
-    background-color: #F8F9FA;
-    color: #000;
-    padding: 0.5rem 1.5rem;
-    border-radius: 25px;
-    text-decoration: none;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    border: none;
-}
-
-.signup-button:hover {
-    background-color: #e9ecef;
 }
 
 /* Social Links */
@@ -154,7 +127,7 @@ html::-webkit-scrollbar {
 .hero-content {
     position: absolute;
     top: 50%;
-    left: 20%;
+    left: 15%;
     transform: translate(-1%, -50%);
     text-align: left;
     width: 100%;
@@ -176,31 +149,72 @@ html::-webkit-scrollbar {
     margin-bottom: 2rem;
     color: #F8F9FA;
 }
-.cta-button {
-    display: inline-block;
-    background-color: #10B981;
-    color: #F8F9FA;
-    padding: 1rem 2.5rem;
-    border-radius: 30px;
-    text-decoration: none;
-    font-size: 1.2rem;
-    font-weight: 500;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
 
-.cta-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 8px rgba(0,0,0,0.2);
-}
 .logo-text {
     font-size: 1.5rem;
     font-weight: 700;
     color: #F8F9FA;
     text-decoration: none;
 }
-/* About Section Design Start */
 
+/* Hero buttons */
+.hero-buttons {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 2rem;
+}
+
+.hero-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background-color: rgba(11, 15, 23, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 100px;
+    padding: 8px 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    height: 40px;
+    min-width: 180px;
+}
+
+.hero-button:hover {
+    transform: translateY(-1px);
+    background-color: rgba(22, 27, 38, 0.7);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.hero-button:active {
+    transform: translateY(0);
+    background-color: rgba(11, 15, 23, 0.6);
+}
+
+/* Text style for both buttons */
+.button-text {
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.google-icon {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+}
+
+.watch-icon {
+    font-size: 20px;
+    color: #FFFFFF;
+}
+
+/* About Section Design Start */
 .about-section {
     background-color: #0B0F17;
     width: 100%;
@@ -435,26 +449,6 @@ html::-webkit-scrollbar {
     font-size: 1.1rem;
     line-height: 1.7;
 }
-
-.cta-button {
-    display: inline-block;
-    background-color: #10B981;
-    color: #F8F9FA;
-    padding: 1rem 2.5rem;
-    border-radius: 30px;
-    text-decoration: none;
-    font-size: 1.2rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
-}
-
-.cta-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
-    color: #F8F9FA;
-    background-color: #0EA975;
-}
 /* Intro 1 Section End */
 
 /* Info Section Start */
@@ -688,9 +682,7 @@ html::-webkit-scrollbar {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     text-align: center;
 }
-.footer .cta-button {
-    font-size: 0.9rem;
-}
+
 .copyright {
     color: #ADB5BD;
     font-size: 0.9rem;
@@ -763,12 +755,6 @@ html::-webkit-scrollbar {
     z-index: 1;
     bottom: 2.5rem;
 }
-#demo .cta-button {
-    position: absolute;
-    left: 43%;
-    bottom: 3.5%;
-}
-/* Demo Section End */
 
 /* Footer Section End */
 /* Info Section End */
@@ -960,10 +946,6 @@ html::-webkit-scrollbar {
         margin-left: auto;
         margin-right: auto;
     }
-
-    .cta-button {
-        margin: 0 auto;
-    }
 }
 @media (max-width: 991px) {
     /* Intro 1 Section Start */
@@ -1041,9 +1023,7 @@ html::-webkit-scrollbar {
         justify-content: center;
         margin: 1.5rem 0;
     }
-    .footer .cta-button {
-        margin: 0 auto;
-    }
+
     .footer .col-lg-4,
     .footer .col-lg-3 {
         display: flex;
@@ -1120,10 +1100,7 @@ html::-webkit-scrollbar {
     .heading-description {
         max-width: 90%;
     }
-    .cta-button {
-        padding: 0.8rem 2rem;
-        font-size: 1.1rem;
-    }
+    
     /* About Section Start */
     .about-section {
         padding: 60px 0;
@@ -1151,10 +1128,7 @@ html::-webkit-scrollbar {
         font-size: 1rem;
     }
 
-    .cta-button {
-        padding: 0.8rem 2rem;
-        font-size: 1.1rem;
-    }
+    
     /* Intro 1 Section End */
     .info-box {
         padding: 2rem;
@@ -1288,25 +1262,13 @@ html::-webkit-scrollbar {
         height: 20px;
     }
 
-    .signup-button {
-        padding: 0.4rem 1.2rem;
-        font-size: 0.9rem;
-    }
-
-    .cta-button {
-        padding: 0.7rem 1.8rem;
-        font-size: 1rem;
-    }
-    /* About Section */
-    
-    /* End of About Section */
     
 }
 @media (max-width: 390px) {
     .nav-links {
         gap: 0.5rem;
     }
-    .login-link, .signup-button{
+    .login-link {
         font-size: 0.9rem;
     }
     
