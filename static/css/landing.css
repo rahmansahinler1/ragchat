@@ -669,7 +669,7 @@ html::-webkit-scrollbar {
 }
 .footer .social-links {
     display: flex;
-    flex-direction: row; /* Dikey sıralama */
+    flex-direction: row;
     gap: 1rem;
     margin-bottom: 2rem;
 }
@@ -680,12 +680,12 @@ html::-webkit-scrollbar {
     background: rgba(16, 185, 129, 0.1);
     color: #10B981;
     display: flex;
-    align-items: center;     /* Dikey ortalama */
-    justify-content: center; /* Yatay ortalama */
+    align-items: center;
+    justify-content: center;
     transition: all 0.3s ease;
 }
 .footer .social-link i {
-    display: flex;           /* Icon için ek ortalama */
+    display: flex;
     align-items: center;
     justify-content: center;
 }
@@ -693,8 +693,9 @@ html::-webkit-scrollbar {
 .footer .social-link:hover {
     background: #10B981;
     color: #F8F9FA;
-    transform: translateX(5px); /* Y yerine X ekseni animasyonu */
+    transform: translateX(5px);
 }
+
 /* Copyright Section */
 .footer-bottom {
     margin-top: 3rem;
@@ -721,9 +722,9 @@ html::-webkit-scrollbar {
         transform: translateY(0);
     }
 }
-/* Demo Section Start */
+
 #demo {
-    display: none; /* Varsayılan olarak gizli */
+    display: none;
 }
 .demo-section {
     background-color: #0B0F17;
@@ -732,7 +733,7 @@ html::-webkit-scrollbar {
     overflow: hidden;
 }
 .row.justify-content-center.mb-5 {
-    margin-bottom: 2rem !important; /* Bootstrap'in mb-5'ini override etmek için !important kullanıyoruz */
+    margin-bottom: 2rem !important;
 }
 .demo-title {
     font-size: 2.5rem;
@@ -787,13 +788,13 @@ html::-webkit-scrollbar {
         min-height: 0;
     }
     .about-section .container {
-        padding-top: 1rem; /* Üst boşluğu azalt */
-        padding-bottom: 1rem; /* Alt boşluğu azalt */
+        padding-top: 1rem;
+        padding-bottom: 1rem;
     }
 
     .feature-card {
-        height: calc(100% - 1.5rem); /* Kart yüksekliğini azalt */
-        margin-bottom: 1.5rem; /* Kartlar arası mesafeyi azalt */
+        height: calc(100% - 1.5rem);
+        margin-bottom: 1.5rem;
     }
 
     /* Section boşluklarını azalt */
@@ -808,10 +809,9 @@ html::-webkit-scrollbar {
         background-clip: padding-box;
     }
     
-    /* Intro section boşluk düzenlemesi */
     .intro-section {
         min-height: auto;
-        padding: 2rem 0; /* 4rem'den 2rem'e düşürüldü */
+        padding: 2rem 0;
     }
 
     .intro-section .container {
@@ -819,46 +819,40 @@ html::-webkit-scrollbar {
         padding-bottom: 1rem;
     }
     
-
-    /* Text spacing düzenlemesi */
     .section-title {
-        margin-bottom: 1rem; /* 1.5rem'den 1rem'e düşürüldü */
+        margin-bottom: 1rem;
     }
 
-    /* Container spacing düzenlemesi */
     .container {
         padding-left: 1.5rem;
         padding-right: 1.5rem;
     }
 
-    /* Row spacing düzenlemesi */
     .row.g-5 {
-        --bs-gutter-y: 1.5rem; /* Row'lar arası mesafeyi azalt */
+        --bs-gutter-y: 1.5rem;
     }
 }
 
 /* iPad Pro dikey kullanım için ek düzenlemeler */
 @media screen and (min-width: 992px) and (max-width: 1200px) and (orientation: portrait) {
     .about-section {
-        padding: 2rem 0; /* 3rem'den 2rem'e düşürüldü */
+        padding: 2rem 0;
     }
 
     .feature-card {
-        padding: 1.25rem; /* 1.5rem'den azaltıldı */
-        margin-bottom: 1rem; /* 1.5rem'den azaltıldı */
+        padding: 1.25rem;
+        margin-bottom: 1rem;
     }
 
     .intro-section {
-        padding: 2rem 0; /* 3rem'den 2rem'e düşürüldü */
+        padding: 2rem 0;
     }
 
-    /* Section arası boşlukları azalt */
     .section + .section {
         margin-top: 0;
     }
 }
 @media screen and (min-width: 768px) and (max-width: 991px) {
-    /* Genel section düzenlemeleri */
     .section {
         min-height: auto !important;
         height: auto !important;
@@ -867,58 +861,46 @@ html::-webkit-scrollbar {
         padding: 0 !important;
     }
 
-    /* About section düzenlemeleri */
     .about-section {
         padding: 3rem 0 !important;
         background-color: #0B0F17;
         min-height: auto;
     }
 
-    /* Intro section düzenlemeleri */
     .intro-section {
         padding: 3rem 0 !important;
         background-color: #0B0F17;
         min-height: auto;
     }
 
-    /* Info section düzenlemeleri */
     .info-section {
         padding: 3rem 0 !important;
         background-color: #0B0F17;
         min-height: auto;
     }
 
-    /* Footer düzenlemeleri */
-
-
-    /* What is ragchat section altındaki boşluğu düzelt */
     #about {
         margin-bottom: 0 !important;
     }
 
-    /* Fullpage wrapper düzenlemesi */
     #fullpage {
         background-color: #0B0F17;
     }
 
-    /* Container spacing düzenlemesi */
     .container {
         padding-top: 0;
         padding-bottom: 0;
     }
 
-    /* Feature cards düzenlemesi */
     .feature-card {
         margin-bottom: 1.5rem;
     }
 
-    /* Son feature card için margin düzeltmesi */
     .feature-card:last-child {
         margin-bottom: 0;
     }
 }
 
-/* iPad Air Portrait özel düzenlemeler */
 @media screen and (width: 820px) and (height: 1180px) {
     .about-section, 
     .intro-section, 
@@ -927,12 +909,10 @@ html::-webkit-scrollbar {
         background-color: #0B0F17;
     }
 
-    /* Section arası boşlukları temizle */
     .section:not(:first-child) {
         margin-top: 0 !important;
     }
 
-    /* Footer öncesi boşluğu düzelt */
     .info-section + footer {
         margin-top: 0 !important;
     }
@@ -951,7 +931,7 @@ html::-webkit-scrollbar {
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        padding-top: 80px; /* Navbar için ekstra padding */
+        padding-top: 80px;
     }
 
     .main-heading {
@@ -968,7 +948,6 @@ html::-webkit-scrollbar {
     }
 }
 @media (max-width: 991px) {
-    /* Intro 1 Section Start */
     html, body {
         overflow-x: hidden !important;
         overflow-y: auto !important;
@@ -1010,7 +989,7 @@ html::-webkit-scrollbar {
         text-align: center;
         padding: 0 1rem;
     }
-    /* Intro 1 Section End */
+
     .main-title {
         font-size: 2.25rem;
     }
@@ -1121,7 +1100,6 @@ html::-webkit-scrollbar {
         max-width: 90%;
     }
     
-    /* About Section Start */
     .about-section {
         padding: 60px 0;
     }
@@ -1129,9 +1107,7 @@ html::-webkit-scrollbar {
     .section-title {
         font-size: 2rem;
     }
-    /* About Section End */
 
-    /* Intro 1 Section Start */
     .intro-section {
         padding: 3rem 0;
     }
@@ -1149,7 +1125,6 @@ html::-webkit-scrollbar {
     }
 
     
-    /* Intro 1 Section End */
     .info-box {
         padding: 2rem;
     }
@@ -1222,7 +1197,7 @@ html::-webkit-scrollbar {
     .heading-description {
         max-width: 95%;
     }
-    /* About Section Start */
+
     .feature-card {
         padding: 1.5rem;
     }
@@ -1230,9 +1205,7 @@ html::-webkit-scrollbar {
     .section-title {
         font-size: 1.75rem;
     }
-    /* About Section End */
 
-    /* Intro 1 Section Start */
     .intro-image {
         height: 250px;
     }
@@ -1240,7 +1213,7 @@ html::-webkit-scrollbar {
     .section-title {
         font-size: 1.75rem;
     }
-    /* Intro 1 Section End */
+
     .demo-title {
         font-size: 1.5rem;
     }
@@ -1282,7 +1255,6 @@ html::-webkit-scrollbar {
         height: 20px;
     }
 
-    
 }
 @media (max-width: 390px) {
     .nav-links {

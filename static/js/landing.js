@@ -16,21 +16,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateScrollBehavior() {
         if (isTablet()) {
-            // Tablet için normal scroll davranışı
             document.documentElement.style.overflow = 'auto';
             document.body.style.overflow = 'auto';
             
-            // Section yüksekliklerini sıfırla
             document.querySelectorAll('.section').forEach(section => {
                 section.style.height = 'auto';
                 section.style.minHeight = 'auto';
             });
         } else if (isLargeScreen()) {
-            // Desktop için mevcut davranış
             document.documentElement.style.overflow = 'hidden';
             document.body.style.overflow = 'visible';
         } else {
-            // Mobil için davranış
             document.documentElement.style.overflow = 'auto';
             document.body.style.overflow = 'auto';
         }
@@ -38,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function smoothScrollTo(element, duration = 300) {
         if (!isLargeScreen() || isTablet()) {
-            // For mobile and tablet, use standard scroll
             element.scrollIntoView({ behavior: 'smooth' });
             return;
         }
@@ -186,11 +181,34 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Remove the inline onclick attribute from the HTML and handle Google Sign In
-function handleGoogleSignIn() {
-    window.location.href = '/auth/google/login';
+async function handleGoogleSignIn() {
+    try {
+        // Get auth URL from our endpoint
+        const response = await fetch('/api/v1/auth/google/login');
+        if (!response.ok) {
+            throw new Error('Failed to start authentication process');
+        }
+
+        const data = await response.json();
+        
+        if (data.authorization_url) {
+            window.location.href = data.authorization_url;
+        } else {
+            throw new Error('No authorization URL received');
+        }
+
+    } catch (error) {
+        console.error('Google authentication error:', error);
+    }
 }
 
 const startFreeTrialButton = document.querySelector('.start-free-trial-btn');
-    if (startFreeTrialButton) {
-        startFreeTrialButton.addEventListener('click', handleGoogleSignIn);
-    }
+const contineWithGoogleButton = document.querySelector('.google-signin-button');
+
+if (startFreeTrialButton) {
+    startFreeTrialButton.addEventListener('click', handleGoogleSignIn);
+}
+
+if (contineWithGoogleButton) {
+    contineWithGoogleButton.addEventListener('click', handleGoogleSignIn);
+}

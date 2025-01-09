@@ -645,21 +645,25 @@ async def signup(
 
 @router.get("/auth/google/login")
 async def google_login():
+    # Create flow instance with Google OAuth credentials
     flow = Flow.from_client_config(
         {
             "web": {
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
+                "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+                "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": [REDIRECT_URI],
+                "redirect_uris": [os.getenv("GOOGLE_REDIRECT_URI")],
             }
         },
         scopes=["openid", "email", "profile"],
     )
 
+    # Generate authorization URL with state parameter
     authorization_url, state = flow.authorization_url(
-        access_type="offline", include_granted_scopes="true"
+        access_type="offline",
+        include_granted_scopes="true",
+        prompt="consent",
     )
 
     return {"authorization_url": authorization_url}
@@ -671,35 +675,48 @@ async def google_callback(request: Request, code: str):
         flow = Flow.from_client_config(
             {
                 "web": {
-                    "client_id": GOOGLE_CLIENT_ID,
-                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+                    "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": [REDIRECT_URI],
+                    "redirect_uris": [os.getenv("GOOGLE_REDIRECT_URI")],
                 }
             },
             scopes=["openid", "email", "profile"],
             state=request.session.get("state"),
         )
 
+        # Fetch tokens
         flow.fetch_token(code=code)
 
+        # Get user info from ID token
         credentials = flow.credentials
         id_info = id_token.verify_oauth2_token(
-            credentials.id_token, requests.Request(), GOOGLE_CLIENT_ID
+            credentials.id_token, requests.Request(), os.getenv("GOOGLE_CLIENT_ID")
         )
 
-        # Here we can see what data Google sends us
-        print("Google User Data:", id_info)
+        # Create or get user
+        with Database() as db:
+            user_id = str(uuid.uuid4())
+            db.insert_user_info(
+                user_id=user_id,
+                google_id=id_info["sub"],
+                user_name=id_info.get("given_name", ""),
+                user_surname=id_info.get("family_name", ""),
+                user_email=id_info["email"],
+                picture_url=id_info.get("picture", ""),
+                refresh_token=credentials.refresh_token,
+                access_token=credentials.token,
+                user_type="user",
+                is_active=True,
+            )
 
-        # Handle user creation/login based on email
-        email = id_info.get("email")
-        name = id_info.get("name")
-        picture = id_info.get("picture")
+            # Create session
+            session_id = str(uuid.uuid4())
+            db.insert_session_info(user_id, session_id=session_id)
+            db.conn.commit()
 
-        # Create session
-        session_id = str(uuid.uuid4())
-
+        # Create and return response with session cookie
         response = JSONResponse(
             content={"message": "success", "session_id": session_id},
             status_code=200,

@@ -1,11 +1,15 @@
 CREATE TABLE IF NOT EXISTS user_info (
     user_id UUID PRIMARY KEY,
+    google_id VARCHAR(255) NOT NULL,
     user_name VARCHAR(50) NOT NULL,
     user_surname VARCHAR(50) NOT NULL,
     user_password VARCHAR(255) NOT NULL,
     user_email VARCHAR(100) UNIQUE,
     user_type VARCHAR(20),
     is_active BOOLEAN DEFAULT FALSE,
+    refresh_token VARCHAR(255) NOT NULL,
+    access_token VARCHAR(255) NOT NULL,
+    picture_url VARCHAR(255) NOT NULL,
     user_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
