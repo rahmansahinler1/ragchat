@@ -222,7 +222,7 @@
     <!-- Template for new domain input -->
     <template id="newDomainInputTemplate">
         <div class="domain-card new-domain-input-card">
-            <input type="text" class="new-domain-input" placeholder="Enter domain name" autofocus>
+            <input type="text" class="new-domain-input" data-lang-key="enter_domain_name" placeholder="Enter domain name" autofocus>
             <div class="new-domain-actions">
                 <button class="confirm-button"><i class="bi bi-check"></i></button>
                 <button class="cancel-button"><i class="bi bi-x"></i></button>
@@ -360,7 +360,9 @@
             <h5 class="alert-title" data-lang-key="logout_title">Log out of ragchat?</h5>
             <p class="alert-message" data-lang-key="logout_desc">You can always log back in at any time.</p>
             <div class="d-flex flex-column gap-2 w-100">
-                <button class="alert-button" data-lang-key="logout_button">Log out</button>
+                <button class="alert-button">
+                    <span data-lang-key="logout_button">Log out</span>
+                    </button>
                 <button class="btn-cancel" data-lang-key="cancel_button">Cancel</button>
             </div>
         </div>
