@@ -84,117 +84,54 @@ class ReadingFunctions:
         pdf_data = {"sentences": [], "page_number": [], "is_header": [], "is_table": []}
         pdf_file = io.BytesIO(file_bytes)
         with fitz.open(stream=pdf_file, filetype="pdf") as pdf:
-            # Check if pdf is scanned
-            if self._check_pdf_type(pdf):
-                # Process each page
-                markdown_pages = pymupdf4llm.to_markdown(
-                    pdf, page_chunks=True, show_progress=False, margins=0
-                )
-                for i, page in enumerate(markdown_pages):
-                    splits = self.markdown_splitter.split_text(page["text"])
-                    for split in splits:
-                        if not len(split.page_content) > 5 or re.match(
-                            r"^[^\w]*$", split.page_content
-                        ):
-                            continue
-                        elif (
-                            split.metadata and split.page_content[0] == "#"
-                        ):  # Header detection
-                            pdf_data["sentences"].append(split.page_content)
-                            pdf_data["is_header"].append(True)
-                            pdf_data["is_table"].append(False)
-                            pdf_data["page_number"].append(i + 1)
-                        elif (
-                            split.page_content[0] == "*"
-                            and split.page_content[-1] == "*"
-                            and (
-                                re.match(
-                                    r"(\*{2,})(\d+(?:\.\d+)*)\s*(\*{2,})?(.*)$",
-                                    split.page_content,
-                                )
-                                or re.match(
-                                    r"(\*{1,3})?([A-Z][a-zA-Z\s\-]+)(\*{1,3})?$",
-                                    split.page_content,
-                                )
+            # Process each page
+            markdown_pages = pymupdf4llm.to_markdown(
+                pdf, page_chunks=True, show_progress=False, margins=0
+            )
+            for i, page in enumerate(markdown_pages):
+                splits = self.markdown_splitter.split_text(page["text"])
+                for split in splits:
+                    if not len(split.page_content) > 5 or re.match(
+                        r"^[^\w]*$", split.page_content
+                    ):
+                        continue
+                    elif (
+                        split.metadata and split.page_content[0] == "#"
+                    ):  # Header detection
+                        pdf_data["sentences"].append(split.page_content)
+                        pdf_data["is_header"].append(True)
+                        pdf_data["is_table"].append(False)
+                        pdf_data["page_number"].append(i + 1)
+                    elif (
+                        split.page_content[0] == "*"
+                        and split.page_content[-1] == "*"
+                        and (
+                            re.match(
+                                r"(\*{2,})(\d+(?:\.\d+)*)\s*(\*{2,})?(.*)$",
+                                split.page_content,
                             )
-                        ):  # Sub-Header and Header variant detection
-                            pdf_data["sentences"].append(split.page_content)
-                            pdf_data["is_header"].append(True)
-                            pdf_data["is_table"].append(False)
-                            pdf_data["page_number"].append(i + 1)
-                        elif (
-                            split.page_content[0] == "|"
-                            and split.page_content[-1] == "|"
-                        ):  # Table detection
-                            pdf_data["sentences"].append(split.page_content)
-                            pdf_data["is_header"].append(False)
-                            pdf_data["is_table"].append(True)
-                            pdf_data["page_number"].append(i + 1)
-                        else:
-                            pdf_data["sentences"].append(split.page_content)
-                            pdf_data["is_header"].append(False)
-                            pdf_data["is_table"].append(False)
-                            pdf_data["page_number"].append(i + 1)
-            else:
-                with tempfile.NamedTemporaryFile(
-                    delete=True, suffix=".pdf"
-                ) as temp_file:
-                    temp_file.write(pdf_file.getvalue())
-                    pdf_path = Path(temp_file.name)
-                    md_text = self.converter.convert(
-                        pdf_path
-                    ).document.export_to_markdown()
-                    splits = self.markdown_splitter.split_text(md_text)
-                    current_length = 0
-                    chars_per_page = 5000
-                    current_page = 1
-                    for split in splits:
-                        if current_length + len(split.page_content) > chars_per_page:
-                            current_page += 1
-                            current_length = 0
-
-                        if not len(split.page_content) > 5 or re.match(
-                            r"^[^\w]*$", split.page_content
-                        ):
-                            continue
-                        elif (
-                            split.metadata and split.page_content[0] == "#"
-                        ):  # Header detection
-                            pdf_data["sentences"].append(split.page_content)
-                            pdf_data["is_header"].append(True)
-                            pdf_data["is_table"].append(False)
-                            pdf_data["page_number"].append(current_page)
-                        elif (
-                            split.page_content[0] == "*"
-                            and split.page_content[-1] == "*"
-                            and (
-                                re.match(
-                                    r"(\*{2,})(\d+(?:\.\d+)*)\s*(\*{2,})?(.*)$",
-                                    split.page_content,
-                                )
-                                or re.match(
-                                    r"(\*{1,3})?([A-Z][a-zA-Z\s\-]+)(\*{1,3})?$",
-                                    split.page_content,
-                                )
+                            or re.match(
+                                r"(\*{1,3})?([A-Z][a-zA-Z\s\-]+)(\*{1,3})?$",
+                                split.page_content,
                             )
-                        ):  # Sub-Header and Header variant detection
-                            pdf_data["sentences"].append(split.page_content)
-                            pdf_data["is_header"].append(True)
-                            pdf_data["is_table"].append(False)
-                            pdf_data["page_number"].append(current_page)
-                        elif (
-                            split.page_content[0] == "|"
-                            and split.page_content[-1] == "|"
-                        ):  # Table detection
-                            pdf_data["sentences"].append(split.page_content)
-                            pdf_data["is_header"].append(False)
-                            pdf_data["is_table"].append(True)
-                            pdf_data["page_number"].append(current_page)
-                        else:
-                            pdf_data["sentences"].append(split.page_content)
-                            pdf_data["is_header"].append(False)
-                            pdf_data["is_table"].append(False)
-                            pdf_data["page_number"].append(current_page)
+                        )
+                    ):  # Sub-Header and Header variant detection
+                        pdf_data["sentences"].append(split.page_content)
+                        pdf_data["is_header"].append(True)
+                        pdf_data["is_table"].append(False)
+                        pdf_data["page_number"].append(i + 1)
+                    elif (
+                        split.page_content[0] == "|" and split.page_content[-1] == "|"
+                    ):  # Table detection
+                        pdf_data["sentences"].append(split.page_content)
+                        pdf_data["is_header"].append(False)
+                        pdf_data["is_table"].append(True)
+                        pdf_data["page_number"].append(i + 1)
+                    else:
+                        pdf_data["sentences"].append(split.page_content)
+                        pdf_data["is_header"].append(False)
+                        pdf_data["is_table"].append(False)
+                        pdf_data["page_number"].append(i + 1)
         return pdf_data
 
     def _process_docx(self, file_bytes: bytes):
@@ -513,10 +450,3 @@ class ReadingFunctions:
         )
         text = text.replace("\n", " ").strip()
         return " ".join(text.split())
-
-    def _check_pdf_type(self, file: fitz.Document):
-        page = file.load_page(0)
-        if len(page.get_text()) > 0 and len(page.get_images()) == 0:
-            return True
-        else:
-            return False
