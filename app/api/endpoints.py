@@ -8,6 +8,7 @@ import psycopg2
 
 from .core import Processor
 from .core import Authenticator
+from .core import Encryptor
 from ..db.database import Database
 from ..redis_manager import RedisManager, RedisConnectionError
 
@@ -15,6 +16,7 @@ router = APIRouter()
 processor = Processor()
 authenticator = Authenticator()
 redis_manager = RedisManager()
+encryptor = Encryptor()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -336,6 +338,9 @@ async def store_file(
             sentences=file_data["sentences"]
         )
 
+        # Create sentence encryptions
+        file_encryptions = encryptor.encrypt(sentences=file_data["sentences"])
+
         # Store in Redis
         redis_key = f"user:{userID}:upload:{file.filename}"
         upload_data = {
@@ -343,7 +348,7 @@ async def store_file(
             "last_modified": datetime.fromtimestamp(int(lastModified) / 1000).strftime(
                 "%Y-%m-%d"
             )[:20],
-            "sentences": file_data["sentences"],
+            "sentences": file_encryptions,
             "page_numbers": file_data["page_number"],
             "is_headers": file_data["is_header"],
             "is_tables": file_data["is_table"],

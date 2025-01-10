@@ -2,6 +2,10 @@ from typing import List
 import numpy as np
 import bcrypt
 import re
+import base64
+import os
+from dotenv import load_dotenv
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from ..functions.reading_functions import ReadingFunctions
 from ..functions.embedding_functions import EmbeddingFunctions
@@ -21,6 +25,37 @@ class Authenticator:
     def hash_password(self, password: str) -> str:
         salt = bcrypt.gensalt()
         return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+
+
+class Encryptor:
+    def __init__(self):
+        load_dotenv()
+        self.key = os.getenv("ENCRYPTION_KEY")
+        try:
+            self._key_bytes = base64.b64decode(self.key)
+            self.aesgcm = AESGCM(self._key_bytes)
+        except Exception as e:
+            raise ValueError(f"Invalid encryption key format: {str(e)}")
+
+    def encrypt(self, sentences: List[str], chunk_size=1000) -> List[str]:
+        encrypted_sentences = []
+        for index in range(0, len(sentences), chunk_size):
+            nonce = os.urandom(12)
+            encrypted_data = self.aesgcm.encrypt(
+                nonce, sentences[index].encode("utf-8")
+            )
+            combined_encrypt = nonce + encrypted_data
+            encrypted_sentence = base64.b64encode(combined_encrypt).decode("utf-8")
+            encrypted_sentences.append(encrypted_sentence)
+
+        return encrypted_sentences
+
+    def decrypt(self, encrypted_data: str):
+        decoded_text = base64.b64decode(encrypted_data.encode("utf-8"))
+        nonce = decoded_text[12:]
+        encrypted_text = decoded_text[:12]
+        decrypted_data = self.aesgcm.decrypt(nonce, encrypted_text)
+        return decrypted_data.decode("utf-8")
 
 
 class Processor:
@@ -325,13 +360,13 @@ class Processor:
         for i, tuple in enumerate(merged_truples):
             if tuple[0] == tuple[1]:
                 windened_sentence = " ".join(domain_content[tuple[0]][0])
-                context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sentence_index_list)-i)/len(sentence_index_list)}, Table\n{windened_sentence}\n"
+                context += f"Context{i + 1}: File:{resources['file_names'][i]}, Confidence:{(len(sentence_index_list) - i) / len(sentence_index_list)}, Table\n{windened_sentence}\n"
                 context_windows.append(windened_sentence)
             else:
                 windened_sentence = " ".join(
                     domain_content[index][0] for index in range(tuple[0], tuple[1] + 1)
                 )
-                context += f"Context{i+1}: File:{resources['file_names'][i]}, Confidence:{(len(sentence_index_list)-i)/len(sentence_index_list)}, {windened_sentence}\n\n"
+                context += f"Context{i + 1}: File:{resources['file_names'][i]}, Confidence:{(len(sentence_index_list) - i) / len(sentence_index_list)}, {windened_sentence}\n\n"
                 context_windows.append(windened_sentence)
 
         return context, context_windows, resources
