@@ -367,6 +367,7 @@ class Database:
         google_id: str,
         user_name: str,
         user_surname: str,
+        user_password: str,
         user_email: str,
         picture_url: str,
         refresh_token: str,
@@ -376,11 +377,11 @@ class Database:
     ):
         query = """
         INSERT INTO user_info (
-            user_id, google_id, user_name, user_surname, 
+            user_id, google_id, user_name, user_surname, user_password,
             user_email, picture_url, refresh_token, access_token,
             user_type, is_active
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         try:
             self.cursor.execute(
@@ -390,6 +391,7 @@ class Database:
                     google_id,
                     user_name,
                     user_surname,
+                    user_password,
                     user_email,
                     picture_url,
                     refresh_token,

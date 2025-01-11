@@ -4,7 +4,6 @@ from google.auth.transport import requests
 from google_auth_oauthlib.flow import Flow
 from fastapi.responses import JSONResponse
 from datetime import datetime
-from dotenv import load_dotenv
 import os
 import logging
 import uuid
@@ -27,10 +26,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # environment variables
-load_dotenv()
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI_DEV")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI_DEV")
 
 
 # request functions
@@ -596,12 +594,16 @@ async def signup(
                 user_id = str(uuid.uuid4())
                 db.insert_user_info(
                     user_id=user_id,
+                    google_id=str(uuid.uuid4()),
                     user_name=user_name,
                     user_surname=user_surname,
                     user_password=authenticator.hash_password(user_password),
                     user_email=user_email,
                     user_type="trial",
                     is_active=True,
+                    refresh_token=str(uuid.uuid4()),
+                    access_token=str(uuid.uuid4()),
+                    picture_url=str(uuid.uuid4()),
                 )
 
                 # Deafult domain creation
@@ -644,79 +646,106 @@ async def signup(
 
 
 @router.get("/auth/google/login")
-async def google_login():
-    # Create flow instance with Google OAuth credentials
-    flow = Flow.from_client_config(
-        {
-            "web": {
-                "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-                "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": [os.getenv("GOOGLE_REDIRECT_URI")],
-            }
-        },
-        scopes=["openid", "email", "profile"],
-    )
-
-    # Generate authorization URL with state parameter
-    authorization_url, state = flow.authorization_url(
-        access_type="offline",
-        include_granted_scopes="true",
-        prompt="consent",
-    )
-
-    return {"authorization_url": authorization_url}
-
-
-@router.get("/auth/callback")
-async def google_callback(request: Request, code: str):
+async def google_login(request: Request):
     try:
         flow = Flow.from_client_config(
             {
                 "web": {
-                    "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-                    "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": [os.getenv("GOOGLE_REDIRECT_URI")],
+                    "redirect_uris": [GOOGLE_REDIRECT_URI],
                 }
             },
-            scopes=["openid", "email", "profile"],
-            state=request.session.get("state"),
+            # Use full scope URLs
+            scopes=[
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile",
+                "openid",
+            ],
         )
 
-        # Fetch tokens
-        flow.fetch_token(code=code)
-
-        # Get user info from ID token
-        credentials = flow.credentials
-        id_info = id_token.verify_oauth2_token(
-            credentials.id_token, requests.Request(), os.getenv("GOOGLE_CLIENT_ID")
+        flow.redirect_uri = GOOGLE_REDIRECT_URI
+        authorization_url, state = flow.authorization_url(
+            access_type="offline", include_granted_scopes="true"
         )
 
-        # Create or get user
-        with Database() as db:
-            user_id = str(uuid.uuid4())
-            db.insert_user_info(
-                user_id=user_id,
-                google_id=id_info["sub"],
-                user_name=id_info.get("given_name", ""),
-                user_surname=id_info.get("family_name", ""),
-                user_email=id_info["email"],
-                picture_url=id_info.get("picture", ""),
-                refresh_token=credentials.refresh_token,
-                access_token=credentials.token,
-                user_type="user",
-                is_active=True,
+        request.session["oauth_state"] = state
+        return {"authorization_url": authorization_url}
+
+    except Exception as e:
+        print(f"Login error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/auth/callback")
+async def google_callback(request: Request):
+    try:
+        state = request.query_params.get("state")
+        code = request.query_params.get("code")
+
+        if not state or not code:
+            raise HTTPException(
+                status_code=400, detail="Missing state or code parameter"
             )
 
-            # Create session
+        stored_state = request.session.get("oauth_state")
+        if not stored_state or stored_state != state:
+            raise HTTPException(status_code=400, detail="Invalid state parameter")
+
+        # Create minimal flow just for token exchange
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": [GOOGLE_REDIRECT_URI],
+                }
+            },
+            # Use same full scope URLs
+            scopes=[
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile",
+                "openid",
+            ],
+        )
+
+        flow.redirect_uri = GOOGLE_REDIRECT_URI
+        flow.fetch_token(code=code)
+
+        # Get minimal user info needed
+        id_info = id_token.verify_oauth2_token(
+            flow.credentials.id_token, requests.Request(), GOOGLE_CLIENT_ID
+        )
+
+        # Database operations
+        with Database() as db:
+            user_info = db.get_user_info_w_email(user_email=id_info["email"])
+            if not user_info:
+                user_id = str(uuid.uuid4())
+                db.insert_user_info(
+                    user_id=user_id,
+                    google_id=id_info["sub"],
+                    user_name=id_info.get("given_name", ""),
+                    user_surname=id_info.get("family_name", ""),
+                    user_password="",
+                    user_email=id_info["email"],
+                    picture_url=id_info["picture"],
+                    refresh_token=str(uuid.uuid4()),
+                    access_token=str(uuid.uuid4()),
+                    user_type="user",
+                    is_active=True,
+                )
+            else:
+                user_id = user_info["user_id"]
+
             session_id = str(uuid.uuid4())
             db.insert_session_info(user_id, session_id=session_id)
             db.conn.commit()
 
-        # Create and return response with session cookie
         response = JSONResponse(
             content={"message": "success", "session_id": session_id},
             status_code=200,
@@ -732,8 +761,7 @@ async def google_callback(request: Request, code: str):
         return response
 
     except Exception as e:
-        print("Error in callback:", e)
-        return {"error": "Authentication failed"}
+        raise HTTPException(status_code=500, detail=f"Authentication failed: {e}")
 
 
 # local functions
