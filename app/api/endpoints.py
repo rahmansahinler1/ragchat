@@ -1,6 +1,10 @@
 from fastapi import APIRouter, UploadFile, HTTPException, Request, Query, File, Form
-from fastapi.responses import JSONResponse
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from google_auth_oauthlib.flow import Flow
+from fastapi.responses import JSONResponse, RedirectResponse
 from datetime import datetime
+import os
 import logging
 import uuid
 import base64
@@ -11,13 +15,20 @@ from .core import Authenticator
 from ..db.database import Database
 from ..redis_manager import RedisManager, RedisConnectionError
 
+# services
 router = APIRouter()
 processor = Processor()
 authenticator = Authenticator()
 redis_manager = RedisManager()
 
+# logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# environment variables
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
 
 # request functions
@@ -583,12 +594,16 @@ async def signup(
                 user_id = str(uuid.uuid4())
                 db.insert_user_info(
                     user_id=user_id,
+                    google_id=str(uuid.uuid4()),
                     user_name=user_name,
                     user_surname=user_surname,
                     user_password=authenticator.hash_password(user_password),
                     user_email=user_email,
                     user_type="trial",
                     is_active=True,
+                    refresh_token=str(uuid.uuid4()),
+                    access_token=str(uuid.uuid4()),
+                    picture_url=str(uuid.uuid4()),
                 )
 
                 # Deafult domain creation
@@ -628,6 +643,136 @@ async def signup(
         raise HTTPException(
             content={"message": f"Failed deleting, error: {e}"}, status_code=500
         )
+
+
+@router.get("/auth/google/login")
+async def google_login(request: Request):
+    try:
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": [GOOGLE_REDIRECT_URI],
+                }
+            },
+            # Use full scope URLs
+            scopes=[
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile",
+                "openid",
+            ],
+        )
+
+        flow.redirect_uri = GOOGLE_REDIRECT_URI
+        authorization_url, state = flow.authorization_url(
+            access_type="offline", include_granted_scopes="true"
+        )
+
+        request.session["oauth_state"] = state
+        return {"authorization_url": authorization_url}
+
+    except Exception as e:
+        print(f"Login error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/auth/callback")
+async def google_callback(request: Request):
+    try:
+        state = request.query_params.get("state")
+        code = request.query_params.get("code")
+
+        if not state or not code:
+            raise HTTPException(
+                status_code=400, detail="Missing state or code parameter"
+            )
+
+        stored_state = request.session.get("oauth_state")
+        if not stored_state or stored_state != state:
+            raise HTTPException(status_code=400, detail="Invalid state parameter")
+
+        # Create minimal flow just for token exchange
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": [GOOGLE_REDIRECT_URI],
+                }
+            },
+            # Use same full scope URLs
+            scopes=[
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile",
+                "openid",
+            ],
+        )
+
+        flow.redirect_uri = GOOGLE_REDIRECT_URI
+        flow.fetch_token(code=code)
+
+        # Get minimal user info needed
+        id_info = id_token.verify_oauth2_token(
+            flow.credentials.id_token, requests.Request(), GOOGLE_CLIENT_ID
+        )
+
+        # Database operations
+        with Database() as db:
+            user_info = db.get_user_info_w_email(user_email=id_info["email"])
+            if not user_info:
+                user_id = str(uuid.uuid4())
+                first_time = 1
+                db.insert_user_info(
+                    user_id=user_id,
+                    google_id=id_info["sub"],
+                    user_name=id_info.get("given_name", ""),
+                    user_surname=id_info.get("family_name", ""),
+                    user_password="123456seven",
+                    user_email=id_info["email"],
+                    picture_url=id_info["picture"],
+                    refresh_token=str(uuid.uuid4()),
+                    access_token=str(uuid.uuid4()),
+                    user_type="user",
+                    is_active=True,
+                )
+            else:
+                user_id = user_info["user_id"]
+                first_time = 0
+
+            session_id = str(uuid.uuid4())
+            db.insert_session_info(user_id, session_id=session_id)
+            db.conn.commit()
+
+        # Create redirect response
+        response = RedirectResponse(
+            url=f"/chat/{session_id}",
+            status_code=303,
+        )
+
+        # Set cookies before redirect
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+        )
+        response.set_cookie(
+            key="first_time",
+            value=str(first_time),
+            httponly=False,
+        )
+
+        return response
+
+    except Exception as e:
+        # You might want to redirect to an error page instead
+        raise HTTPException(status_code=500, detail=f"Authentication failed: {e}")
 
 
 # local functions

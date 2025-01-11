@@ -16,28 +16,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateScrollBehavior() {
         if (isTablet()) {
-            // Tablet için normal scroll davranışı
             document.documentElement.style.overflow = 'auto';
             document.body.style.overflow = 'auto';
             
-            // Section yüksekliklerini sıfırla
             document.querySelectorAll('.section').forEach(section => {
                 section.style.height = 'auto';
                 section.style.minHeight = 'auto';
             });
         } else if (isLargeScreen()) {
-            // Desktop için mevcut davranış
             document.documentElement.style.overflow = 'hidden';
             document.body.style.overflow = 'visible';
         } else {
-            // Mobil için davranış
             document.documentElement.style.overflow = 'auto';
             document.body.style.overflow = 'auto';
         }
     }
 
     function smoothScrollTo(element, duration = 300) {
-        if (!isLargeScreen() || isTablet()) return;
+        if (!isLargeScreen() || isTablet()) {
+            element.scrollIntoView({ behavior: 'smooth' });
+            return;
+        }
 
         const targetPosition = element.offsetTop;
         const startPosition = window.pageYOffset;
@@ -63,6 +62,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         requestAnimationFrame(animation);
+    }
+
+    // Function to show tutorial (add this new function)
+    function showTutorial() {
+        const demoSection = document.getElementById('demo');
+        
+        if (demoSection) {
+            // Find the index of the demo section
+            const demoSectionIndex = Array.from(sections).indexOf(demoSection);
+            
+            // Update current section for smooth scrolling behavior
+            currentSection = demoSectionIndex;
+            
+            // Scroll to demo section
+            smoothScrollTo(demoSection);
+        }
+    }
+
+    // Add event listener for the tutorial button
+    const tutorialButton = document.querySelector('button[onclick="showTutorial()"]');
+    if (tutorialButton) {
+        tutorialButton.addEventListener('click', showTutorial);
     }
 
     window.addEventListener('wheel', function(e) {
@@ -158,3 +179,36 @@ document.addEventListener('DOMContentLoaded', function() {
     updateScrollBehavior();
     window.addEventListener('resize', updateScrollBehavior);
 });
+
+// Remove the inline onclick attribute from the HTML and handle Google Sign In
+async function handleGoogleSignIn() {
+    try {
+        // Get auth URL from our endpoint
+        const response = await fetch('/api/v1/auth/google/login');
+        if (!response.ok) {
+            throw new Error('Failed to start authentication process');
+        }
+
+        const data = await response.json();
+        
+        if (data.authorization_url) {
+            window.location.href = data.authorization_url;
+        } else {
+            throw new Error('No authorization URL received');
+        }
+
+    } catch (error) {
+        console.error('Google authentication error:', error);
+    }
+}
+
+const startFreeTrialButton = document.querySelector('.start-free-trial-btn');
+const contineWithGoogleButton = document.querySelector('.google-signin-button');
+
+if (startFreeTrialButton) {
+    startFreeTrialButton.addEventListener('click', handleGoogleSignIn);
+}
+
+if (contineWithGoogleButton) {
+    contineWithGoogleButton.addEventListener('click', handleGoogleSignIn);
+}

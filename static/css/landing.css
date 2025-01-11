@@ -75,11 +75,11 @@ html::-webkit-scrollbar {
     justify-content: flex-end;
     align-items: center;
     padding: 1rem 2rem;
-    position: fixed; /* sticky yerine fixed kullanıyoruz */
+    position: fixed;
     top: 0;
     right: 0;
     left: 0;
-    z-index: 1030; /* Yüksek z-index değeri */
+    z-index: 1030;
     transition: background-color 0.3s ease;
 }
 .navbar-brand.logo-text {
@@ -92,33 +92,6 @@ html::-webkit-scrollbar {
     display: flex;
     align-items: center;
     gap: 1.5rem;
-}
-
-/* Auth Buttons */
-.login-link {
-    color: #F8F9FA;
-    text-decoration: none;
-    font-size: 1rem;
-    transition: color 0.3s ease;
-}
-
-.login-link:hover {
-    color: #e9ecef;
-}
-
-.signup-button {
-    background-color: #F8F9FA;
-    color: #000;
-    padding: 0.5rem 1.5rem;
-    border-radius: 25px;
-    text-decoration: none;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    border: none;
-}
-
-.signup-button:hover {
-    background-color: #e9ecef;
 }
 
 /* Social Links */
@@ -150,11 +123,31 @@ html::-webkit-scrollbar {
     background-color: #e9ecef;
 }
 
+.start-free-trial-btn {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500; /* Thinner font weight */
+    font-size: 14px;
+    line-height: 1.5;
+    color: #000;
+    background-color: #fff;
+    padding: 8px 16px;
+    border-radius: 16px; /* More rounded corners */
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .start-free-trial-btn:hover {
+    background-color: #f0f0f0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+  }
+
 /* Hero Content */
 .hero-content {
     position: absolute;
     top: 50%;
-    left: 20%;
+    left: 15%;
     transform: translate(-1%, -50%);
     text-align: left;
     width: 100%;
@@ -176,31 +169,72 @@ html::-webkit-scrollbar {
     margin-bottom: 2rem;
     color: #F8F9FA;
 }
-.cta-button {
-    display: inline-block;
-    background-color: #10B981;
-    color: #F8F9FA;
-    padding: 1rem 2.5rem;
-    border-radius: 30px;
-    text-decoration: none;
-    font-size: 1.2rem;
-    font-weight: 500;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
 
-.cta-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 8px rgba(0,0,0,0.2);
-}
 .logo-text {
     font-size: 1.5rem;
     font-weight: 700;
     color: #F8F9FA;
     text-decoration: none;
 }
-/* About Section Design Start */
 
+/* Hero buttons */
+.hero-buttons {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 2rem;
+}
+
+.hero-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background-color: rgba(11, 15, 23, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 100px;
+    padding: 8px 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    height: 40px;
+    min-width: 180px;
+}
+
+.hero-button:hover {
+    transform: translateY(-1px);
+    background-color: rgba(22, 27, 38, 0.7);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.hero-button:active {
+    transform: translateY(0);
+    background-color: rgba(11, 15, 23, 0.6);
+}
+
+/* Text style for both buttons */
+.button-text {
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.google-icon {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+}
+
+.watch-icon {
+    font-size: 20px;
+    color: #FFFFFF;
+}
+
+/* About Section Design Start */
 .about-section {
     background-color: #0B0F17;
     width: 100%;
@@ -435,26 +469,6 @@ html::-webkit-scrollbar {
     font-size: 1.1rem;
     line-height: 1.7;
 }
-
-.cta-button {
-    display: inline-block;
-    background-color: #10B981;
-    color: #F8F9FA;
-    padding: 1rem 2.5rem;
-    border-radius: 30px;
-    text-decoration: none;
-    font-size: 1.2rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
-}
-
-.cta-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
-    color: #F8F9FA;
-    background-color: #0EA975;
-}
 /* Intro 1 Section End */
 
 /* Info Section Start */
@@ -655,7 +669,7 @@ html::-webkit-scrollbar {
 }
 .footer .social-links {
     display: flex;
-    flex-direction: row; /* Dikey sıralama */
+    flex-direction: row;
     gap: 1rem;
     margin-bottom: 2rem;
 }
@@ -666,12 +680,12 @@ html::-webkit-scrollbar {
     background: rgba(16, 185, 129, 0.1);
     color: #10B981;
     display: flex;
-    align-items: center;     /* Dikey ortalama */
-    justify-content: center; /* Yatay ortalama */
+    align-items: center;
+    justify-content: center;
     transition: all 0.3s ease;
 }
 .footer .social-link i {
-    display: flex;           /* Icon için ek ortalama */
+    display: flex;
     align-items: center;
     justify-content: center;
 }
@@ -679,8 +693,9 @@ html::-webkit-scrollbar {
 .footer .social-link:hover {
     background: #10B981;
     color: #F8F9FA;
-    transform: translateX(5px); /* Y yerine X ekseni animasyonu */
+    transform: translateX(5px);
 }
+
 /* Copyright Section */
 .footer-bottom {
     margin-top: 3rem;
@@ -688,9 +703,7 @@ html::-webkit-scrollbar {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     text-align: center;
 }
-.footer .cta-button {
-    font-size: 0.9rem;
-}
+
 .copyright {
     color: #ADB5BD;
     font-size: 0.9rem;
@@ -709,9 +722,9 @@ html::-webkit-scrollbar {
         transform: translateY(0);
     }
 }
-/* Demo Section Start */
+
 #demo {
-    display: none; /* Varsayılan olarak gizli */
+    display: none;
 }
 .demo-section {
     background-color: #0B0F17;
@@ -720,7 +733,7 @@ html::-webkit-scrollbar {
     overflow: hidden;
 }
 .row.justify-content-center.mb-5 {
-    margin-bottom: 2rem !important; /* Bootstrap'in mb-5'ini override etmek için !important kullanıyoruz */
+    margin-bottom: 2rem !important;
 }
 .demo-title {
     font-size: 2.5rem;
@@ -763,12 +776,6 @@ html::-webkit-scrollbar {
     z-index: 1;
     bottom: 2.5rem;
 }
-#demo .cta-button {
-    position: absolute;
-    left: 43%;
-    bottom: 3.5%;
-}
-/* Demo Section End */
 
 /* Footer Section End */
 /* Info Section End */
@@ -781,13 +788,13 @@ html::-webkit-scrollbar {
         min-height: 0;
     }
     .about-section .container {
-        padding-top: 1rem; /* Üst boşluğu azalt */
-        padding-bottom: 1rem; /* Alt boşluğu azalt */
+        padding-top: 1rem;
+        padding-bottom: 1rem;
     }
 
     .feature-card {
-        height: calc(100% - 1.5rem); /* Kart yüksekliğini azalt */
-        margin-bottom: 1.5rem; /* Kartlar arası mesafeyi azalt */
+        height: calc(100% - 1.5rem);
+        margin-bottom: 1.5rem;
     }
 
     /* Section boşluklarını azalt */
@@ -802,10 +809,9 @@ html::-webkit-scrollbar {
         background-clip: padding-box;
     }
     
-    /* Intro section boşluk düzenlemesi */
     .intro-section {
         min-height: auto;
-        padding: 2rem 0; /* 4rem'den 2rem'e düşürüldü */
+        padding: 2rem 0;
     }
 
     .intro-section .container {
@@ -813,46 +819,40 @@ html::-webkit-scrollbar {
         padding-bottom: 1rem;
     }
     
-
-    /* Text spacing düzenlemesi */
     .section-title {
-        margin-bottom: 1rem; /* 1.5rem'den 1rem'e düşürüldü */
+        margin-bottom: 1rem;
     }
 
-    /* Container spacing düzenlemesi */
     .container {
         padding-left: 1.5rem;
         padding-right: 1.5rem;
     }
 
-    /* Row spacing düzenlemesi */
     .row.g-5 {
-        --bs-gutter-y: 1.5rem; /* Row'lar arası mesafeyi azalt */
+        --bs-gutter-y: 1.5rem;
     }
 }
 
 /* iPad Pro dikey kullanım için ek düzenlemeler */
 @media screen and (min-width: 992px) and (max-width: 1200px) and (orientation: portrait) {
     .about-section {
-        padding: 2rem 0; /* 3rem'den 2rem'e düşürüldü */
+        padding: 2rem 0;
     }
 
     .feature-card {
-        padding: 1.25rem; /* 1.5rem'den azaltıldı */
-        margin-bottom: 1rem; /* 1.5rem'den azaltıldı */
+        padding: 1.25rem;
+        margin-bottom: 1rem;
     }
 
     .intro-section {
-        padding: 2rem 0; /* 3rem'den 2rem'e düşürüldü */
+        padding: 2rem 0;
     }
 
-    /* Section arası boşlukları azalt */
     .section + .section {
         margin-top: 0;
     }
 }
 @media screen and (min-width: 768px) and (max-width: 991px) {
-    /* Genel section düzenlemeleri */
     .section {
         min-height: auto !important;
         height: auto !important;
@@ -861,58 +861,46 @@ html::-webkit-scrollbar {
         padding: 0 !important;
     }
 
-    /* About section düzenlemeleri */
     .about-section {
         padding: 3rem 0 !important;
         background-color: #0B0F17;
         min-height: auto;
     }
 
-    /* Intro section düzenlemeleri */
     .intro-section {
         padding: 3rem 0 !important;
         background-color: #0B0F17;
         min-height: auto;
     }
 
-    /* Info section düzenlemeleri */
     .info-section {
         padding: 3rem 0 !important;
         background-color: #0B0F17;
         min-height: auto;
     }
 
-    /* Footer düzenlemeleri */
-
-
-    /* What is ragchat section altındaki boşluğu düzelt */
     #about {
         margin-bottom: 0 !important;
     }
 
-    /* Fullpage wrapper düzenlemesi */
     #fullpage {
         background-color: #0B0F17;
     }
 
-    /* Container spacing düzenlemesi */
     .container {
         padding-top: 0;
         padding-bottom: 0;
     }
 
-    /* Feature cards düzenlemesi */
     .feature-card {
         margin-bottom: 1.5rem;
     }
 
-    /* Son feature card için margin düzeltmesi */
     .feature-card:last-child {
         margin-bottom: 0;
     }
 }
 
-/* iPad Air Portrait özel düzenlemeler */
 @media screen and (width: 820px) and (height: 1180px) {
     .about-section, 
     .intro-section, 
@@ -921,12 +909,10 @@ html::-webkit-scrollbar {
         background-color: #0B0F17;
     }
 
-    /* Section arası boşlukları temizle */
     .section:not(:first-child) {
         margin-top: 0 !important;
     }
 
-    /* Footer öncesi boşluğu düzelt */
     .info-section + footer {
         margin-top: 0 !important;
     }
@@ -945,7 +931,7 @@ html::-webkit-scrollbar {
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        padding-top: 80px; /* Navbar için ekstra padding */
+        padding-top: 80px;
     }
 
     .main-heading {
@@ -960,13 +946,8 @@ html::-webkit-scrollbar {
         margin-left: auto;
         margin-right: auto;
     }
-
-    .cta-button {
-        margin: 0 auto;
-    }
 }
 @media (max-width: 991px) {
-    /* Intro 1 Section Start */
     html, body {
         overflow-x: hidden !important;
         overflow-y: auto !important;
@@ -1008,7 +989,7 @@ html::-webkit-scrollbar {
         text-align: center;
         padding: 0 1rem;
     }
-    /* Intro 1 Section End */
+
     .main-title {
         font-size: 2.25rem;
     }
@@ -1041,9 +1022,7 @@ html::-webkit-scrollbar {
         justify-content: center;
         margin: 1.5rem 0;
     }
-    .footer .cta-button {
-        margin: 0 auto;
-    }
+
     .footer .col-lg-4,
     .footer .col-lg-3 {
         display: flex;
@@ -1120,11 +1099,7 @@ html::-webkit-scrollbar {
     .heading-description {
         max-width: 90%;
     }
-    .cta-button {
-        padding: 0.8rem 2rem;
-        font-size: 1.1rem;
-    }
-    /* About Section Start */
+    
     .about-section {
         padding: 60px 0;
     }
@@ -1132,9 +1107,7 @@ html::-webkit-scrollbar {
     .section-title {
         font-size: 2rem;
     }
-    /* About Section End */
 
-    /* Intro 1 Section Start */
     .intro-section {
         padding: 3rem 0;
     }
@@ -1151,11 +1124,7 @@ html::-webkit-scrollbar {
         font-size: 1rem;
     }
 
-    .cta-button {
-        padding: 0.8rem 2rem;
-        font-size: 1.1rem;
-    }
-    /* Intro 1 Section End */
+    
     .info-box {
         padding: 2rem;
     }
@@ -1228,7 +1197,7 @@ html::-webkit-scrollbar {
     .heading-description {
         max-width: 95%;
     }
-    /* About Section Start */
+
     .feature-card {
         padding: 1.5rem;
     }
@@ -1236,9 +1205,7 @@ html::-webkit-scrollbar {
     .section-title {
         font-size: 1.75rem;
     }
-    /* About Section End */
 
-    /* Intro 1 Section Start */
     .intro-image {
         height: 250px;
     }
@@ -1246,7 +1213,7 @@ html::-webkit-scrollbar {
     .section-title {
         font-size: 1.75rem;
     }
-    /* Intro 1 Section End */
+
     .demo-title {
         font-size: 1.5rem;
     }
@@ -1288,25 +1255,12 @@ html::-webkit-scrollbar {
         height: 20px;
     }
 
-    .signup-button {
-        padding: 0.4rem 1.2rem;
-        font-size: 0.9rem;
-    }
-
-    .cta-button {
-        padding: 0.7rem 1.8rem;
-        font-size: 1rem;
-    }
-    /* About Section */
-    
-    /* End of About Section */
-    
 }
 @media (max-width: 390px) {
     .nav-links {
         gap: 0.5rem;
     }
-    .login-link, .signup-button{
+    .login-link {
         font-size: 0.9rem;
     }
     

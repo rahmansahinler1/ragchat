@@ -2,12 +2,17 @@ from fastapi import FastAPI, Request, Cookie
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
+import os
 
 from .api import endpoints
 from .db.database import Database
 
-
 app = FastAPI(title="ragchat")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("MIDDLEWARE_SECRET_KEY"),
+)
 app.router.timeout = 300
 app.include_router(endpoints.router, prefix="/api/v1", tags=["files"])
 app.mount("/static", StaticFiles(directory="static"), name="static")

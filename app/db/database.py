@@ -364,26 +364,38 @@ class Database:
     def insert_user_info(
         self,
         user_id: str,
+        google_id: str,
         user_name: str,
         user_surname: str,
         user_password: str,
         user_email: str,
+        picture_url: str,
+        refresh_token: str,
+        access_token: str,
         user_type: str,
         is_active: bool,
     ):
-        query_insert_user_info = """
-        INSERT INTO user_info (user_id, user_name, user_surname, user_password, user_email, user_type, is_active)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        query = """
+        INSERT INTO user_info (
+            user_id, google_id, user_name, user_surname, user_password,
+            user_email, picture_url, refresh_token, access_token,
+            user_type, is_active
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         try:
             self.cursor.execute(
-                query_insert_user_info,
+                query,
                 (
                     user_id,
+                    google_id,
                     user_name,
                     user_surname,
                     user_password,
                     user_email,
+                    picture_url,
+                    refresh_token,
+                    access_token,
                     user_type,
                     is_active,
                 ),
