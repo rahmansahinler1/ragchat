@@ -37,25 +37,31 @@ class Encryptor:
         except Exception as e:
             raise ValueError(f"Invalid encryption key format: {str(e)}")
 
-    def encrypt(self, sentences: List[str], chunk_size=1000) -> List[str]:
-        encrypted_sentences = []
-        for index in range(0, len(sentences), chunk_size):
-            nonce = os.urandom(12)
-            encrypted_data = self.aesgcm.encrypt(
-                nonce, sentences[index].encode("utf-8")
-            )
-            combined_encrypt = nonce + encrypted_data
-            encrypted_sentence = base64.b64encode(combined_encrypt).decode("utf-8")
-            encrypted_sentences.append(encrypted_sentence)
+    def encrypt(self, sentences: List[str]) -> List[str]:
+        try:
+            encrypted_sentences = []
+            for index in range(0, len(sentences)):
+                nonce = os.urandom(12)
+                encrypted_data = self.aesgcm.encrypt(
+                    nonce, sentences[index].encode("utf-8"), None
+                )
+                combined_encrypt = nonce + encrypted_data
+                encrypted_sentence = base64.b64encode(combined_encrypt).decode("utf-8")
+                encrypted_sentences.append(encrypted_sentence)
 
-        return encrypted_sentences
+            return encrypted_sentences
+        except Exception as e:
+            raise e
 
-    def decrypt(self, encrypted_data: str):
-        decoded_text = base64.b64decode(encrypted_data.encode("utf-8"))
-        nonce = decoded_text[12:]
-        encrypted_text = decoded_text[:12]
-        decrypted_data = self.aesgcm.decrypt(nonce, encrypted_text)
-        return decrypted_data.decode("utf-8")
+    def decrypt(self, encrypted_data: str) -> str:
+        try:
+            decoded_text = base64.b64decode(encrypted_data.encode("utf-8"))
+            nonce = decoded_text[:12]
+            encrypted_text = decoded_text[12:]
+            decrypted_data = self.aesgcm.decrypt(nonce, encrypted_text, None)
+            return decrypted_data.decode("utf-8")
+        except Exception as e:
+            raise e
 
 
 class Processor:
