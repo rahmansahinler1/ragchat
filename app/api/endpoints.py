@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, HTTPException, Request, Query, File, 
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from google_auth_oauthlib.flow import Flow
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from datetime import datetime
 import os
 import logging
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # environment variables
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI_DEV")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
 
 # request functions
@@ -726,12 +726,13 @@ async def google_callback(request: Request):
             user_info = db.get_user_info_w_email(user_email=id_info["email"])
             if not user_info:
                 user_id = str(uuid.uuid4())
+                first_time = 1
                 db.insert_user_info(
                     user_id=user_id,
                     google_id=id_info["sub"],
                     user_name=id_info.get("given_name", ""),
                     user_surname=id_info.get("family_name", ""),
-                    user_password="",
+                    user_password="123456seven",
                     user_email=id_info["email"],
                     picture_url=id_info["picture"],
                     refresh_token=str(uuid.uuid4()),
@@ -741,15 +742,19 @@ async def google_callback(request: Request):
                 )
             else:
                 user_id = user_info["user_id"]
+                first_time = 0
 
             session_id = str(uuid.uuid4())
             db.insert_session_info(user_id, session_id=session_id)
             db.conn.commit()
 
-        response = JSONResponse(
-            content={"message": "success", "session_id": session_id},
-            status_code=200,
+        # Create redirect response
+        response = RedirectResponse(
+            url=f"/chat/{session_id}",
+            status_code=303,
         )
+
+        # Set cookies before redirect
         response.set_cookie(
             key="session_id",
             value=session_id,
@@ -757,10 +762,16 @@ async def google_callback(request: Request):
             secure=True,
             samesite="lax",
         )
+        response.set_cookie(
+            key="first_time",
+            value=str(first_time),
+            httponly=False,
+        )
 
         return response
 
     except Exception as e:
+        # You might want to redirect to an error page instead
         raise HTTPException(status_code=500, detail=f"Authentication failed: {e}")
 
 
