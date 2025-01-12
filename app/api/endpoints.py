@@ -416,7 +416,7 @@ async def upload_files(userID: str = Query(...)):
                         (
                             file_id,
                             encryptor.encrypt(
-                                text=upload_data["sentences"][i], file_id=file_id
+                                text=upload_data["sentences"][i], auth_data=file_id
                             ),
                             upload_data["page_numbers"][i],
                             upload_data["is_headers"][i],
@@ -590,7 +590,7 @@ async def signup(
                     user_name=user_name,
                     user_surname=user_surname,
                     user_password=authenticator.hash_password(user_password),
-                    user_email=user_email,
+                    user_email=encryptor.encrypt(user_email, user_id),
                     user_type="trial",
                     is_active=True,
                 )

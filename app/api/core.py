@@ -37,11 +37,11 @@ class Encryptor:
         except Exception as e:
             raise ValueError(f"Invalid encryption key format: {str(e)}")
 
-    def encrypt(self, text: str, file_id) -> str:
+    def encrypt(self, text: str, auth_data) -> str:
         try:
             nonce = os.urandom(12)
             encrypted_data = self.aesgcm.encrypt(
-                nonce, text.encode("utf-8"), file_id.encode("utf-8")
+                nonce, text.encode("utf-8"), auth_data.encode("utf-8")
             )
             combined_encrypt = nonce + encrypted_data
             encrypted_sentence = base64.b64encode(combined_encrypt).decode("utf-8")
@@ -49,13 +49,13 @@ class Encryptor:
         except Exception as e:
             raise e
 
-    def decrypt(self, encrypted_data: str, file_id) -> str:
+    def decrypt(self, encrypted_data: str, auth_data) -> str:
         try:
             decoded_text = base64.b64decode(encrypted_data.encode("utf-8"))
             nonce = decoded_text[:12]
             encrypted_text = decoded_text[12:]
             decrypted_data = self.aesgcm.decrypt(
-                nonce, encrypted_text, file_id.encode("utf-8")
+                nonce, encrypted_text, auth_data.encode("utf-8")
             )
             return decrypted_data.decode("utf-8")
         except Exception as e:
