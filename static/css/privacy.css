@@ -38,53 +38,43 @@ body {
 
 /* Section styles */
 .terms-section {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .section-header {
     font-size: 1.5rem;
     font-weight: 500;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
     color: #F8F9FA;
-}
-
-.section-content {
-    color: #F8F9FA;
-    opacity: 0.9;
-    margin-bottom: 0.5rem;
-    white-space: pre-line;
 }
 
 /* Subsection styles */
 .subsection {
+    margin-top: 0.75rem;
+    margin-bottom: 0rem;
     margin-left: 1.5rem;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
     font-weight: 500;
     color: #F8F9FA;
 }
 
-/* Section Content spacing */
+/* Content styles */
 .section-content {
     color: #F8F9FA;
     opacity: 0.9;
-    margin-bottom: 0.5rem;
-    line-height: 2;
-}
-
-.section-content:last-child {
-    margin-bottom: 0;
+    margin-bottom: 0.75rem;
+    margin-left: 1.5rem;
+    line-height: 1.8;
+    white-space: pre-line;
 }
 
 /* Link styles */
 a {
     color: #10B981;
-    text-decoration: underline;
-    opacity: 0.9;
+    text-decoration: none;
 }
 
 a:hover {
-    opacity: 1;
+    text-decoration: underline;
 }
 
 /* Warning text styles */
@@ -105,13 +95,6 @@ a:hover {
 
 .warning-text a:hover {
     text-decoration: underline;
-}
-
-/* Section numbers */
-.section-number {
-    color: #F8F9FA;
-    opacity: 0.8;
-    margin-right: 0.5rem;
 }
 
 /* Responsive styles */
