@@ -37,28 +37,26 @@ class Encryptor:
         except Exception as e:
             raise ValueError(f"Invalid encryption key format: {str(e)}")
 
-    def encrypt(self, sentences: List[str]) -> List[str]:
+    def encrypt(self, text: str, file_id) -> str:
         try:
-            encrypted_sentences = []
-            for index in range(0, len(sentences)):
-                nonce = os.urandom(12)
-                encrypted_data = self.aesgcm.encrypt(
-                    nonce, sentences[index].encode("utf-8"), None
-                )
-                combined_encrypt = nonce + encrypted_data
-                encrypted_sentence = base64.b64encode(combined_encrypt).decode("utf-8")
-                encrypted_sentences.append(encrypted_sentence)
-
-            return encrypted_sentences
+            nonce = os.urandom(12)
+            encrypted_data = self.aesgcm.encrypt(
+                nonce, text.encode("utf-8"), file_id.encode("utf-8")
+            )
+            combined_encrypt = nonce + encrypted_data
+            encrypted_sentence = base64.b64encode(combined_encrypt).decode("utf-8")
+            return encrypted_sentence
         except Exception as e:
             raise e
 
-    def decrypt(self, encrypted_data: str) -> str:
+    def decrypt(self, encrypted_data: str, file_id) -> str:
         try:
             decoded_text = base64.b64decode(encrypted_data.encode("utf-8"))
             nonce = decoded_text[:12]
             encrypted_text = decoded_text[12:]
-            decrypted_data = self.aesgcm.decrypt(nonce, encrypted_text, None)
+            decrypted_data = self.aesgcm.decrypt(
+                nonce, encrypted_text, file_id.encode("utf-8")
+            )
             return decrypted_data.decode("utf-8")
         except Exception as e:
             raise e
@@ -72,6 +70,7 @@ class Processor:
         self.rf = ReadingFunctions()
         self.indf = IndexingFunctions()
         self.cf = ChatbotFunctions()
+        self.en = Encryptor()
 
     def create_index(self, embeddings: np.ndarray, index_type: str = "flat"):
         if index_type == "flat":
@@ -365,12 +364,17 @@ class Processor:
 
         for i, tuple in enumerate(merged_truples):
             if tuple[0] == tuple[1]:
-                windened_sentence = " ".join(domain_content[tuple[0]][0])
+                windened_sentence = " ".join(
+                    self.en.decrypt(
+                        domain_content[tuple[0]][0], domain_content[tuple[0]][4]
+                    )
+                )
                 context += f"Context{i + 1}: File:{resources['file_names'][i]}, Confidence:{(len(sentence_index_list) - i) / len(sentence_index_list)}, Table\n{windened_sentence}\n"
                 context_windows.append(windened_sentence)
             else:
                 windened_sentence = " ".join(
-                    domain_content[index][0] for index in range(tuple[0], tuple[1] + 1)
+                    self.en.decrypt(domain_content[index][0], domain_content[index][4])
+                    for index in range(tuple[0], tuple[1] + 1)
                 )
                 context += f"Context{i + 1}: File:{resources['file_names'][i]}, Confidence:{(len(sentence_index_list) - i) / len(sentence_index_list)}, {windened_sentence}\n\n"
                 context_windows.append(windened_sentence)

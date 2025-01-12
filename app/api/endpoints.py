@@ -338,9 +338,6 @@ async def store_file(
             sentences=file_data["sentences"]
         )
 
-        # Create sentence encryptions
-        file_encryptions = encryptor.encrypt(sentences=file_data["sentences"])
-
         # Store in Redis
         redis_key = f"user:{userID}:upload:{file.filename}"
         upload_data = {
@@ -348,7 +345,7 @@ async def store_file(
             "last_modified": datetime.fromtimestamp(int(lastModified) / 1000).strftime(
                 "%Y-%m-%d"
             )[:20],
-            "sentences": file_encryptions,
+            "sentences": file_data["sentences"],
             "page_numbers": file_data["page_number"],
             "is_headers": file_data["is_header"],
             "is_tables": file_data["is_table"],
@@ -418,7 +415,9 @@ async def upload_files(userID: str = Query(...)):
                     file_content_batch.append(
                         (
                             file_id,
-                            upload_data["sentences"][i],
+                            encryptor.encrypt(
+                                text=upload_data["sentences"][i], file_id=file_id
+                            ),
                             upload_data["page_numbers"][i],
                             upload_data["is_headers"][i],
                             upload_data["is_tables"][i],
