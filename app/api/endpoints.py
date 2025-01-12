@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # environment variables
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI_DEV")
 
 
 # request functions
@@ -658,7 +658,6 @@ async def google_login(request: Request):
                     "redirect_uris": [GOOGLE_REDIRECT_URI],
                 }
             },
-            # Use full scope URLs
             scopes=[
                 "https://www.googleapis.com/auth/userinfo.email",
                 "https://www.googleapis.com/auth/userinfo.profile",
@@ -671,12 +670,26 @@ async def google_login(request: Request):
             access_type="offline", include_granted_scopes="true"
         )
 
-        request.session["oauth_state"] = state
-        return {"authorization_url": authorization_url}
+        # Create response with authorization URL
+        response = JSONResponse({"authorization_url": authorization_url})
+
+        # Set state in secure cookie
+        response.set_cookie(
+            key="oauth_state",
+            value=state,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=300,
+        )
+
+        return response
 
     except Exception as e:
         print(f"Login error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return RedirectResponse(
+            url="/login?error=authentication_failed", status_code=303
+        )
 
 
 @router.get("/auth/callback")
@@ -686,15 +699,15 @@ async def google_callback(request: Request):
         code = request.query_params.get("code")
 
         if not state or not code:
-            raise HTTPException(
-                status_code=400, detail="Missing state or code parameter"
+            return RedirectResponse(
+                url="/login?error=missing_parameters", status_code=303
             )
 
-        stored_state = request.session.get("oauth_state")
+        # Get state from cookie
+        stored_state = request.cookies.get("oauth_state")
         if not stored_state or stored_state != state:
-            raise HTTPException(status_code=400, detail="Invalid state parameter")
+            return RedirectResponse(url="/login?error=invalid_state", status_code=303)
 
-        # Create minimal flow just for token exchange
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -705,7 +718,6 @@ async def google_callback(request: Request):
                     "redirect_uris": [GOOGLE_REDIRECT_URI],
                 }
             },
-            # Use same full scope URLs
             scopes=[
                 "https://www.googleapis.com/auth/userinfo.email",
                 "https://www.googleapis.com/auth/userinfo.profile",
@@ -716,12 +728,10 @@ async def google_callback(request: Request):
         flow.redirect_uri = GOOGLE_REDIRECT_URI
         flow.fetch_token(code=code)
 
-        # Get minimal user info needed
         id_info = id_token.verify_oauth2_token(
             flow.credentials.id_token, requests.Request(), GOOGLE_CLIENT_ID
         )
 
-        # Database operations
         with Database() as db:
             user_info = db.get_user_info_w_email(user_email=id_info["email"])
             if not user_info:
@@ -748,13 +758,12 @@ async def google_callback(request: Request):
             db.insert_session_info(user_id, session_id=session_id)
             db.conn.commit()
 
-        # Create redirect response
         response = RedirectResponse(
             url=f"/chat/{session_id}",
             status_code=303,
         )
 
-        # Set cookies before redirect
+        # Set session cookies
         response.set_cookie(
             key="session_id",
             value=session_id,
@@ -768,11 +777,16 @@ async def google_callback(request: Request):
             httponly=False,
         )
 
+        # Clear the oauth state cookie
+        response.delete_cookie(key="oauth_state")
+
         return response
 
     except Exception as e:
-        # You might want to redirect to an error page instead
-        raise HTTPException(status_code=500, detail=f"Authentication failed: {e}")
+        print(f"Authentication error: {e}")
+        return RedirectResponse(
+            url="/login?error=authentication_failed", status_code=303
+        )
 
 
 # local functions
