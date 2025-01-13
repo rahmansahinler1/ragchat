@@ -1315,6 +1315,92 @@ class ChatManager extends Component {
         return `<div class="message-content">${formattedText}</div>`;
       }
 
+    convertMarkdownToHtmlTable(content) {
+        console.log(content)
+    if (!content.includes('|')) {
+        return content;
+    }
+
+    const tableRegex = /\|[^\|]+(?:\|[^\|]+)*\|/g;
+    let lastIndex = 0;
+    let segments = [];
+    let match;
+
+    tableRegex.lastIndex = 0;
+    
+    while ((match = tableRegex.exec(content)) !== null) {
+        if (match.index > lastIndex) {
+            const textContent = content.substring(lastIndex, match.index).trim();
+            if (textContent) {
+                segments.push(`<div class="description-content">${textContent}</div>`);
+            }
+        }
+        
+        // Process table content
+        const tableContent = match[0];
+        const cleanTableContent = tableContent.replace(/^\*\*\d+\*\*\s*/, '');
+
+        const rows = tableContent
+            .trim()
+            .split('\n')
+            .filter(row => {
+                const cleanRow = row.replace(/[|\s-]/g, '');
+                return cleanRow.length > 0;
+            });
+
+        let htmlTable = '<div class="table-wrapper"><table class="resource-table">';
+        
+        rows.forEach((row, rowIndex) => {
+            const cells = row
+                .split('|')
+                .filter(cell => cell.trim())
+                .map(cell => {
+                    const cleanCell = cell.trim();
+                        if (cleanCell.match(/^-+$/)) return '';
+                        return cleanCell
+                         // Handle any type of subscript (letter followed by number)
+                         .replace(/\s+/g, ' ')
+                         // Handle numeric values with units
+                         .replace(/(\d+\.?\d*)\s*([A-Za-z²³/]+)/, '<span class="numeric">$1</span> <span class="unit">$2</span>')
+                         // Handle row identifiers
+                         .replace(/^\(([i\d]+)\)/, '<span class="identifier">($1)</span>');
+                });
+                
+            htmlTable += '<tr>';
+            cells.forEach(cell => {
+                if (!cell) return;
+                const cellTag = rowIndex === 0 ? 'th' : 'td';
+                const className = [];
+                
+                // Add alignment class for numeric cells
+                if (cell.includes('class="numeric"') || !isNaN(cell.replace(/[^\d.-]/g, ''))) {
+                    className.push('align-right');
+                }
+                
+                // Add class for identifier cells
+                if (cell.includes('class="identifier"')) {
+                    className.push('indent-cell');
+                }
+                htmlTable += `<${cellTag}${className.length ? ` class="${className.join(' ')}"` : ''}>${cell}</${cellTag}>`;
+            });
+            htmlTable += '</tr>';
+        });
+        
+        htmlTable += '</table></div>';
+        segments.push(htmlTable);
+        lastIndex = match.index + match[0].length;
+    }
+    
+    if (lastIndex < content.length) {
+        const remainingText = content.substring(lastIndex).trim();
+        if (remainingText) {
+            segments.push(`<div class="description-content">${remainingText}</div>`);
+            }
+        }
+    
+    return segments.join('');
+    }
+
     updateResources(resources, sentences) {
         const container = document.querySelector('.resources-list');
         container.innerHTML = '';
@@ -1326,6 +1412,7 @@ class ChatManager extends Component {
         sentences.forEach((sentence, index) => {
             const item = document.createElement('div');
             item.className = 'resource-item';
+            const content = this.convertMarkdownToHtmlTable(sentence);
                 
             item.innerHTML = `
                 <div class="source-info">
@@ -1340,7 +1427,9 @@ class ChatManager extends Component {
                         <div class="bullet-line"></div>
                         <div class="bullet-number">${index + 1}</div>
                     </div>
-                    <p class="description">${sentence}</p>
+                    <div class="description">
+                    ${content}
+                    </div>
                 </div>
             `;
                 
