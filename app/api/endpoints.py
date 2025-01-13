@@ -750,6 +750,17 @@ async def google_callback(request: Request):
                     user_type="user",
                     is_active=True,
                 )
+
+                # Deafult domain creation
+                domain_id = str(uuid.uuid4())
+                db.insert_domain_info(
+                    user_id=user_id,
+                    domain_id=domain_id,
+                    domain_name="My First Domain",
+                    domain_type=0,
+                )
+                db.insert_user_guide(user_id=user_id, domain_id=domain_id)
+
             else:
                 user_id = user_info["user_id"]
                 first_time = 0
