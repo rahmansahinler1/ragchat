@@ -1316,7 +1316,6 @@ class ChatManager extends Component {
       }
 
     convertMarkdownToHtmlTable(content) {
-        console.log(content)
     if (!content.includes('|')) {
         return content;
     }
@@ -1338,7 +1337,6 @@ class ChatManager extends Component {
         
         // Process table content
         const tableContent = match[0];
-        const cleanTableContent = tableContent.replace(/^\*\*\d+\*\*\s*/, '');
 
         const rows = tableContent
             .trim()
