@@ -1335,12 +1335,12 @@ class ChatManager extends Component {
             }
         }
         
-        // Process table content
         const tableContent = match[0];
 
         const rows = tableContent
             .trim()
             .split('\n')
+            .slice(1)
             .filter(row => {
                 const cleanRow = row.replace(/[|\s-]/g, '');
                 return cleanRow.length > 0;
@@ -1370,12 +1370,10 @@ class ChatManager extends Component {
                 const cellTag = rowIndex === 0 ? 'th' : 'td';
                 const className = [];
                 
-                // Add alignment class for numeric cells
                 if (cell.includes('class="numeric"') || !isNaN(cell.replace(/[^\d.-]/g, ''))) {
                     className.push('align-right');
                 }
                 
-                // Add class for identifier cells
                 if (cell.includes('class="identifier"')) {
                     className.push('indent-cell');
                 }
