@@ -12,6 +12,7 @@ import psycopg2
 
 from .core import Processor
 from .core import Authenticator
+from .core import Encryptor
 from ..db.database import Database
 from ..redis_manager import RedisManager, RedisConnectionError
 
@@ -20,6 +21,7 @@ router = APIRouter()
 processor = Processor()
 authenticator = Authenticator()
 redis_manager = RedisManager()
+encryptor = Encryptor()
 
 # logger
 logging.basicConfig(level=logging.INFO)
@@ -424,7 +426,9 @@ async def upload_files(userID: str = Query(...)):
                     file_content_batch.append(
                         (
                             file_id,
-                            upload_data["sentences"][i],
+                            encryptor.encrypt(
+                                text=upload_data["sentences"][i], auth_data=file_id
+                            ),
                             upload_data["page_numbers"][i],
                             upload_data["is_headers"][i],
                             upload_data["is_tables"][i],
@@ -598,7 +602,7 @@ async def signup(
                     user_name=user_name,
                     user_surname=user_surname,
                     user_password=authenticator.hash_password(user_password),
-                    user_email=user_email,
+                    user_email=encryptor.encrypt(user_email, user_id),
                     user_type="trial",
                     is_active=True,
                     refresh_token=str(uuid.uuid4()),
