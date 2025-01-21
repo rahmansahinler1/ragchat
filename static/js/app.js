@@ -33,6 +33,33 @@ class Component {
     destroy() {
         this.element.remove();
     }
+
+    translation() {
+        if (!this.element) {
+            console.warn('No element available for translation');
+            return;
+        }
+
+        const currentLang = localStorage.getItem('language') || 'EN';
+        const pageName = this.pageContext || 'app';
+
+        // Translate all elements with data-lang-key within this component
+        this.element.querySelectorAll('[data-lang-key]').forEach(el => {
+            const key = el.getAttribute('data-lang-key');
+            try {
+                const translation = window.translations[currentLang][pageName][key];
+                if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'textarea') {
+                    // If it's an input or textarea, update the placeholder
+                    el.setAttribute('placeholder', translation);
+                } else {
+                    // Otherwise, update the innerHTML
+                    el.innerHTML = translation;
+                }
+            } catch (error) {
+                console.error(`Translation error for key ${key}:`, error);
+            }
+        });
+    }
 }
 
 class FileBasket {
@@ -314,7 +341,7 @@ class DomainSettingsModal extends Component {
                 <div class="modal-content">
                     <div class="domain-modal-wrapper">
                         <div class="domain-header">
-                            <h5>Select Domain</h5>
+                            <h5 data-lang-key="select_domain">Select Domain</h5>
                             <button type="button" class="close-button" data-bs-dismiss="modal">
                                 <i class="bi bi-x"></i>
                             </button>
@@ -322,7 +349,7 @@ class DomainSettingsModal extends Component {
 
                         <div class="domain-search">
                             <i class="bi bi-search"></i>
-                            <input type="text" placeholder="Search domains..." class="domain-search-input" id="domainSearchInput">
+                            <input type="text" data-lang-key="search_domains" placeholder="Search domains..." class="domain-search-input" id="domainSearchInput">
                         </div>
 
                         <div class="domains-container" id="domainsContainer">
@@ -331,11 +358,11 @@ class DomainSettingsModal extends Component {
 
                         <button class="new-domain-button" id="newDomainBtn">
                             <i class="bi bi-plus-circle"></i>
-                            Create New Domain
+                            <span data-lang-key="create_new_domain">Create New Domain</span>
                         </button>
 
                         <button class="select-button">
-                            Select Domain
+                            <span data-lang-key="select_domain">Select Domain</span>
                         </button>
                     </div>
                 </div>
@@ -386,6 +413,7 @@ class DomainSettingsModal extends Component {
         `;
 
         document.body.appendChild(this.element);
+        this.translation();
     }
 
     setupEventListeners() {
@@ -766,7 +794,7 @@ class FileUploadModal extends Component {
                     <div class="domain-modal-wrapper">
                         <div class="modal-header border-0 d-flex align-items-center">
                             <div>
-                                <h6 class="mb-0">Selected Domain: <span class="domain-name text-primary-green text-truncate"></span></h6>
+                                <h6 class="mb-0"><span data-lang-key="selected_domain">Selected Domain:</span> <span class="domain-name text-primary-green text-truncate"></span></h6>
                             </div>
                             <button type="button" class="close-button" data-bs-dismiss="modal">
                                 <i class="bi bi-x"></i>
@@ -783,15 +811,17 @@ class FileUploadModal extends Component {
                                             <i class="bi bi-cloud-upload text-primary-green"></i>
                                         </div>
                                     </div>
-                                    <h5 class="mb-2">Upload Files</h5>
-                                    <p class="mb-3">Drag & drop or <span class="text-primary-green choose-text">choose files</span> to upload</p>
-                                    <small class="text-secondary">Supported file types: PDF, DOCX, XLSX, PPTX, UDF and TXT</small>
+                                    <h5 class="mb-2">
+                                    <span data-lang-key="upload_files">Upload Files</span>
+                                    </h5>
+                                    <p class="mb-3"><span data-lang-key="drag_drop">Drag & drop or</span> <span class="text-primary-green choose-text" data-lang-key="choose_files">choose files</span> <span data-lang-key="to_upload">to upload</span></p>
+                                    <small class="text-secondary" data-lang-key="supported_file">Supported file types: PDF, DOCX, XLSX, PPTX, UDF and TXT</small>
                                     <input type="file" id="fileInput" multiple accept=".pdf,.docx,.xlsx,.pptx,,.udf,.txt" class="d-none">
                                 </div>
                             </div>
 
                             <button class="upload-btn mt-3" id="uploadBtn" disabled>
-                                Upload
+                                <span data-lang-key="upload">Upload</span>
                                 <div class="upload-progress">
                                     <div class="progress-bar"></div>
                                 </div>
@@ -800,11 +830,11 @@ class FileUploadModal extends Component {
                             <div class="upload-loading-overlay" style="display: none">
                                 <div class="loading-content">
                                     <div class="spinner-border text-primary-green mb-3" role="status">
-                                        <span class="visually-hidden">Loading...</span>
+                                        <span class="visually-hidden" data-lang-key="loading">Loading...</span>
                                     </div>
-                                    <h5 class="mb-2">Uploading Files...</h5>
-                                    <p class="text-center mb-0">Please wait for ragchat to process your files</p>
-                                    <p class="text-center text-secondary">This might take a moment depending on file size</p>
+                                    <h5 class="mb-2"><span data-lang-key="uploading">Uploading Files...</span></h5>
+                                    <p class="text-center mb-0"><span data-lang-key="please_wait">Please wait for ragchat to process your files</span></p>
+                                    <p class="text-center text-secondary"><span data-lang-key="this_might">This might take a moment depending on file size</span></p>
                                 </div>
                             </div>
                         </div>
@@ -814,6 +844,7 @@ class FileUploadModal extends Component {
         `;
 
         document.body.appendChild(this.element);
+        this.translation();
     }
 
     setupEventListeners() {
@@ -1090,6 +1121,7 @@ class FileUploadModal extends Component {
             uploadArea.style.display = 'none';
             uploadBtn.disabled = false;
             this.ensureAddMoreFilesButton(fileList);
+            this.translation();
         } else {
             uploadArea.style.display = 'flex';
             uploadBtn.disabled = true;
@@ -1104,7 +1136,7 @@ class FileUploadModal extends Component {
             addFileBtn.className = 'add-file-btn';
             addFileBtn.innerHTML = `
                 <i class="bi bi-plus-circle"></i>
-                Add More Files
+                 <span data-lang-key="add_more_files">Add More Files</span>
             `;
             addFileBtn.addEventListener('click', () => {
                 if (!this.isUploading) {
@@ -1150,6 +1182,7 @@ class ChatManager extends Component {
         
         this.messageContainer = this.element.querySelector('.chat-messages');
         this.setupMessageInput();
+        this.translation();
     }
 
     setupMessageInput() {
@@ -1263,8 +1296,11 @@ class ChatManager extends Component {
         const headerTitle = document.querySelector('.header-title');
         if (!headerTitle) return;
         
+        const currentLang = localStorage.getItem('language') || 'EN';
+        const chat_with = window.translations[currentLang]['app']['chat_with'] || "Chat with";
+
         if (domainName) {
-            headerTitle.innerHTML = `Chat with <span style="color: #10B981; font-size: 1.1em;">${domainName}</span>`;
+            headerTitle.innerHTML = `${chat_with} <span style="color: #10B981; font-size: 1.1em;">${domainName}</span>`;
         } else {
             headerTitle.textContent = 'Chat';
         }
@@ -1277,7 +1313,7 @@ class ChatManager extends Component {
             <div class="message-bubble ai-bubble">
                 <div class="message-text">
                     <div class="spinner-border text-light" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden"  data-lang-key="loading">Loading...</span>
                     </div>
                 </div>
             </div>
@@ -1315,6 +1351,88 @@ class ChatManager extends Component {
         return `<div class="message-content">${formattedText}</div>`;
       }
 
+    convertMarkdownToHtmlTable(content) {
+        if (!content.includes('|')) {
+            return content;
+        }
+    
+        const tableRegex = /\|[^\|]+(?:\|[^\|]+)*\|/g;
+        let lastIndex = 0;
+        let segments = [];
+        let match;
+    
+        tableRegex.lastIndex = 0;
+        
+        while ((match = tableRegex.exec(content)) !== null) {
+            if (match.index > lastIndex) {
+                const textContent = content.substring(lastIndex, match.index).trim();
+                if (textContent) {
+                    segments.push(`<div class="description-content">${textContent}</div>`);
+                }
+            }
+            
+            const tableContent = match[0];
+    
+            const rows = tableContent
+                .trim()
+                .split('\n')
+                .slice(1)
+                .filter(row => {
+                    const cleanRow = row.replace(/[|\s-]/g, '');
+                    return cleanRow.length > 0;
+                });
+    
+            let htmlTable = '<div class="table-wrapper"><table class="resource-table">';
+            
+            rows.forEach((row, rowIndex) => {
+                const cells = row
+                    .split('|')
+                    .filter(cell => cell.trim())
+                    .map(cell => {
+                        const cleanCell = cell.trim();
+                            if (cleanCell.match(/^-+$/)) return '';
+                            return cleanCell
+                             // Handle any type of subscript (letter followed by number)
+                             .replace(/\s+/g, ' ')
+                             // Handle numeric values with units
+                             .replace(/(\d+\.?\d*)\s*([A-Za-z²³/]+)/, '<span class="numeric">$1</span> <span class="unit">$2</span>')
+                             // Handle row identifiers
+                             .replace(/^\(([i\d]+)\)/, '<span class="identifier">($1)</span>');
+                    });
+                    
+                htmlTable += '<tr>';
+                cells.forEach(cell => {
+                    if (!cell) return;
+                    const cellTag = rowIndex === 0 ? 'th' : 'td';
+                    const className = [];
+                    
+                    if (cell.includes('class="numeric"') || !isNaN(cell.replace(/[^\d.-]/g, ''))) {
+                        className.push('align-right');
+                    }
+                    
+                    if (cell.includes('class="identifier"')) {
+                        className.push('indent-cell');
+                    }
+                    htmlTable += `<${cellTag}${className.length ? ` class="${className.join(' ')}"` : ''}>${cell}</${cellTag}>`;
+                });
+                htmlTable += '</tr>';
+            });
+            
+            htmlTable += '</table></div>';
+            segments.push(htmlTable);
+            lastIndex = match.index + match[0].length;
+        }
+        
+        if (lastIndex < content.length) {
+            const remainingText = content.substring(lastIndex).trim();
+            if (remainingText) {
+                segments.push(`<div class="description-content">${remainingText}</div>`);
+                }
+            }
+        
+        return segments.join('');
+        }
+
     updateResources(resources, sentences) {
         const container = document.querySelector('.resources-list');
         container.innerHTML = '';
@@ -1322,17 +1440,21 @@ class ChatManager extends Component {
         if (!resources || !sentences || !resources.file_names?.length) {
             return;
         }
+
+        const currentLang = localStorage.getItem('language') || 'EN';
+        const page = window.translations[currentLang]['app']['page'] || "Page";
     
         sentences.forEach((sentence, index) => {
             const item = document.createElement('div');
             item.className = 'resource-item';
+            const content = this.convertMarkdownToHtmlTable(sentence);
                 
             item.innerHTML = `
                 <div class="source-info">
                     <span class="document-name">${resources.file_names[index]}</span>
                     <span class="page-number">
                         <i class="bi bi-file-text"></i>
-                        Page ${resources.page_numbers[index]}
+                        ${page} ${resources.page_numbers[index]}
                     </span>
                 </div>
                 <div class="content-wrapper">
@@ -1340,7 +1462,9 @@ class ChatManager extends Component {
                         <div class="bullet-line"></div>
                         <div class="bullet-number">${index + 1}</div>
                     </div>
-                    <p class="description">${sentence}</p>
+                     <div class="description">
+                    ${content}
+                    </div>
                 </div>
             `;
                 
@@ -1358,7 +1482,8 @@ class ChatManager extends Component {
         const button = document.querySelector('.send-button');
         input.disabled = false;
         button.disabled = false;
-        input.placeholder = "Find your answer...";
+        const currentLang = localStorage.getItem('language') || 'EN';
+        input.placeholder = window.translations[currentLang]['app']['find_your_answer'] || "Find your answer...";
     }
 
     disableChat() {
@@ -1367,7 +1492,8 @@ class ChatManager extends Component {
         const button = document.querySelector('.send-button');
         input.disabled = true;
         button.disabled = true;
-        input.placeholder = "Select your domain to start chat...";
+        const currentLang = localStorage.getItem('language') || 'EN';
+        input.placeholder = window.translations[currentLang]['app']['chat_place_holder'] || "Select your domain to start chat...";
     }
 
     clearDefaultMessage() {
@@ -1405,7 +1531,7 @@ class Sidebar extends Component {
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-folder empty-folder"></i>
-                            <span class="d-xl-block selected-domain-text">Unselected</span>
+                            <span class="d-xl-block selected-domain-text" data-lang-key="unselected">Unselected</span>
                         </div>
                         <i class="bi bi-gear settings-icon"></i>
                     </div>
@@ -1416,9 +1542,9 @@ class Sidebar extends Component {
                     </div>
                     <div class="file-add">
                         <button class="open-file-btn">
-                            Upload Files
+                            <span data-lang-key="upload_files">Upload Files</span>
                         </button>
-                        <p class="helper-text">
+                        <p class="helper-text" data-lang-key="sidebar_helper_text">
                             Select domain first on ⚙️
                         </p>
                     </div>
@@ -1426,7 +1552,7 @@ class Sidebar extends Component {
 
                 <div class="bottom-section mt-auto">
                     <div class="text-center mb-3">
-                        <span class="plan-badge d-xl-block">Free Plan</span>
+                        <span class="plan-badge d-xl-block" data-lang-key="free_plan">Free Plan</span>
                     </div>
                     <div class="user-section d-flex align-items-center gap-3 mb-3" role="button" id="userProfileMenu">
                         <div class="user-avatar">i</div>
@@ -1440,22 +1566,22 @@ class Sidebar extends Component {
                         <div class="user-menu">
                             <div class="menu-item">
                                 <i class="bi bi-person-circle"></i>
-                                Profile
+                                <span data-lang-key="profile">Profile</span>
                             </div>
-                            <div class="menu-item">
-                                <i class="bi bi-gear"></i>
-                                Settings
+                            <div class="menu-item" >
+                                <i class="bi bi-gear" ></i>
+                                <span data-lang-key="settings">Settings</span>
                             </div>
                             <div class="menu-divider"></div>
                             <div class="menu-item logout-item">
                                 <i class="bi bi-box-arrow-right"></i>
-                                Logout
+                                <span data-lang-key="logout_button">Logout</span>
                             </div>
                         </div>
                     </div>
                     <div class="bottom-links justify-content-center">
-                        <a href="#" class="premium-link">Go Premium!</a>
-                        <a href="#">Feedback</a>
+                        <a href="#" class="premium-link" data-lang-key="go_premium">Go Premium!</a>
+                        <a href="#" data-lang-key="feedback">Feedback</a>
                     </div>
                 </div>
                 <div id="sidebar-seperator"></div>
@@ -1466,6 +1592,7 @@ class Sidebar extends Component {
         this.backdrop = document.createElement('div');
         this.backdrop.className = 'sidebar-backdrop';
         document.body.appendChild(this.backdrop);
+        this.translation();
     }
 
     setupEventListeners() {
@@ -1858,42 +1985,44 @@ class FeedbackModal extends Component {
         this.element.innerHTML = `
             <div class="feedback-modal-content">
                 <div class="feedback-modal-header">
-                    <h3>Send Feedback</h3>
+                    <h3 data-lang-key="send_feedback">Send Feedback</h3>
                     <button class="close-modal">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="feedback-modal-description">
-                    <p>Your feedback really helps us get better!</p>
-                    <p>Please follow these steps:</p>
+                    <p data-lang-key="feedback_desc_1">Your feedback really helps us get better!</p>
+                    <p data-lang-key="feedback_desc_2">Please follow these steps:</p>
                     <ol>
-                        <li>Select the type of your feedback</li>
-                        <li>Add your description</li>
-                        <li>If it helps explain better, attach a screenshot</li>
+                        <li data-lang-key="feedback_desc_3">Select the type of your feedback</li>
+                        <li data-lang-key="feedback_desc_4">Add your description</li>
+                        <li data-lang-key="feedback_desc_5">If it helps explain better, attach a screenshot</li>
                     </ol>
                 </div>
                 <form id="feedback-form" enctype="multipart/form-data">
                     <div class="form-group">
-                        <label for="feedback-type">Type</label>
+                        <label for="feedback-type" data-lang-key="type">Type</label>
                         <select id="feedback-type" name="feedback_type" class="form-control">
-                            <option value="general">General Feedback</option>
-                            <option value="bug">Bug Report</option>
-                            <option value="feature">Feature Request</option>
+                            <option value="general" data-lang-key="type_general">General Feedback</option>
+                            <option value="bug" data-lang-key="type_bug">Bug Report</option>
+                            <option value="feature" data-lang-key="type_feature">Feature Request</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="feedback-description">Description</label>
-                        <textarea 
+                        <input
+                            type="text"
                             id="feedback-description" 
                             name="feedback_description"
                             class="form-control" 
-                            rows="4" 
+                            rows="4"
+                            data-lang-key="please_desc"
                             placeholder="Please describe your feedback or issue..."
                             required
-                        ></textarea>
+                        ></input>
                     </div>
                     <div class="form-group">
-                        <label for="feedback-screenshot">Screenshot (Optional)</label>
+                        <label for="feedback-screenshot" data-lang-key="feedback_screenshot">Screenshot (Optional)</label>
                         <input 
                             type="file" 
                             id="feedback-screenshot"
@@ -1901,17 +2030,18 @@ class FeedbackModal extends Component {
                             class="form-control" 
                             accept="image/*"
                         >
-                        <small class="form-text">Max size: 2MB</small>
+                        <small class="form-text" data-lang-key="max_size_feedback">Max size: 2MB</small>
                     </div>
                     <div class="feedback-modal-footer">
-                        <button type="button" class="btn-cancel">Cancel</button>
-                        <button type="submit" class="btn-submit">Submit Feedback</button>
+                        <button type="button" class="btn-cancel" data-lang-key="cancel_button">Cancel</button>
+                        <button type="submit" class="btn-submit" data-lang-key="submit_feedback">Submit Feedback</button>
                     </div>
                 </form>
             </div>
         `;
 
         document.body.appendChild(this.element);
+        this.translation();
     }
 
     setupEventListeners() {
@@ -2067,7 +2197,7 @@ class RatingModal extends Component {
             <div class="modal-content">
                 <div class="domain-modal-wrapper">
                     <div class="modal-header border-0">
-                        <h5 class="modal-title">How would you rate ragchat?</h5>
+                        <h5 class="modal-title" data-lang-key="">How would you rate ragchat?</h5>
                         <button type="button" class="close-button" data-bs-dismiss="modal">
                             <i class="bi bi-x"></i>
                         </button>
@@ -2086,7 +2216,9 @@ class RatingModal extends Component {
                             <textarea class="feedback-input" placeholder="Share your thoughts..."></textarea>
                         </div>
                         <div class="text-center">
-                            <button class="submit-button">Submit</button>
+                            <button class="submit-button">
+                            <span data-lang-key="rating-modal-3">Submit</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -2096,6 +2228,7 @@ class RatingModal extends Component {
 
         document.body.appendChild(this.element);
         this.modal = new bootstrap.Modal(this.element);
+        this.translation();
     }
 
     setupEventListeners() {
@@ -2487,7 +2620,10 @@ class App {
         const isFirstTime = localStorage.getItem('firstTime') === '1';
         if (isFirstTime) {
             localStorage.setItem('firstTime', 0);
-            const firstTimeMsg = `[header]Welcome to ragchat${this.userData.user_info.user_name ? `, ${this.userData.user_info.user_name}` : ''}👋[/header]\nI've automatically set up your first domain with helpful guide about using ragchat. You can always use this file to get any information about ragchat!\n[header]To get started[/header]\n- Ask any question about ragchat's features and capabilities \n- Try asking "What can ragchat do?" or "How do I organize my documents?"\n- The user guide has been uploaded to your first domain\n- All answers will include source references\n\n[header]Quick Tips[/header]\n- Open & close navigation bar by hovering\n- Click ⚙️ to manage domains and documents\n- Upload files via "Upload Files" button after selecting a domain\n- Check right panel for answer sources\n- Supports PDF, DOCX, Excel, PowerPoint, UDF and TXT formats\n- Create different domains for different topics\n- View highlighted source sections in answers\n- Use file checkboxes to control search scope`;
+            const currentLang = localStorage.getItem('language') || 'EN';
+            const welcome_to_ragchat = window.translations[currentLang]['app']['welcome_to_ragchat'] || "Welcome to ragchat";
+            const welcome_to_ragchat_message = window.translations[currentLang]['app']['welcome_to_ragchat_2'] || "I've automatically set up your first domain with helpful guide about using ragchat. You can always use this file to get any information about ragchat!\n[header]To get started[/header]\n- Ask any question about ragchat's features and capabilities \n- Try asking 'What can ragchat do?' or 'How do I organize my documents?'\n- The user guide has been uploaded to your first domain\n- All answers will include source references\n\n[header]Quick Tips[/header]\n- Open & close navigation bar by hovering\n- Click ⚙️ to manage domains and documents\n- Upload files via 'Upload Files' button after selecting a domain\n- Check right panel for answer sources\n- Supports PDF, DOCX, Excel, PowerPoint, UDF and TXT formats\n- Create different domains for different topics\n- View highlighted source sections in answers\n- Use file checkboxes to control search scope";
+            const firstTimeMsg = `[header]${welcome_to_ragchat}${this.userData.user_info.user_name ? `, ${this.userData.user_info.user_name}` : ''}👋[/header]\n${welcome_to_ragchat_message}`;
             this.chatManager.addMessage(firstTimeMsg, 'ai');
 
             const domains = this.domainManager.getAllDomains();
@@ -2497,8 +2633,11 @@ class App {
 
         } else {
             // Regular welcome message for returning users
+            const currentLang = localStorage.getItem('language') || 'EN';
+            const welcome = window.translations[currentLang]['app']['welcome'] || "Welcome";
+            const what_can = window.translations[currentLang]['app']['what_can'] || "what can I find for you?";
             this.chatManager.addMessage(
-                `Welcome ${this.userData.user_info.user_name}, what can I find for you?`, 
+                `${welcome} ${this.userData.user_info.user_name}, ${what_can}`,
                 'ai'
             );
         }
@@ -2513,6 +2652,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const resourcesTrigger = document.querySelector('.resources-trigger');
     const resourcesContainer = document.querySelector('.resources-container');
     const mainContent = document.querySelector('.chat-container'); // Ana içerik
+    const currentLang = localStorage.getItem('language') || 'EN'; // Dil seçeneği
+    const pageName = document.body.getAttribute('data-page');
+    window.setPageLanguage(currentLang, pageName);
 
     if (resourcesTrigger && resourcesContainer) {
         resourcesTrigger.addEventListener('click', () => {
