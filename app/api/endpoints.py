@@ -1,7 +1,10 @@
 from fastapi import APIRouter, UploadFile, HTTPException, Request, Query, File, Form
 from google.oauth2 import id_token
+from google.oauth2.credentials import Credentials
 from google.auth.transport import requests
 from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
 from fastapi.responses import JSONResponse, RedirectResponse
 from datetime import datetime
 import os
@@ -9,6 +12,7 @@ import logging
 import uuid
 import base64
 import psycopg2
+import io
 
 from .core import Processor
 from .core import Authenticator
@@ -375,6 +379,88 @@ async def store_file(
         )
 
 
+@router.post("/io/store_drive_file")
+async def store_drive_file(
+    userID: str = Query(...),
+    lastModified: str = Form(...),
+    driveFileId: str = Form(...),
+    driveFileName: str = Form(...),
+    accessToken: str = Form(...),
+):
+    try:
+        credentials = Credentials(
+            token=accessToken,
+            client_id=GOOGLE_CLIENT_ID,
+            client_secret=GOOGLE_CLIENT_SECRET,
+            token_uri="https://oauth2.googleapis.com/token",
+        )
+
+        drive_service = build("drive", "v3", credentials=credentials)
+        request = drive_service.files().get_media(fileId=driveFileId)
+
+        file_stream = io.BytesIO()
+        downloader = MediaIoBaseDownload(file_stream, request)
+
+        done = False
+        while not done:
+            _, done = downloader.next_chunk()
+
+        file_stream.seek(0)
+        file_bytes = file_stream.read()
+
+        if not file_bytes:
+            return JSONResponse(
+                content={
+                    "message": f"Empty file {driveFileName}. If you think not, please report this to us!"
+                },
+                status_code=400,
+            )
+
+        # Use existing reading functions
+        file_data = processor.rf.read_file(
+            file_bytes=file_bytes, file_name=driveFileName
+        )
+
+        if not file_data["sentences"]:
+            return JSONResponse(
+                content={
+                    "message": f"No content to extract in {driveFileName}. If there is please report this to us!"
+                },
+                status_code=400,
+            )
+
+        # Create embeddings
+        file_embeddings = processor.ef.create_embeddings_from_sentences(
+            sentences=file_data["sentences"]
+        )
+
+        # Store in Redis (same as regular upload)
+        redis_key = f"user:{userID}:upload:{driveFileName}"
+        upload_data = {
+            "file_name": driveFileName,
+            "last_modified": datetime.fromtimestamp(int(lastModified) / 1000).strftime(
+                "%Y-%m-%d"
+            )[:20],
+            "sentences": file_data["sentences"],
+            "page_numbers": file_data["page_number"],
+            "is_headers": file_data["is_header"],
+            "is_tables": file_data["is_table"],
+            "embeddings": file_embeddings,
+        }
+
+        redis_manager.set_data(redis_key, upload_data, expiry=3600)
+
+        return JSONResponse(
+            content={"message": "success", "file_name": driveFileName}, status_code=200
+        )
+
+    except Exception as e:
+        logging.error(f"Error storing Drive file {driveFileName}: {str(e)}")
+        return JSONResponse(
+            content={"message": f"Error storing file: {str(e)}"}, status_code=500
+        )
+
+
 @router.post("/io/upload_files")
 async def upload_files(userID: str = Query(...)):
     try:
@@ -661,6 +747,7 @@ async def google_login(request: Request):
             scopes=[
                 "https://www.googleapis.com/auth/userinfo.email",
                 "https://www.googleapis.com/auth/userinfo.profile",
+                "https://www.googleapis.com/auth/drive.readonly",
                 "openid",
             ],
         )

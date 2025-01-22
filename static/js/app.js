@@ -38,6 +38,7 @@ class Component {
 class FileBasket {
     constructor() {
         this.files = new Map();
+        this.drivefiles = new Map();
         this.uploadQueue = [];
         this.totalSize = 0;
         this.maxBatchSize = 20 * 1024 * 1024; // 20MB
@@ -47,10 +48,33 @@ class FileBasket {
     addFiles(fileList) {
         let duplicates = 0;
         Array.from(fileList).forEach(file => {
-            if (!this.files.has(file.name)) {
+            if (!this.drivefiles.has(file.name) && !this.files.has(file.name)) {
                 this.files.set(file.name, {
                     file: file,
                     lastModified: file.lastModified,
+                    status: 'pending'
+                });
+                this.uploadQueue.push(file.name);
+                this.totalSize += file.size;
+            } else {
+                duplicates++;
+            }
+        });
+
+        return {
+            fileNames: this.getFileNames(),
+            duplicates: duplicates
+        };
+    }
+
+    addDriveFiles(driveFiles) {
+        let duplicates = 0;
+        Array.from(driveFiles).forEach(file => {
+            if (!this.drivefiles.has(file.name) && !this.files.has(file.name)) {
+                this.drivefiles.set(file.name, {
+                    fileId: file.id,
+                    name: file.name,
+                    mimeType: file.mimeType,
                     status: 'pending'
                 });
                 this.uploadQueue.push(file.name);
@@ -888,15 +912,20 @@ class FileUploadModal extends Component {
         const uploadBtn = this.element.querySelector('#uploadBtn');
         const uploadArea = this.element.querySelector('#dropZone');
         
-        const result = this.fileBasket.addFiles(newFiles);
-        
-        if (result.duplicates > 0) {
-            this.events.emit('warning', `${result.duplicates} files were skipped as they were already added`);
+        let addFilesResult;
+        if (newFiles[0]?.mimeType) {
+            addFilesResult = this.fileBasket.addDriveFiles(newFiles);
+        } else {
+            addFilesResult = this.fileBasket.addFiles(newFiles);
+        }
+    
+        if (addFilesResult.duplicates > 0) {
+            this.events.emit('warning', `${addFilesResult.duplicates} files were skipped as they were already added`);
         }
 
         // Update UI
         fileList.innerHTML = '';
-        result.fileNames.forEach(fileName => {
+        this.fileBasket.getFileNames().forEach(fileName => {
             const fileItem = this.createFileItem(fileName);
             fileList.appendChild(fileItem);
         });

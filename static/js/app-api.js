@@ -210,6 +210,34 @@ window.storeFile = async function(userID, formData) {
     }
 };
 
+window.storedriveFile = async function(userID, formData) {
+    try {
+        const response = await fetch(`/api/v1/io/store_drive_file?userID=${encodeURIComponent(userID)}`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to store file');
+        }
+
+        const data = await response.json();
+        
+        if (data.message !== "success") {
+            return 0;
+        }
+
+        return 1;
+
+    } catch (error) {
+        console.error('Error storing file:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+};
+
 window.uploadFiles = async function(userID) {
     try {
         const response = await fetch(`/api/v1/io/upload_files?userID=${userID}`, {
