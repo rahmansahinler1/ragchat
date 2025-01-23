@@ -218,7 +218,7 @@ window.storedriveFile = async function(userID, formData) {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to store file');
+            throw new Error('Failed to store drive file');
         }
 
         const data = await response.json();

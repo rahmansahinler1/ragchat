@@ -110,13 +110,25 @@ class FileBasket {
     }
 
     getFileFormData(fileName) {
-        const fileInfo = this.files.get(fileName);
-        if (!fileInfo) return null;
-
+        const localFile = this.files.get(fileName);
+    if (localFile) {
         const formData = new FormData();
-        formData.append('file', fileInfo.file);
-        formData.append('lastModified', fileInfo.lastModified);
+        formData.append('file', localFile.file);
+        formData.append('lastModified', localFile.lastModified);
         return formData;
+    }
+
+    // Check drive files
+    const driveFile = this.driveFiles.get(fileName);
+    if (driveFile) {
+        const formData = new FormData();
+        formData.append('driveFileId', driveFile.fileId);
+        formData.append('driveFileName', driveFile.name);
+        formData.append('accessToken', window?.googleUser?.accessToken);
+        return formData;
+    }
+
+    return null;
     }
 
     removeFile(fileName) {
@@ -814,6 +826,19 @@ class FileUploadModal extends Component {
                                 </div>
                             </div>
 
+                            <div class="upload-actions mt-3">
+                                <button class="drive-select-btn mb-2 w-100 d-flex align-items-center justify-content-center gap-2">
+                                    <svg class="drive-icon" width="24" height="24" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                                        <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+                                        <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                                        <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                                        <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                                        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                                    </svg>
+                                    Select from Drive
+                                </button>
+
                             <button class="upload-btn mt-3" id="uploadBtn" disabled>
                                 Upload
                                 <div class="upload-progress">
@@ -846,6 +871,7 @@ class FileUploadModal extends Component {
         const uploadBtn = this.element.querySelector('#uploadBtn');
         const chooseText = this.element.querySelector('.choose-text');
         const uploadIcon = this.element.querySelector('.upload-icon-wrapper');
+        const driveButton = this.element.querySelector('.drive-select-btn');
 
         // Drag and drop handlers
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -889,6 +915,14 @@ class FileUploadModal extends Component {
             if (!this.isUploading) {
                 fileInput.click();
             }
+        });
+
+        driveButton.addEventListener('click', () => {
+            if (!window.googleSignIn && !this.isUploading) {
+                this.events.emit('warning', 'Please sign in with Google to use Drive');
+                return;
+            }
+            this.loadDrivePicker();
         });
 
         fileInput.addEventListener('change', () => {
@@ -1079,6 +1113,12 @@ class FileUploadModal extends Component {
             const formData = this.fileBasket.getFileFormData(fileName);
             if (!formData) throw new Error('File not found');
 
+            if (formData.has('driveFileId')) {
+                success = await window.storeDriveFile(window.serverData.userId, formData);
+            } else {
+                success = await window.storeFile(window.serverData.userId, formData);
+            }
+
             fileItem.classList.remove('pending-upload');
             fileItem.classList.add('uploading');
             
@@ -1097,6 +1137,21 @@ class FileUploadModal extends Component {
             fileItem.classList.remove('uploading');
             fileItem.classList.add('upload-error');
             return { success: false, error: error.message };
+        }
+    }
+    
+    loadDrivePicker() {
+        if (typeof google === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://apis.google.com/js/api.js';
+            script.onload = () => {
+                window.gapi.load('picker', () => {
+                    this.createPicker();
+                });
+            };
+            document.body.appendChild(script);
+        } else {
+            this.createPicker();
         }
     }
 
