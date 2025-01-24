@@ -922,6 +922,7 @@ class FileUploadModal extends Component {
                 this.events.emit('warning', 'Please sign in with Google to use Drive');
                 return;
             }
+            console.log("button clicked")
             this.loadDrivePicker();
         });
 
@@ -1146,13 +1147,98 @@ class FileUploadModal extends Component {
             script.src = 'https://apis.google.com/js/api.js';
             script.onload = () => {
                 window.gapi.load('picker', () => {
+                    console.log("picker initiated")
                     this.createPicker();
                 });
             };
             document.body.appendChild(script);
         } else {
+            console.log("picker initiated")
             this.createPicker();
         }
+    }
+
+    createPicker() {
+        const accessToken = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('drive_access_token='))
+            ?.split('=')[1];
+    
+        if (!accessToken) {
+            const alertModal = document.createElement('div');
+            alertModal.className = 'alert-modal';
+            alertModal.innerHTML = `
+                <div class="alert-content">
+                    <div class="alert-icon">
+                        <i class="bi bi-exclamation-circle text-primary-green"></i>
+                    </div>
+                    <h5 class="alert-title">Drive Access Required</h5>
+                    <p class="alert-message">To access your Google Drive files:
+                        <br>1. Sign out
+                        <br>2. Sign in with Google
+                        <br>3. Allow Drive access when prompted
+                    </p>
+                    <button class="alert-button">Got it!</button>
+                </div>
+            `;
+        
+            document.body.appendChild(alertModal);
+            
+            // Show the modal
+            requestAnimationFrame(() => {
+                alertModal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            });
+            
+            // Handle close button
+            const closeButton = alertModal.querySelector('.alert-button');
+            closeButton.addEventListener('click', () => {
+                alertModal.classList.remove('show');
+                document.body.style.overflow = '';
+                setTimeout(() => alertModal.remove(), 300);
+            });
+        
+            return;
+        }
+    
+        const picker = new google.picker.PickerBuilder()
+            .addView(google.picker.ViewId.DOCS)
+            .setOAuthToken(accessToken)
+            .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
+            .setCallback((data) => {
+                if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+                    const docs = data[google.picker.Response.DOCUMENTS];
+                    this.handleDriveSelection(docs, accessToken);  // Pass token to handler
+                }
+            })
+            .build();
+        console.log("picker created")
+        picker.setVisible(true);
+    }
+
+    handleDriveSelection(files, accessToken) {
+        const supportedTypes = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain'
+        ];
+    
+        const filteredFiles = files.filter(file => supportedTypes.includes(file.mimeType));
+    
+        if (filteredFiles.length === 0) {
+            this.events.emit('warning', 'No supported files selected. Please select PDF, DOCX, or TXT files.');
+            return;
+        }
+    
+        if (filteredFiles.length < files.length) {
+            this.events.emit('warning', `${files.length - filteredFiles.length} files were skipped due to unsupported file types`);
+        }
+    
+        filteredFiles.forEach(file => {
+            file.accessToken = accessToken;  // Add token to each file object
+        });
+    
+        this.handleFiles(filteredFiles);
     }
 
     getFileIcon(fileName) {
