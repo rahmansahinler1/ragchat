@@ -32,7 +32,8 @@ logger = logging.getLogger(__name__)
 # environment variables
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI_DEV")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 
 # request functions
@@ -748,6 +749,7 @@ async def google_login(request: Request):
                 "https://www.googleapis.com/auth/userinfo.email",
                 "https://www.googleapis.com/auth/userinfo.profile",
                 "https://www.googleapis.com/auth/drive.readonly",
+                "https://www.googleapis.com/auth/drive.file",
                 "openid",
             ],
         )
@@ -756,7 +758,6 @@ async def google_login(request: Request):
         authorization_url, state = flow.authorization_url(
             access_type="offline", include_granted_scopes="true"
         )
-
         # Create response with authorization URL
         response = JSONResponse({"authorization_url": authorization_url})
 
@@ -808,6 +809,8 @@ async def google_callback(request: Request):
             scopes=[
                 "https://www.googleapis.com/auth/userinfo.email",
                 "https://www.googleapis.com/auth/userinfo.profile",
+                "https://www.googleapis.com/auth/drive.readonly",
+                "https://www.googleapis.com/auth/drive.file",
                 "openid",
             ],
         )
@@ -818,6 +821,7 @@ async def google_callback(request: Request):
         id_info = id_token.verify_oauth2_token(
             flow.credentials.id_token, requests.Request(), GOOGLE_CLIENT_ID
         )
+        drive_access_token = flow.credentials.token
 
         with Database() as db:
             user_info = db.get_user_info_w_email(user_email=id_info["email"])
@@ -874,7 +878,18 @@ async def google_callback(request: Request):
             value=str(first_time),
             httponly=False,
         )
-
+        response.set_cookie(
+            key="drive_access_token",
+            value=drive_access_token,
+            httponly=False,
+        )
+        response.set_cookie(
+            key="google_api_key",
+            value=GOOGLE_API_KEY,
+            httponly=False,
+            secure=True,
+            samesite="lax",
+        )
         # Clear the oauth state cookie
         response.delete_cookie(key="oauth_state")
 

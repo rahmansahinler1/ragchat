@@ -66,7 +66,7 @@ class Database:
 
     def get_user_info_w_email(self, user_email: str):
         query_get_user_info = """
-        SELECT DISTINCT user_id, user_name, user_surname, user_password, user_type, is_active, user_created_at
+        SELECT DISTINCT user_id, user_name, user_surname, user_password, user_type, is_active, user_created_at, access_token
         FROM user_info
         WHERE user_email = %s
         """
@@ -82,6 +82,7 @@ class Database:
                     "user_type": data[4],
                     "is_active": data[5],
                     "user_created_at": str(data[6]),
+                    "access_token": data[7],
                 }
                 if data
                 else None

@@ -922,7 +922,6 @@ class FileUploadModal extends Component {
                 this.events.emit('warning', 'Please sign in with Google to use Drive');
                 return;
             }
-            console.log("button clicked")
             this.loadDrivePicker();
         });
 
@@ -1147,7 +1146,6 @@ class FileUploadModal extends Component {
             script.src = 'https://apis.google.com/js/api.js';
             script.onload = () => {
                 window.gapi.load('picker', () => {
-                    console.log("picker initiated")
                     this.createPicker();
                 });
             };
@@ -1200,30 +1198,55 @@ class FileUploadModal extends Component {
         
             return;
         }
+        
+        const GOOGLE_API_KEY = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('google_api_key='))
+        ?.split('=')[1];
+
+        console.log('Creating picker with:', {
+            accessToken: accessToken,
+            apiKey: GOOGLE_API_KEY
+        });
     
         const picker = new google.picker.PickerBuilder()
             .addView(google.picker.ViewId.DOCS)
             .setOAuthToken(accessToken)
+            .setDeveloperKey(GOOGLE_API_KEY)
             .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
             .setCallback((data) => {
+                console.log('Picker callback data:', data);
                 if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
                     const docs = data[google.picker.Response.DOCUMENTS];
-                    this.handleDriveSelection(docs, accessToken);  // Pass token to handler
+                    console.log('Selected documents:', docs);
+                    this.handleDriveSelection(docs);  // Pass token to handler
                 }
             })
             .build();
-        console.log("picker created")
         picker.setVisible(true);
+
+        setTimeout(() => {
+            const pickerFrame = document.querySelector('.picker-dialog');
+            if (pickerFrame) {
+                pickerFrame.style.zIndex = '9999';
+            }
+        }, 50);
     }
 
-    handleDriveSelection(files, accessToken) {
+    handleDriveSelection(files) {
+        console.log('Handling drive selection:', files);
         const supportedTypes = [
             'application/pdf',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'text/plain'
         ];
     
-        const filteredFiles = files.filter(file => supportedTypes.includes(file.mimeType));
+        const filteredFiles = files.filter(file => {
+            console.log('Checking file:', file.name, 'Type:', file.mimeType);
+            return supportedTypes.includes(file.mimeType);
+        });
+
+        console.log('Filtered files:', filteredFiles);
     
         if (filteredFiles.length === 0) {
             this.events.emit('warning', 'No supported files selected. Please select PDF, DOCX, or TXT files.');
@@ -1233,10 +1256,19 @@ class FileUploadModal extends Component {
         if (filteredFiles.length < files.length) {
             this.events.emit('warning', `${files.length - filteredFiles.length} files were skipped due to unsupported file types`);
         }
-    
+        
+        const fileList = this.element.querySelector('#fileList');
         filteredFiles.forEach(file => {
-            file.accessToken = accessToken;  // Add token to each file object
+            console.log('Creating file item for:', file.name);
+            const fileItem = this.createFileItem(file.name);
+            fileList.appendChild(fileItem);
         });
+
+        this.updateUploadUI(
+            fileList,
+            this.element.querySelector('#uploadBtn'),
+            this.element.querySelector('#dropZone')
+        );
     
         this.handleFiles(filteredFiles);
     }
