@@ -96,8 +96,18 @@ class FileBasket {
         
         while (this.uploadQueue.length > 0 && batch.length < this.maxConcurrent) {
             const fileName = this.uploadQueue[0];
-            const fileInfo = this.files.get(fileName);
+            const fileInfo = this.files.get(fileName) || this.drivefiles.get(fileName);
             
+            if (!fileInfo) {
+                this.uploadQueue.shift(); // Remove invalid file from queue
+                continue;
+            }
+
+            if (this.drivefiles.has(fileName)) {
+                batch.push(this.uploadQueue.shift());
+                continue;
+            }
+
             if (currentBatchSize + fileInfo.file.size > this.maxBatchSize) {
                 break;
             }
@@ -119,12 +129,19 @@ class FileBasket {
     }
 
     // Check drive files
-    const driveFile = this.driveFiles.get(fileName);
+    const driveFile = this.drivefiles.get(fileName);
     if (driveFile) {
         const formData = new FormData();
+        const accessToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('drive_access_token='))
+        ?.split('=')[1];
+        
         formData.append('driveFileId', driveFile.fileId);
         formData.append('driveFileName', driveFile.name);
-        formData.append('accessToken', window?.googleUser?.accessToken);
+        formData.append('lastModified', String(Date.now()));
+        formData.append('accessToken', accessToken);
+
         return formData;
     }
 
@@ -146,7 +163,15 @@ class FileBasket {
     }
 
     getFileNames() {
-        return Array.from(this.files.keys());
+        const regularFiles = Array.from(this.files.keys());
+        const driveFiles = Array.from(this.drivefiles.keys());
+
+        console.log('Getting file names:', {
+            regularFiles,
+            driveFiles,
+            total: [...regularFiles, ...driveFiles]
+        });
+        return [...regularFiles, ...driveFiles];
     }
 
     hasFilesToUpload() {
@@ -793,6 +818,7 @@ class FileUploadModal extends Component {
         this.render();
         this.setupEventListeners();
         this.setupCloseButton();
+        this.cuurentpicker = null;
     }
 
     render() {
@@ -960,6 +986,7 @@ class FileUploadModal extends Component {
         // Update UI
         fileList.innerHTML = '';
         this.fileBasket.getFileNames().forEach(fileName => {
+            console.log('Creating file item for:', fileName);
             const fileItem = this.createFileItem(fileName);
             fileList.appendChild(fileItem);
         });
@@ -971,8 +998,9 @@ class FileUploadModal extends Component {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item pending-upload';
         fileItem.dataset.fileName = fileName;
+        const driveFile = this.fileBasket.drivefiles.get(fileName);
         
-        const icon = this.getFileIcon(fileName);
+        const icon = this.getFileIcon(fileName,driveFile?.mimeType);
         fileItem.innerHTML = `
             <div class="file-icon">
                 <i class="bi ${icon} text-primary-green"></i>
@@ -1113,17 +1141,16 @@ class FileUploadModal extends Component {
             const formData = this.fileBasket.getFileFormData(fileName);
             if (!formData) throw new Error('File not found');
 
+            fileItem.classList.remove('pending-upload');
+            fileItem.classList.add('uploading');
+            
+            let success;
             if (formData.has('driveFileId')) {
-                success = await window.storeDriveFile(window.serverData.userId, formData);
+                success = await window.storedriveFile(window.serverData.userId, formData);
             } else {
                 success = await window.storeFile(window.serverData.userId, formData);
             }
 
-            fileItem.classList.remove('pending-upload');
-            fileItem.classList.add('uploading');
-            
-            const success = await window.storeFile(window.serverData.userId, formData);
-            
             if (success) {
                 progressBar.style.width = '100%';
                 fileItem.classList.remove('uploading');
@@ -1151,12 +1178,17 @@ class FileUploadModal extends Component {
             };
             document.body.appendChild(script);
         } else {
-            console.log("picker initiated")
             this.createPicker();
         }
     }
 
     createPicker() {
+
+        if (this.currentPicker) {
+            this.currentPicker.dispose();
+            this.currentPicker = null;
+        }
+
         const accessToken = document.cookie
             .split('; ')
             .find(row => row.startsWith('drive_access_token='))
@@ -1182,13 +1214,11 @@ class FileUploadModal extends Component {
         
             document.body.appendChild(alertModal);
             
-            // Show the modal
             requestAnimationFrame(() => {
                 alertModal.classList.add('show');
                 document.body.style.overflow = 'hidden';
             });
             
-            // Handle close button
             const closeButton = alertModal.querySelector('.alert-button');
             closeButton.addEventListener('click', () => {
                 alertModal.classList.remove('show');
@@ -1204,6 +1234,7 @@ class FileUploadModal extends Component {
         .find(row => row.startsWith('google_api_key='))
         ?.split('=')[1];
 
+
         console.log('Creating picker with:', {
             accessToken: accessToken,
             apiKey: GOOGLE_API_KEY
@@ -1214,39 +1245,53 @@ class FileUploadModal extends Component {
             .setOAuthToken(accessToken)
             .setDeveloperKey(GOOGLE_API_KEY)
             .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
+            .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
             .setCallback((data) => {
-                console.log('Picker callback data:', data);
                 if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
                     const docs = data[google.picker.Response.DOCUMENTS];
-                    console.log('Selected documents:', docs);
                     this.handleDriveSelection(docs);  // Pass token to handler
                 }
             })
             .build();
         picker.setVisible(true);
+        this.currentPicker = picker;
 
         setTimeout(() => {
-            const pickerFrame = document.querySelector('.picker-dialog');
-            if (pickerFrame) {
-                pickerFrame.style.zIndex = '9999';
+            const pickerFrame = document.querySelector('.picker-dialog-bg');
+            const pickerDialog = document.querySelector('.picker-dialog');
+            
+            if (pickerFrame && pickerDialog) {
+                document.querySelectorAll('.picker-dialog-bg, .picker-dialog').forEach(el => {
+                    if (el !== pickerFrame && el !== pickerDialog) {
+                        el.remove();
+                    }
+                });
+
+                pickerFrame.style.zIndex = '10000';
+                pickerDialog.style.zIndex = '10001';
             }
-        }, 50);
+        }, 0);
+
     }
 
     handleDriveSelection(files) {
-        console.log('Handling drive selection:', files);
         const supportedTypes = [
             'application/pdf',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'text/plain'
+            'text/plain',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/vnd.google-apps.document',
+            'application/vnd.google-apps.document',    
+            'application/vnd.google-apps.spreadsheet', 
+            'application/vnd.google-apps.presentation',
+            'application/vnd.google-apps.script',
         ];
     
         const filteredFiles = files.filter(file => {
-            console.log('Checking file:', file.name, 'Type:', file.mimeType);
             return supportedTypes.includes(file.mimeType);
         });
 
-        console.log('Filtered files:', filteredFiles);
     
         if (filteredFiles.length === 0) {
             this.events.emit('warning', 'No supported files selected. Please select PDF, DOCX, or TXT files.');
@@ -1258,8 +1303,12 @@ class FileUploadModal extends Component {
         }
         
         const fileList = this.element.querySelector('#fileList');
+        this.fileBasket.files.clear();
+        this.fileBasket.drivefiles.clear();
+        this.fileBasket.uploadQueue = [];
+        
+        fileList.innerHTML = '';
         filteredFiles.forEach(file => {
-            console.log('Creating file item for:', file.name);
             const fileItem = this.createFileItem(file.name);
             fileList.appendChild(fileItem);
         });
@@ -1269,12 +1318,26 @@ class FileUploadModal extends Component {
             this.element.querySelector('#uploadBtn'),
             this.element.querySelector('#dropZone')
         );
-    
+        
         this.handleFiles(filteredFiles);
     }
 
-    getFileIcon(fileName) {
+    getFileIcon(fileName, mimeType) {
         const extension = fileName.split('.').pop().toLowerCase();
+
+        if (mimeType) {
+            switch (mimeType) {
+                case 'application/vnd.google-apps.document':
+                    return 'bi-file-word';
+                case 'application/vnd.google-apps.spreadsheet':
+                    return 'bi-file-excel';
+                case 'application/vnd.google-apps.presentation':
+                    return 'bi-file-ppt';
+                case 'application/vnd.google-apps.script':
+                    return 'bi-file-text';
+            }
+        }
+
         const iconMap = {
             pdf: 'bi-file-pdf',
             docx: 'bi-file-word',
@@ -1288,7 +1351,7 @@ class FileUploadModal extends Component {
     }
 
     updateUploadUI(fileList, uploadBtn, uploadArea) {
-        if (this.fileBasket.getFileNames().length > 0) {
+        if (this.fileBasket.getFileNames().length > 0 || this.fileBasket.drivefiles.size > 0) {
             uploadArea.style.display = 'none';
             uploadBtn.disabled = false;
             this.ensureAddMoreFilesButton(fileList);

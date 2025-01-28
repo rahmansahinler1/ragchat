@@ -397,7 +397,35 @@ async def store_drive_file(
         )
 
         drive_service = build("drive", "v3", credentials=credentials)
-        request = drive_service.files().get_media(fileId=driveFileId)
+
+        google_mime_types = {
+            "application/vnd.google-apps.document": ("application/pdf", ".pdf"),
+            "application/vnd.google-apps.spreadsheet": (
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".xlsx",
+            ),
+            "application/vnd.google-apps.presentation": (
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                ".pptx",
+            ),
+            "application/vnd.google-apps.script": ("text/plain", ".txt"),
+        }
+
+        file_metadata = (
+            drive_service.files().get(fileId=driveFileId, fields="mimeType").execute()
+        )
+        mime_type = file_metadata["mimeType"]
+
+        if mime_type in google_mime_types:
+            export_mime_type, extension = google_mime_types[mime_type]
+            request = drive_service.files().export_media(
+                fileId=driveFileId, mimeType=export_mime_type
+            )
+
+            if not driveFileName.endswith(extension):
+                driveFileName += extension
+        else:
+            request = drive_service.files().get_media(fileId=driveFileId)
 
         file_stream = io.BytesIO()
         downloader = MediaIoBaseDownload(file_stream, request)
