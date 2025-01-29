@@ -445,7 +445,6 @@ async def store_drive_file(
                 status_code=400,
             )
 
-        # Use existing reading functions
         file_data = processor.rf.read_file(
             file_bytes=file_bytes, file_name=driveFileName
         )
@@ -458,12 +457,10 @@ async def store_drive_file(
                 status_code=400,
             )
 
-        # Create embeddings
         file_embeddings = processor.ef.create_embeddings_from_sentences(
             sentences=file_data["sentences"]
         )
 
-        # Store in Redis (same as regular upload)
         redis_key = f"user:{userID}:upload:{driveFileName}"
         upload_data = {
             "file_name": driveFileName,
