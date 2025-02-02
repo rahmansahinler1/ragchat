@@ -238,6 +238,34 @@ window.storedriveFile = async function(userID, formData) {
     }
 };
 
+window.storeURL = async function(userID, url) {
+    try {
+        const response = await fetch(`/api/v1/io/store_url?userID=${encodeURIComponent(userID)}`, {
+            method: 'POST',
+            body: url
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to store url');
+        }
+
+        const data = await response.json();
+        
+        if (data.message !== "success") {
+            return 0;
+        }
+
+        return 1;
+
+    } catch (error) {
+        console.error('Error storing URL:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+};
+
 window.uploadFiles = async function(userID) {
     try {
         const response = await fetch(`/api/v1/io/upload_files?userID=${userID}`, {

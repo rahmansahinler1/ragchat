@@ -814,11 +814,12 @@ class FileUploadModal extends Component {
         
         this.isUploading = false;
         this.fileBasket = new FileBasket();
-        
+        this.urlInputModal = new URLInputModal()
+
         this.render();
         this.setupEventListeners();
         this.setupCloseButton();
-        this.cuurentpicker = null;
+        this.currentpicker = null;
     }
 
     render() {
@@ -865,6 +866,11 @@ class FileUploadModal extends Component {
                                     Select from Drive
                                 </button>
 
+                                 <button class="url-input-btn w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
+                                    <i class="bi bi-link-45deg"></i>
+                                    Add from URL
+                                </button>
+
                             <button class="upload-btn mt-3" id="uploadBtn" disabled>
                                 Upload
                                 <div class="upload-progress">
@@ -898,6 +904,7 @@ class FileUploadModal extends Component {
         const chooseText = this.element.querySelector('.choose-text');
         const uploadIcon = this.element.querySelector('.upload-icon-wrapper');
         const driveButton = this.element.querySelector('.drive-select-btn');
+        const urlButton = this.element.querySelector('.url-input-btn');
 
         // Drag and drop handlers
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -958,6 +965,12 @@ class FileUploadModal extends Component {
         // Upload button handler
         uploadBtn.addEventListener('click', () => {
             this.startUpload();
+        });
+
+        urlButton.addEventListener('click', () => {
+                if (!this.isUploading) {
+                    this.urlInputModal.show();
+                }
         });
 
         this.element.addEventListener('hidden.bs.modal', () => {
@@ -2547,6 +2560,178 @@ class RatingModal extends Component {
         feedbackInput.value = '';
         }
     }
+}
+
+// URLuploadModal
+class URLInputModal extends Component {
+    constructor() {
+        const element = document.createElement('div');
+        element.className = 'modal fade';
+        element.id = 'urlInputModal';
+        element.setAttribute('tabindex', '-1');
+        element.setAttribute('aria-hidden', 'true');
+        super(element);
+        
+        this.render();
+        this.setupEventListeners();
+        this.modal = null;
+
+    }
+
+    render() {
+        this.element.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="domain-modal-wrapper">
+                        <div class="modal-header border-0 d-flex align-items-center">
+                            <h6 class="mb-0">Add content from URL</h6>
+                            <button type="button" class="close-button" data-bs-dismiss="modal">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+
+                        <div class="upload-container">
+                            <div class="url-input-container">
+                                <input 
+                                    type="url" 
+                                    class="form-control url-input" 
+                                    placeholder="Enter website URL..."
+                                    required
+                                >
+                                <small class="text-secondary mt-2">
+                                    Enter the URL of the webpage you want to add to your domain
+                                </small>
+                            </div>
+
+                            <button class="add-url-btn mt-3" disabled>
+                                Add Content
+                                <div class="url-progress">
+                                    <div class="progress-bar"></div>
+                                </div>
+                            </button>
+
+                            <div class="upload-loading-overlay" style="display: none">
+                                <div class="loading-content">
+                                    <div class="spinner-border text-primary-green mb-3" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <h5 class="mb-2">Processing URL...</h5>
+                                    <p class="text-center mb-0">Please wait while we extract the content</p>
+                                    <p class="text-center text-secondary">This might take a moment</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(this.element);
+        this.modal = new bootstrap.Modal(this.element);
+    }
+
+    setupEventListeners() {
+        const urlInput = this.element.querySelector('.url-input');
+        const addButton = this.element.querySelector('.add-url-btn');
+        const closeButton = this.element.querySelector('.close-button');
+
+        // Enable/disable add button based on URL input
+        urlInput.addEventListener('input', () => {
+            addButton.disabled = !urlInput.value.trim();
+        });
+
+        // URL processing
+        addButton.addEventListener('click', () => {
+            this.startProcessing();
+        });
+
+        // Close button handler
+        closeButton.addEventListener('click', () => {
+            this.hide();
+        });
+
+        // Click outside to close
+        this.element.addEventListener('click', (e) => {
+            if (e.target === this.element) {
+                this.hide();
+            }
+        });
+    }
+
+    async startProcessing(url) {
+        url = url.trim();
+            if (!url) return;
+
+            this.setLoadingState(true);
+            addButton.disabled = true;
+
+            try {
+                const success = await window.storeURL(window.serverData.userId, url);
+
+                if (success === 1) {
+                    this.events.emit('urlProcessed', {
+                        message: 'Successfully processed URL',
+                        type: 'success'
+                    });
+                    this.hide();
+                } else {
+                    throw new Error('Failed to process URL');
+                }
+
+            } catch (error) {
+                this.events.emit('error', error.message);
+            } finally {
+                this.setLoadingState(false);
+                addButton.disabled = false;
+                urlInput.value = '';
+            }
+    }
+
+    setLoadingState(isLoading) {
+        const loadingOverlay = this.element.querySelector('.upload-loading-overlay');
+        const closeButton = this.element.querySelector('.close-button');
+        const addButton = this.element.querySelector('.add-url-btn');
+
+        if (isLoading) {
+            loadingOverlay.style.display = 'flex';
+            closeButton.style.display = 'none';
+            addButton.disabled = true;
+            this.modal._config.backdrop = 'static';
+            this.modal._config.keyboard = false;
+        } else {
+            loadingOverlay.style.display = 'none';
+            closeButton.style.display = 'block';
+            addButton.disabled = false;
+            this.modal._config.backdrop = true;
+            this.modal._config.keyboard = true;
+        }
+    }
+
+    show() {
+        if (this.modal) {
+            this.modal.dispose();
+        }
+
+        this.modal = new bootstrap.Modal(this.element);
+        
+        this.element.style.zIndex = '9999';
+        
+        this.modal.show();
+        
+        setTimeout(() => {
+            const backdrop = document.querySelector('.modal-backdrop:last-child');
+            if (backdrop) {
+                backdrop.style.zIndex = '9998';
+            }
+        }, 0);
+    }
+
+    hide() {
+        this.modal.hide();
+        const urlInput = this.element.querySelector('.url-input');
+        urlInput.value = '';
+    }
+
 }
 
 // Application

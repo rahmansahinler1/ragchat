@@ -2980,3 +2980,71 @@ textarea.form-control {
     max-width: 137px;
   }
 }
+
+/* URL Modal */
+
+.url-input-btn {
+  background: transparent;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: var(--primary-green);
+  padding: 12px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.url-input-btn:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--primary-green);
+}
+
+.url-input-btn i {
+  font-size: 1.2rem;
+}
+
+.url-input-container {
+  background: var(--sidebar-bg);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.url-input {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  padding: 12px 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: var(--primary-green) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.url-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.add-url-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--primary-green);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.add-url-btn:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+}
+
+.add-url-btn:not(:disabled):hover {
+  background: #0da271;
+}
