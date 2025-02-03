@@ -31,6 +31,8 @@ class Encryptor:
     def __init__(self):
         load_dotenv()
         self.key = os.getenv("ENCRYPTION_KEY")
+        self.email_auth = "EMAIL_AUTH_DATA_2025"
+        self.email_nonce = self.email_auth.encode("utf-8")[:12].ljust(12, b"\0")
         try:
             self._key_bytes = base64.b64decode(self.key)
             self.aesgcm = AESGCM(self._key_bytes)
@@ -49,6 +51,17 @@ class Encryptor:
         except Exception as e:
             raise e
 
+    def encrypt_email(self, email: str) -> str:
+        try:
+            encrypted_data = self.aesgcm.encrypt(
+                self.email_nonce, email.encode("utf-8"), self.email_auth.encode("utf-8")
+            )
+            combined_encrypt = self.email_nonce + encrypted_data
+            encrypted_email = base64.b64encode(combined_encrypt).decode("utf-8")
+            return encrypted_email
+        except Exception as e:
+            raise e
+
     def decrypt(self, encrypted_data: str, auth_data) -> str:
         try:
             decoded_text = base64.b64decode(encrypted_data.encode("utf-8"))
@@ -56,6 +69,18 @@ class Encryptor:
             encrypted_text = decoded_text[12:]
             decrypted_data = self.aesgcm.decrypt(
                 nonce, encrypted_text, auth_data.encode("utf-8")
+            )
+            return decrypted_data.decode("utf-8")
+        except Exception as e:
+            raise e
+
+    def decrypt_email(self, encrypted_email: str) -> str:
+        try:
+            decoded_text = base64.b64decode(encrypted_email.encode("utf-8"))
+            nonce = decoded_text[:12]
+            encrypted_text = decoded_text[12:]
+            decrypted_data = self.aesgcm.decrypt(
+                nonce, encrypted_text, self.email_auth.encode("utf-8")
             )
             return decrypted_data.decode("utf-8")
         except Exception as e:
