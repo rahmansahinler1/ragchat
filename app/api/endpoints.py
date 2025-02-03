@@ -48,9 +48,7 @@ async def get_user_info(request: Request):
             user_info, domain_info = db.get_user_info_w_id(user_id)
 
         # Decrypt email
-        user_info["user_email"] = encryptor.decrypt(
-            user_info["user_email"], user_info["user_id"]
-        )
+        user_info["user_email"] = encryptor.decrypt_email(user_info["user_email"])
 
         return JSONResponse(
             content={
@@ -703,11 +701,12 @@ async def login(
         data = await request.json()
         user_email = data.get("user_email")
         trial_password = data.get("trial_password")
+        encrypted_email = encryptor.encrypt_email(user_email)
         message = None
         status_code = 500
         session_id = None
         with Database() as db:
-            user_info = db.get_user_info_w_email(user_email=user_email)
+            user_info = db.get_user_info_w_email(user_email=encrypted_email)
             if not user_info or not authenticator.verify_password(
                 plain_password=trial_password,
                 hashed_password=user_info["user_password"],
@@ -773,7 +772,7 @@ async def signup(
                     user_name=user_name,
                     user_surname=user_surname,
                     user_password=authenticator.hash_password(user_password),
-                    user_email=encryptor.encrypt(user_email, user_id),
+                    user_email=encryptor.encrypt_email(user_email),
                     user_type="trial",
                     is_active=True,
                     refresh_token=str(uuid.uuid4()),
