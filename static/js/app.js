@@ -973,6 +973,13 @@ class FileUploadModal extends Component {
                 }
         });
 
+        this.urlInputModal.events.on('urlProcessed', (result) => {
+            if (result.files) {
+                this.handleFiles(result.files);
+            }
+            this.events.emit('message', result);
+        });
+
         this.element.addEventListener('hidden.bs.modal', () => {
             this.events.emit('modalClose');
         });
@@ -1247,11 +1254,6 @@ class FileUploadModal extends Component {
         .find(row => row.startsWith('google_api_key='))
         ?.split('=')[1];
 
-
-        console.log('Creating picker with:', {
-            accessToken: accessToken,
-            apiKey: GOOGLE_API_KEY
-        });
     
         const picker = new google.picker.PickerBuilder()
             .addView(google.picker.ViewId.DOCS)
@@ -1358,7 +1360,8 @@ class FileUploadModal extends Component {
             txt: 'bi-file-text',
             pptx: 'bi-file-ppt',
             xlsx: 'bi-file-excel',
-            udf: 'bi-file-post'
+            udf: 'bi-file-post',
+            html: 'bi-file-code',
         };
         return iconMap[extension] || 'bi-file';
     }
@@ -2157,7 +2160,8 @@ class Sidebar extends Component {
             txt: 'bi-file-text',
             pptx: 'bi-file-ppt',
             xlsx: 'bi-file-excel',
-            udf: 'bi-file-post'
+            udf: 'bi-file-post',
+            html: 'bi-file-earmark-code',
         };
         return iconMap[extension] || 'bi-file';
     }
@@ -2642,7 +2646,9 @@ class URLInputModal extends Component {
 
         // URL processing
         addButton.addEventListener('click', () => {
-            this.startProcessing();
+            const url = urlInput.value; 
+            this.startProcessing(url);
+            urlInput.value = '';
         });
 
         // Close button handler
@@ -2656,19 +2662,20 @@ class URLInputModal extends Component {
                 this.hide();
             }
         });
+        
     }
 
     async startProcessing(url) {
-        url = url.trim();
-            if (!url) return;
+        const clean_url = url.trim();
+            if (!clean_url) return;
 
             this.setLoadingState(true);
-            addButton.disabled = true;
 
             try {
-                const success = await window.storeURL(window.serverData.userId, url);
+                const success = await window.storeURL(window.serverData.userId, clean_url);
 
                 if (success === 1) {
+                    this.handleFileBasketAddition(clean_url)
                     this.events.emit('urlProcessed', {
                         message: 'Successfully processed URL',
                         type: 'success'
@@ -2682,9 +2689,36 @@ class URLInputModal extends Component {
                 this.events.emit('error', error.message);
             } finally {
                 this.setLoadingState(false);
-                addButton.disabled = false;
-                urlInput.value = '';
             }
+    }
+
+    handleFileBasketAddition(url) {
+        try {
+            // Create a clean filename from the URL
+            const urlObj = new URL(url);
+            const fileName = `${urlObj.hostname}.html`;
+            
+            // Create URL file object similar to drive file object
+            const urlFile = {
+                name: fileName,
+                mimeType: 'text/html',
+                lastModified: Date.now()
+            };
+    
+            // Emit event for FileUploadModal to handle
+            this.events.emit('urlProcessed', {
+                files: [urlFile],
+                message: 'Successfully processed URL',
+                type: 'success'
+            });
+            
+            this.hide();
+            return true;
+    
+        } catch (error) {
+            console.error('Error preparing URL file:', error);
+            return false;
+        }
     }
 
     setLoadingState(isLoading) {

@@ -493,9 +493,9 @@ async def store_drive_file(
 
 
 @router.post("/io/store_url")
-async def store_url(userID: str = Query(...), url: str = Query(...)):
+async def store_url(userID: str = Query(...), url: str = Form(...)):
     try:
-        if not processor.url_validator(url):
+        if not processor.ws.url_validator(url):
             return JSONResponse(
                 content={"message": "Invalid URL. Please enter a valid URL."},
                 status_code=400,

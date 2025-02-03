@@ -240,9 +240,12 @@ window.storedriveFile = async function(userID, formData) {
 
 window.storeURL = async function(userID, url) {
     try {
+        const formData = new FormData();
+        formData.append('url', url);
+
         const response = await fetch(`/api/v1/io/store_url?userID=${encodeURIComponent(userID)}`, {
             method: 'POST',
-            body: url
+            body: formData
         });
 
         if (!response.ok) {
