@@ -1,7 +1,10 @@
 from fastapi import APIRouter, UploadFile, HTTPException, Request, Query, File, Form
 from google.oauth2 import id_token
+from google.oauth2.credentials import Credentials
 from google.auth.transport import requests
 from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
 from fastapi.responses import JSONResponse, RedirectResponse
 from datetime import datetime
 import os
@@ -9,9 +12,11 @@ import logging
 import uuid
 import base64
 import psycopg2
+import io
 
 from .core import Processor
 from .core import Authenticator
+from .core import Encryptor
 from ..db.database import Database
 from ..redis_manager import RedisManager, RedisConnectionError
 
@@ -20,6 +25,7 @@ router = APIRouter()
 processor = Processor()
 authenticator = Authenticator()
 redis_manager = RedisManager()
+encryptor = Encryptor()
 
 # logger
 logging.basicConfig(level=logging.INFO)
@@ -28,7 +34,8 @@ logger = logging.getLogger(__name__)
 # environment variables
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI_DEV")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 
 # request functions
@@ -39,6 +46,9 @@ async def get_user_info(request: Request):
         user_id = data.get("user_id")
         with Database() as db:
             user_info, domain_info = db.get_user_info_w_id(user_id)
+
+        # Decrypt email
+        user_info["user_email"] = encryptor.decrypt_email(user_info["user_email"])
 
         return JSONResponse(
             content={
@@ -375,6 +385,113 @@ async def store_file(
         )
 
 
+@router.post("/io/store_drive_file")
+async def store_drive_file(
+    userID: str = Query(...),
+    lastModified: str = Form(...),
+    driveFileId: str = Form(...),
+    driveFileName: str = Form(...),
+    accessToken: str = Form(...),
+):
+    try:
+        credentials = Credentials(
+            token=accessToken,
+            client_id=GOOGLE_CLIENT_ID,
+            client_secret=GOOGLE_CLIENT_SECRET,
+            token_uri="https://oauth2.googleapis.com/token",
+        )
+
+        drive_service = build("drive", "v3", credentials=credentials)
+
+        google_mime_types = {
+            "application/vnd.google-apps.document": ("application/pdf", ".pdf"),
+            "application/vnd.google-apps.spreadsheet": (
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".xlsx",
+            ),
+            "application/vnd.google-apps.presentation": (
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                ".pptx",
+            ),
+            "application/vnd.google-apps.script": ("text/plain", ".txt"),
+        }
+
+        file_metadata = (
+            drive_service.files().get(fileId=driveFileId, fields="mimeType").execute()
+        )
+        mime_type = file_metadata["mimeType"]
+
+        if mime_type in google_mime_types:
+            export_mime_type, extension = google_mime_types[mime_type]
+            request = drive_service.files().export_media(
+                fileId=driveFileId, mimeType=export_mime_type
+            )
+
+            if not driveFileName.endswith(extension):
+                driveFileName += extension
+        else:
+            request = drive_service.files().get_media(fileId=driveFileId)
+
+        file_stream = io.BytesIO()
+        downloader = MediaIoBaseDownload(file_stream, request)
+
+        done = False
+        while not done:
+            _, done = downloader.next_chunk()
+
+        file_stream.seek(0)
+        file_bytes = file_stream.read()
+
+        if not file_bytes:
+            return JSONResponse(
+                content={
+                    "message": f"Empty file {driveFileName}. If you think not, please report this to us!"
+                },
+                status_code=400,
+            )
+
+        file_data = processor.rf.read_file(
+            file_bytes=file_bytes, file_name=driveFileName
+        )
+
+        if not file_data["sentences"]:
+            return JSONResponse(
+                content={
+                    "message": f"No content to extract in {driveFileName}. If there is please report this to us!"
+                },
+                status_code=400,
+            )
+
+        file_embeddings = processor.ef.create_embeddings_from_sentences(
+            sentences=file_data["sentences"]
+        )
+
+        redis_key = f"user:{userID}:upload:{driveFileName}"
+        upload_data = {
+            "file_name": driveFileName,
+            "last_modified": datetime.fromtimestamp(int(lastModified) / 1000).strftime(
+                "%Y-%m-%d"
+            )[:20],
+            "sentences": file_data["sentences"],
+            "page_numbers": file_data["page_number"],
+            "is_headers": file_data["is_header"],
+            "is_tables": file_data["is_table"],
+            "embeddings": file_embeddings,
+        }
+
+        redis_manager.set_data(redis_key, upload_data, expiry=3600)
+
+        return JSONResponse(
+            content={"message": "success", "file_name": driveFileName}, status_code=200
+        )
+
+    except Exception as e:
+        logging.error(f"Error storing Drive file {driveFileName}: {str(e)}")
+        return JSONResponse(
+            content={"message": f"Error storing file: {str(e)}"}, status_code=500
+        )
+
+
 @router.post("/io/upload_files")
 async def upload_files(userID: str = Query(...)):
     try:
@@ -424,7 +541,9 @@ async def upload_files(userID: str = Query(...)):
                     file_content_batch.append(
                         (
                             file_id,
-                            upload_data["sentences"][i],
+                            encryptor.encrypt(
+                                text=upload_data["sentences"][i], auth_data=file_id
+                            ),
                             upload_data["page_numbers"][i],
                             upload_data["is_headers"][i],
                             upload_data["is_tables"][i],
@@ -528,11 +647,12 @@ async def login(
         data = await request.json()
         user_email = data.get("user_email")
         trial_password = data.get("trial_password")
+        encrypted_email = encryptor.encrypt_email(user_email)
         message = None
         status_code = 500
         session_id = None
         with Database() as db:
-            user_info = db.get_user_info_w_email(user_email=user_email)
+            user_info = db.get_user_info_w_email(user_email=encrypted_email)
             if not user_info or not authenticator.verify_password(
                 plain_password=trial_password,
                 hashed_password=user_info["user_password"],
@@ -598,7 +718,7 @@ async def signup(
                     user_name=user_name,
                     user_surname=user_surname,
                     user_password=authenticator.hash_password(user_password),
-                    user_email=user_email,
+                    user_email=encryptor.encrypt_email(user_email),
                     user_type="trial",
                     is_active=True,
                     refresh_token=str(uuid.uuid4()),
@@ -661,6 +781,8 @@ async def google_login(request: Request):
             scopes=[
                 "https://www.googleapis.com/auth/userinfo.email",
                 "https://www.googleapis.com/auth/userinfo.profile",
+                "https://www.googleapis.com/auth/drive.readonly",
+                "https://www.googleapis.com/auth/drive.file",
                 "openid",
             ],
         )
@@ -669,7 +791,6 @@ async def google_login(request: Request):
         authorization_url, state = flow.authorization_url(
             access_type="offline", include_granted_scopes="true"
         )
-
         # Create response with authorization URL
         response = JSONResponse({"authorization_url": authorization_url})
 
@@ -721,6 +842,8 @@ async def google_callback(request: Request):
             scopes=[
                 "https://www.googleapis.com/auth/userinfo.email",
                 "https://www.googleapis.com/auth/userinfo.profile",
+                "https://www.googleapis.com/auth/drive.readonly",
+                "https://www.googleapis.com/auth/drive.file",
                 "openid",
             ],
         )
@@ -731,6 +854,7 @@ async def google_callback(request: Request):
         id_info = id_token.verify_oauth2_token(
             flow.credentials.id_token, requests.Request(), GOOGLE_CLIENT_ID
         )
+        drive_access_token = flow.credentials.token
 
         with Database() as db:
             user_info = db.get_user_info_w_email(user_email=id_info["email"])
@@ -787,7 +911,18 @@ async def google_callback(request: Request):
             value=str(first_time),
             httponly=False,
         )
-
+        response.set_cookie(
+            key="drive_access_token",
+            value=drive_access_token,
+            httponly=False,
+        )
+        response.set_cookie(
+            key="google_api_key",
+            value=GOOGLE_API_KEY,
+            httponly=False,
+            secure=True,
+            samesite="lax",
+        )
         # Clear the oauth state cookie
         response.delete_cookie(key="oauth_state")
 

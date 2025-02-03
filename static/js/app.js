@@ -38,6 +38,7 @@ class Component {
 class FileBasket {
     constructor() {
         this.files = new Map();
+        this.drivefiles = new Map();
         this.uploadQueue = [];
         this.totalSize = 0;
         this.maxBatchSize = 20 * 1024 * 1024; // 20MB
@@ -47,10 +48,33 @@ class FileBasket {
     addFiles(fileList) {
         let duplicates = 0;
         Array.from(fileList).forEach(file => {
-            if (!this.files.has(file.name)) {
+            if (!this.drivefiles.has(file.name) && !this.files.has(file.name)) {
                 this.files.set(file.name, {
                     file: file,
                     lastModified: file.lastModified,
+                    status: 'pending'
+                });
+                this.uploadQueue.push(file.name);
+                this.totalSize += file.size;
+            } else {
+                duplicates++;
+            }
+        });
+
+        return {
+            fileNames: this.getFileNames(),
+            duplicates: duplicates
+        };
+    }
+
+    addDriveFiles(driveFiles) {
+        let duplicates = 0;
+        Array.from(driveFiles).forEach(file => {
+            if (!this.drivefiles.has(file.name) && !this.files.has(file.name)) {
+                this.drivefiles.set(file.name, {
+                    fileId: file.id,
+                    name: file.name,
+                    mimeType: file.mimeType,
                     status: 'pending'
                 });
                 this.uploadQueue.push(file.name);
@@ -72,8 +96,18 @@ class FileBasket {
         
         while (this.uploadQueue.length > 0 && batch.length < this.maxConcurrent) {
             const fileName = this.uploadQueue[0];
-            const fileInfo = this.files.get(fileName);
+            const fileInfo = this.files.get(fileName) || this.drivefiles.get(fileName);
             
+            if (!fileInfo) {
+                this.uploadQueue.shift(); // Remove invalid file from queue
+                continue;
+            }
+
+            if (this.drivefiles.has(fileName)) {
+                batch.push(this.uploadQueue.shift());
+                continue;
+            }
+
             if (currentBatchSize + fileInfo.file.size > this.maxBatchSize) {
                 break;
             }
@@ -86,13 +120,32 @@ class FileBasket {
     }
 
     getFileFormData(fileName) {
-        const fileInfo = this.files.get(fileName);
-        if (!fileInfo) return null;
-
+        const localFile = this.files.get(fileName);
+    if (localFile) {
         const formData = new FormData();
-        formData.append('file', fileInfo.file);
-        formData.append('lastModified', fileInfo.lastModified);
+        formData.append('file', localFile.file);
+        formData.append('lastModified', localFile.lastModified);
         return formData;
+    }
+
+    // Check drive files
+    const driveFile = this.drivefiles.get(fileName);
+    if (driveFile) {
+        const formData = new FormData();
+        const accessToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('drive_access_token='))
+        ?.split('=')[1];
+        
+        formData.append('driveFileId', driveFile.fileId);
+        formData.append('driveFileName', driveFile.name);
+        formData.append('lastModified', String(Date.now()));
+        formData.append('accessToken', accessToken);
+
+        return formData;
+    }
+
+    return null;
     }
 
     removeFile(fileName) {
@@ -110,7 +163,15 @@ class FileBasket {
     }
 
     getFileNames() {
-        return Array.from(this.files.keys());
+        const regularFiles = Array.from(this.files.keys());
+        const driveFiles = Array.from(this.drivefiles.keys());
+
+        console.log('Getting file names:', {
+            regularFiles,
+            driveFiles,
+            total: [...regularFiles, ...driveFiles]
+        });
+        return [...regularFiles, ...driveFiles];
     }
 
     hasFilesToUpload() {
@@ -757,6 +818,7 @@ class FileUploadModal extends Component {
         this.render();
         this.setupEventListeners();
         this.setupCloseButton();
+        this.cuurentpicker = null;
     }
 
     render() {
@@ -790,6 +852,19 @@ class FileUploadModal extends Component {
                                 </div>
                             </div>
 
+                            <div class="upload-actions mt-3">
+                                <button class="drive-select-btn mb-2 w-100 d-flex align-items-center justify-content-center gap-2">
+                                    <svg class="drive-icon" width="24" height="24" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                                        <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+                                        <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                                        <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                                        <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                                        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                                    </svg>
+                                    Select from Drive
+                                </button>
+
                             <button class="upload-btn mt-3" id="uploadBtn" disabled>
                                 Upload
                                 <div class="upload-progress">
@@ -822,6 +897,7 @@ class FileUploadModal extends Component {
         const uploadBtn = this.element.querySelector('#uploadBtn');
         const chooseText = this.element.querySelector('.choose-text');
         const uploadIcon = this.element.querySelector('.upload-icon-wrapper');
+        const driveButton = this.element.querySelector('.drive-select-btn');
 
         // Drag and drop handlers
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -867,6 +943,14 @@ class FileUploadModal extends Component {
             }
         });
 
+        driveButton.addEventListener('click', () => {
+            if (!window.googleSignIn && !this.isUploading) {
+                this.events.emit('warning', 'Please sign in with Google to use Drive');
+                return;
+            }
+            this.loadDrivePicker();
+        });
+
         fileInput.addEventListener('change', () => {
             this.handleFiles(fileInput.files);
         });
@@ -888,15 +972,21 @@ class FileUploadModal extends Component {
         const uploadBtn = this.element.querySelector('#uploadBtn');
         const uploadArea = this.element.querySelector('#dropZone');
         
-        const result = this.fileBasket.addFiles(newFiles);
-        
-        if (result.duplicates > 0) {
-            this.events.emit('warning', `${result.duplicates} files were skipped as they were already added`);
+        let addFilesResult;
+        if (newFiles[0]?.mimeType) {
+            addFilesResult = this.fileBasket.addDriveFiles(newFiles);
+        } else {
+            addFilesResult = this.fileBasket.addFiles(newFiles);
+        }
+    
+        if (addFilesResult.duplicates > 0) {
+            this.events.emit('warning', `${addFilesResult.duplicates} files were skipped as they were already added`);
         }
 
         // Update UI
         fileList.innerHTML = '';
-        result.fileNames.forEach(fileName => {
+        this.fileBasket.getFileNames().forEach(fileName => {
+            console.log('Creating file item for:', fileName);
             const fileItem = this.createFileItem(fileName);
             fileList.appendChild(fileItem);
         });
@@ -908,8 +998,9 @@ class FileUploadModal extends Component {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item pending-upload';
         fileItem.dataset.fileName = fileName;
+        const driveFile = this.fileBasket.drivefiles.get(fileName);
         
-        const icon = this.getFileIcon(fileName);
+        const icon = this.getFileIcon(fileName,driveFile?.mimeType);
         fileItem.innerHTML = `
             <div class="file-icon">
                 <i class="bi ${icon} text-primary-green"></i>
@@ -1053,8 +1144,13 @@ class FileUploadModal extends Component {
             fileItem.classList.remove('pending-upload');
             fileItem.classList.add('uploading');
             
-            const success = await window.storeFile(window.serverData.userId, formData);
-            
+            let success;
+            if (formData.has('driveFileId')) {
+                success = await window.storedriveFile(window.serverData.userId, formData);
+            } else {
+                success = await window.storeFile(window.serverData.userId, formData);
+            }
+
             if (success) {
                 progressBar.style.width = '100%';
                 fileItem.classList.remove('uploading');
@@ -1070,9 +1166,178 @@ class FileUploadModal extends Component {
             return { success: false, error: error.message };
         }
     }
+    
+    loadDrivePicker() {
+        if (typeof google === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://apis.google.com/js/api.js';
+            script.onload = () => {
+                window.gapi.load('picker', () => {
+                    this.createPicker();
+                });
+            };
+            document.body.appendChild(script);
+        } else {
+            this.createPicker();
+        }
+    }
 
-    getFileIcon(fileName) {
+    createPicker() {
+
+        if (this.currentPicker) {
+            this.currentPicker.dispose();
+            this.currentPicker = null;
+        }
+
+        const accessToken = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('drive_access_token='))
+            ?.split('=')[1];
+    
+        if (!accessToken) {
+            const alertModal = document.createElement('div');
+            alertModal.className = 'alert-modal';
+            alertModal.innerHTML = `
+                <div class="alert-content">
+                    <div class="alert-icon">
+                        <i class="bi bi-exclamation-circle text-primary-green"></i>
+                    </div>
+                    <h5 class="alert-title">Drive Access Required</h5>
+                    <p class="alert-message">To access your Google Drive files:
+                        <br>1. Sign out
+                        <br>2. Sign in with Google
+                        <br>3. Allow Drive access when prompted
+                    </p>
+                    <button class="alert-button">Got it!</button>
+                </div>
+            `;
+        
+            document.body.appendChild(alertModal);
+            
+            requestAnimationFrame(() => {
+                alertModal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            });
+            
+            const closeButton = alertModal.querySelector('.alert-button');
+            closeButton.addEventListener('click', () => {
+                alertModal.classList.remove('show');
+                document.body.style.overflow = '';
+                setTimeout(() => alertModal.remove(), 300);
+            });
+        
+            return;
+        }
+        
+        const GOOGLE_API_KEY = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('google_api_key='))
+        ?.split('=')[1];
+
+
+        console.log('Creating picker with:', {
+            accessToken: accessToken,
+            apiKey: GOOGLE_API_KEY
+        });
+    
+        const picker = new google.picker.PickerBuilder()
+            .addView(google.picker.ViewId.DOCS)
+            .setOAuthToken(accessToken)
+            .setDeveloperKey(GOOGLE_API_KEY)
+            .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
+            .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+            .setCallback((data) => {
+                if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+                    const docs = data[google.picker.Response.DOCUMENTS];
+                    this.handleDriveSelection(docs);  // Pass token to handler
+                }
+            })
+            .build();
+        picker.setVisible(true);
+        this.currentPicker = picker;
+
+        setTimeout(() => {
+            const pickerFrame = document.querySelector('.picker-dialog-bg');
+            const pickerDialog = document.querySelector('.picker-dialog');
+            
+            if (pickerFrame && pickerDialog) {
+                document.querySelectorAll('.picker-dialog-bg, .picker-dialog').forEach(el => {
+                    if (el !== pickerFrame && el !== pickerDialog) {
+                        el.remove();
+                    }
+                });
+
+                pickerFrame.style.zIndex = '10000';
+                pickerDialog.style.zIndex = '10001';
+            }
+        }, 0);
+
+    }
+
+    handleDriveSelection(files) {
+        const supportedTypes = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/vnd.google-apps.document',
+            'application/vnd.google-apps.document',    
+            'application/vnd.google-apps.spreadsheet', 
+            'application/vnd.google-apps.presentation',
+            'application/vnd.google-apps.script',
+        ];
+    
+        const filteredFiles = files.filter(file => {
+            return supportedTypes.includes(file.mimeType);
+        });
+
+    
+        if (filteredFiles.length === 0) {
+            this.events.emit('warning', 'No supported files selected. Please select PDF, DOCX, or TXT files.');
+            return;
+        }
+    
+        if (filteredFiles.length < files.length) {
+            this.events.emit('warning', `${files.length - filteredFiles.length} files were skipped due to unsupported file types`);
+        }
+        
+        const fileList = this.element.querySelector('#fileList');
+        this.fileBasket.files.clear();
+        this.fileBasket.drivefiles.clear();
+        this.fileBasket.uploadQueue = [];
+        
+        fileList.innerHTML = '';
+        filteredFiles.forEach(file => {
+            const fileItem = this.createFileItem(file.name);
+            fileList.appendChild(fileItem);
+        });
+
+        this.updateUploadUI(
+            fileList,
+            this.element.querySelector('#uploadBtn'),
+            this.element.querySelector('#dropZone')
+        );
+        
+        this.handleFiles(filteredFiles);
+    }
+
+    getFileIcon(fileName, mimeType) {
         const extension = fileName.split('.').pop().toLowerCase();
+
+        if (mimeType) {
+            switch (mimeType) {
+                case 'application/vnd.google-apps.document':
+                    return 'bi-file-word';
+                case 'application/vnd.google-apps.spreadsheet':
+                    return 'bi-file-excel';
+                case 'application/vnd.google-apps.presentation':
+                    return 'bi-file-ppt';
+                case 'application/vnd.google-apps.script':
+                    return 'bi-file-text';
+            }
+        }
+
         const iconMap = {
             pdf: 'bi-file-pdf',
             docx: 'bi-file-word',
@@ -1086,7 +1351,7 @@ class FileUploadModal extends Component {
     }
 
     updateUploadUI(fileList, uploadBtn, uploadArea) {
-        if (this.fileBasket.getFileNames().length > 0) {
+        if (this.fileBasket.getFileNames().length > 0 || this.fileBasket.drivefiles.size > 0) {
             uploadArea.style.display = 'none';
             uploadBtn.disabled = false;
             this.ensureAddMoreFilesButton(fileList);
@@ -1315,6 +1580,88 @@ class ChatManager extends Component {
         return `<div class="message-content">${formattedText}</div>`;
       }
 
+      convertMarkdownToHtmlTable(content) {
+        if (!content.includes('|')) {
+            return content;
+        }
+    
+        const tableRegex = /\|[^\|]+(?:\|[^\|]+)*\|/g;
+        let lastIndex = 0;
+        let segments = [];
+        let match;
+    
+        tableRegex.lastIndex = 0;
+        
+        while ((match = tableRegex.exec(content)) !== null) {
+            if (match.index > lastIndex) {
+                const textContent = content.substring(lastIndex, match.index).trim();
+                if (textContent) {
+                    segments.push(`<div class="description-content">${textContent}</div>`);
+                }
+            }
+            
+            const tableContent = match[0];
+    
+            const rows = tableContent
+                .trim()
+                .split('\n')
+                .slice(1)
+                .filter(row => {
+                    const cleanRow = row.replace(/[|\s-]/g, '');
+                    return cleanRow.length > 0;
+                });
+    
+            let htmlTable = '<div class="table-wrapper"><table class="resource-table">';
+            
+            rows.forEach((row, rowIndex) => {
+                const cells = row
+                    .split('|')
+                    .filter(cell => cell.trim())
+                    .map(cell => {
+                        const cleanCell = cell.trim();
+                            if (cleanCell.match(/^-+$/)) return '';
+                            return cleanCell
+                             // Handle any type of subscript (letter followed by number)
+                             .replace(/\s+/g, ' ')
+                             // Handle numeric values with units
+                             .replace(/(\d+\.?\d*)\s*([A-Za-z²³/]+)/, '<span class="numeric">$1</span> <span class="unit">$2</span>')
+                             // Handle row identifiers
+                             .replace(/^\(([i\d]+)\)/, '<span class="identifier">($1)</span>');
+                    });
+                    
+                htmlTable += '<tr>';
+                cells.forEach(cell => {
+                    if (!cell) return;
+                    const cellTag = rowIndex === 0 ? 'th' : 'td';
+                    const className = [];
+                    
+                    if (cell.includes('class="numeric"') || !isNaN(cell.replace(/[^\d.-]/g, ''))) {
+                        className.push('align-right');
+                    }
+                    
+                    if (cell.includes('class="identifier"')) {
+                        className.push('indent-cell');
+                    }
+                    htmlTable += `<${cellTag}${className.length ? ` class="${className.join(' ')}"` : ''}>${cell}</${cellTag}>`;
+                });
+                htmlTable += '</tr>';
+            });
+            
+            htmlTable += '</table></div>';
+            segments.push(htmlTable);
+            lastIndex = match.index + match[0].length;
+        }
+        
+        if (lastIndex < content.length) {
+            const remainingText = content.substring(lastIndex).trim();
+            if (remainingText) {
+                segments.push(`<div class="description-content">${remainingText}</div>`);
+                }
+            }
+        
+        return segments.join('');
+        }
+
     updateResources(resources, sentences) {
         const container = document.querySelector('.resources-list');
         container.innerHTML = '';
@@ -1326,6 +1673,7 @@ class ChatManager extends Component {
         sentences.forEach((sentence, index) => {
             const item = document.createElement('div');
             item.className = 'resource-item';
+            const content = this.convertMarkdownToHtmlTable(sentence);
                 
             item.innerHTML = `
                 <div class="source-info">
@@ -1340,7 +1688,9 @@ class ChatManager extends Component {
                         <div class="bullet-line"></div>
                         <div class="bullet-number">${index + 1}</div>
                     </div>
-                    <p class="description">${sentence}</p>
+                     <div class="description">
+                    ${content}
+                    </div>
                 </div>
             `;
                 
