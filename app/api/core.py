@@ -474,9 +474,15 @@ class Processor:
         )
 
         for i in range(0, detected_sentence_amount):
-            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", domain_content[i][0]) or (
-                domain_content[i][0][0] == "|" and domain_content[i][0][-1] == "|"
+            decrypted_content = self.en.decrypt(
+                domain_content[i][0], domain_content[i][4]
+            )
+            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", decrypted_content) or (
+                decrypted_content[0] == "|" and decrypted_content[-1] == "|"
             ):
-                lang = self.cf.detect_language(domain_content[i][0])
+                lang = self.cf.detect_language(decrypted_content)
                 file_lang[lang] = file_lang.get(lang, 0) + 1
-        return max(file_lang, key=file_lang.get)
+        try:
+            return max(file_lang, key=file_lang.get)
+        except ValueError:
+            return "en"

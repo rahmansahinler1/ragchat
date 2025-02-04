@@ -123,7 +123,7 @@ class ReadingFunctions:
                         html_data["is_header"].append(False)
                         html_data["is_table"].append(False)
                         html_data["page_number"].append(1)
-            return html_data
+            return self._chunk_html(html_data)
         except Exception as e:
             raise ValueError(f"Error processing HTML content: {str(e)}")
 
@@ -482,6 +482,43 @@ class ReadingFunctions:
         docs = self.nlp(text)
         sentences = [sent.text.replace("\n", " ").strip() for sent in docs.sents]
         return [sentence for sentence in sentences if len(sentence) > 15]
+
+    def _chunk_html(self, html_text: str, max_tokens: int = 2000):
+        chunked_data = {
+            "sentences": [],
+            "page_number": [],
+            "is_header": [],
+            "is_table": [],
+        }
+
+        current_length = 0
+
+        for i, sentence in enumerate(html_text["sentences"]):
+            estimated_tokens = len(sentence.split())
+
+            if estimated_tokens > max_tokens:
+                words = sentence.split()
+                for j in range(0, len(words), max_tokens):
+                    chunk = " ".join(words[j : j + max_tokens])
+                    chunked_data["sentences"].append(chunk)
+                    chunked_data["page_number"].append(html_text["page_number"][i])
+                    chunked_data["is_header"].append(html_text["is_header"][i])
+                    chunked_data["is_table"].append(html_text["is_table"][i])
+            else:
+                if current_length + estimated_tokens > max_tokens:
+                    chunked_data["sentences"].append(sentence)
+                    chunked_data["page_number"].append(html_text["page_number"][i])
+                    chunked_data["is_header"].append(html_text["is_header"][i])
+                    chunked_data["is_table"].append(html_text["is_table"][i])
+                    current_length = 0
+                else:
+                    chunked_data["sentences"].append(sentence)
+                    chunked_data["page_number"].append(html_text["page_number"][i])
+                    chunked_data["is_header"].append(html_text["is_header"][i])
+                    chunked_data["is_table"].append(html_text["is_table"][i])
+                    current_length += estimated_tokens
+
+        return chunked_data
 
     def _get_file_size(self, file_bytes: bytes) -> None:
         return len(file_bytes) / (1024 * 1024)

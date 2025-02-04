@@ -2015,7 +2015,12 @@ class Sidebar extends Component {
 
     createFileListItem(fileName, fileID) {
         const fileItem = document.createElement('li');
-        const extension = fileName.split('.').pop().toLowerCase();
+        let extension;
+        if (fileName.includes('http') || fileName.includes('www.')) {
+            extension = 'html';
+        } else {
+            extension = fileName.split('.').pop().toLowerCase();
+        }
         const icon = this.getFileIcon(extension);
         const truncatedName = this.truncateFileName(fileName);
         
@@ -2104,10 +2109,16 @@ class Sidebar extends Component {
         return fileItem;
     }
 
-    truncateFileName(fileName, maxLength = 20) {
+    truncateFileName(fileName, maxLength = 25) {
         if (fileName.length <= maxLength) return fileName;
         
-        const extension = fileName.split('.').pop();
+        let extension;
+        if (fileName.includes('http') || fileName.includes('www.')) {
+            extension = 'html';
+        } else {
+            extension = fileName.split('.').pop().toLowerCase();
+        }
+        
         const nameWithoutExt = fileName.slice(0, fileName.lastIndexOf('.'));
         
         // Leave room for ellipsis and extension
@@ -2153,6 +2164,7 @@ class Sidebar extends Component {
     }
 
     getFileIcon(extension) {
+        console.log(extension)
         const iconMap = {
             pdf: 'bi-file-pdf',
             docx: 'bi-file-word',
