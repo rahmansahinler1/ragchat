@@ -165,12 +165,6 @@ class FileBasket {
     getFileNames() {
         const regularFiles = Array.from(this.files.keys());
         const driveFiles = Array.from(this.drivefiles.keys());
-
-        console.log('Getting file names:', {
-            regularFiles,
-            driveFiles,
-            total: [...regularFiles, ...driveFiles]
-        });
         return [...regularFiles, ...driveFiles];
     }
 
@@ -634,7 +628,41 @@ class DomainSettingsModal extends Component {
                     });
                     inputCard.remove();
                 } else {
-                    this.events.emit('warning', 'Failed to create domain');
+                    if (result.message && result.message.includes('up to 3 domains')) {
+                        const alertElement = document.createElement('div');
+                        alertElement.className = 'alert-modal';
+                        alertElement.innerHTML = `
+                            <div class="alert-content">
+                                <div class="alert-icon">
+                                    <i class="bi bi-exclamation-circle text-primary-green"></i>
+                                </div>
+                                <h5 class="alert-title">Domain Limit Reached</h5>
+                                <p class="alert-message">${result.message}</p>
+                                <div class="domain-count mt-3 text-secondary">
+                                    <small>Domains Used: ${this.domainManager.getAllDomains().length}/3</small>
+                                </div>
+                                <button class="alert-button">Got it</button>
+                            </div>
+                        `;
+
+                        document.body.appendChild(alertElement);
+
+                        const closeButton = alertElement.querySelector('.alert-button');
+                        closeButton.addEventListener('click', () => {
+                            alertElement.classList.remove('show');
+                            document.body.style.overflow = '';
+                            setTimeout(() => alertElement.remove(), 100);
+                        });
+        
+                        requestAnimationFrame(() => {
+                            alertElement.classList.add('show');
+                            document.body.style.overflow = 'hidden';
+                        });
+                        
+                    } else {
+                        this.events.emit('warning', 'Failed to create domain. Please try again.');
+                    }
+                    inputCard.remove(); 
                 }
             }
         };
@@ -1006,7 +1034,6 @@ class FileUploadModal extends Component {
         // Update UI
         fileList.innerHTML = '';
         this.fileBasket.getFileNames().forEach(fileName => {
-            console.log('Creating file item for:', fileName);
             const fileItem = this.createFileItem(fileName);
             fileList.appendChild(fileItem);
         });
@@ -1118,7 +1145,38 @@ class FileUploadModal extends Component {
                         this.hide();
                         this.events.emit('modalClose');
                     }, 500);
+                } else if (uploadResult.error && uploadResult.error.includes('Upgrade')) {
+                    console.log('first')
+                    console.log(uploadResult.error)
+                    const alertElement = document.createElement('div');
+                    alertElement.className = 'alert-modal';
+                    alertElement.innerHTML = `
+                        <div class="alert-content">
+                            <div class="alert-icon">
+                                <i class="bi bi-exclamation-circle text-primary-green"></i>
+                            </div>
+                            <h5 class="alert-title">File Limit Reached</h5>
+                            <p class="alert-message">${uploadResult.error}</p>
+                            <button class="alert-button">Got it</button>
+                        </div>
+                    `;
+
+                    document.body.appendChild(alertElement);
+                    
+                    const closeButton = alertElement.querySelector('.alert-button');
+                    closeButton.addEventListener('click', () => {
+                        alertElement.classList.remove('show');
+                        document.body.style.overflow = '';
+                        setTimeout(() => alertElement.remove(), 300);
+                    });
+
+                    requestAnimationFrame(() => {
+                        alertElement.classList.add('show');
+                        document.body.style.overflow = 'hidden';
+                    });
                 } else {
+                    console.log('second')
+                    console.log(uploadResult.error)
                     throw new Error(uploadResult.error);
                 }
             }

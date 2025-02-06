@@ -123,14 +123,14 @@ window.createDomain = async function createDomain(userId, domainName) {
             })
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            return { success: 0, data: null };
+            return { success: 0, message: data.message || 'Failed to create domain' };
         }
 
-        const data = await response.json();
-        
         if (data.message !== "success") {
-            return { success: 0, id: null };
+            return { success: 0, message: data.message };
         }
 
         return { success: 1, id: data.domain_id };
@@ -275,17 +275,22 @@ window.uploadFiles = async function(userID) {
             method: 'POST'
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to process uploads');
-        }
-
         const data = await response.json();
-        
-        if (data.message !== "success") {
+
+        if (data.message.includes("can only have 20 total files")) {
             return {
                 success: false,
                 error: data.message || 'Upload process failed'
             };
+        } else if (data.message !== "success")  {
+            return {
+                success: false,
+                error: data.message
+            };
+        }
+
+        if (!response.ok) {
+            throw new Error('Failed to process uploads');
         }
 
         return {

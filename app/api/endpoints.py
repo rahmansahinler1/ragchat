@@ -95,16 +95,16 @@ async def create_domain(
         domain_name = data.get("domain_name")
         domain_id = str(uuid.uuid4())
         with Database() as db:
-            success = db.create_domain(
+            result = db.create_domain(
                 user_id=userID,
                 domain_id=domain_id,
                 domain_name=domain_name,
                 domain_type=1,
             )
 
-            if not success:
+            if not result["success"]:
                 return JSONResponse(
-                    content={"message": "error while creating domain"},
+                    content={"message": result["message"]},
                     status_code=400,
                 )
 
@@ -608,11 +608,11 @@ async def upload_files(userID: str = Query(...)):
                 # Clean up Redis
                 redis_manager.delete_data(redis_key)
 
-            # Bulk insert
-            success = db.insert_file_batches(file_info_batch, file_content_batch)
-            if not success:
+            # Bulk insert with limit check
+            result = db.insert_file_batches(file_info_batch, file_content_batch)
+            if not result["success"]:
                 return JSONResponse(
-                    content={"message": "Failed to process files"}, status_code=500
+                    content={"message": result["message"]}, status_code=400
                 )
             db.conn.commit()
 
@@ -773,7 +773,7 @@ async def signup(
                     user_surname=user_surname,
                     user_password=authenticator.hash_password(user_password),
                     user_email=encryptor.encrypt_email(user_email),
-                    user_type="trial",
+                    user_type="free",
                     is_active=True,
                     refresh_token=str(uuid.uuid4()),
                     access_token=str(uuid.uuid4()),
