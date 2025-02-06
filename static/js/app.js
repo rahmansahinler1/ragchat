@@ -1548,7 +1548,40 @@ class ChatManager extends Component {
             loadingMessage.remove();
     
             if (response.status === 400) {
-                this.addMessage(response.message, 'ai');
+                if (response.message.includes('Daily question limit')) {
+                    // Show limit reached modal
+                    const alertElement = document.createElement('div');
+                    alertElement.className = 'alert-modal';
+                    alertElement.innerHTML = `
+                        <div class="alert-content">
+                            <div class="alert-icon">
+                                <i class="bi bi-exclamation-circle text-primary-green"></i>
+                            </div>
+                            <h5 class="alert-title">Daily Limit Reached</h5>
+                            <p class="alert-message">${response.message}</p>
+                            <div class="usage-count mt-3">
+                                <small>Questions Used Today: 50/50</small>
+                            </div>
+                            <button class="alert-button">Got it</button>
+                        </div>
+                    `;
+    
+                    document.body.appendChild(alertElement);
+                    
+                    const closeButton = alertElement.querySelector('.alert-button');
+                    closeButton.addEventListener('click', () => {
+                        alertElement.classList.remove('show');
+                        document.body.style.overflow = '';
+                        setTimeout(() => alertElement.remove(), 300);
+                    });
+    
+                    requestAnimationFrame(() => {
+                        alertElement.classList.add('show');
+                        document.body.style.overflow = 'hidden';
+                    });
+                } else {
+                    this.addMessage(response.message, 'ai');
+                }
                 return;
             }
     

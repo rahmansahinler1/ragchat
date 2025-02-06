@@ -269,6 +269,15 @@ async def generate_answer(
                 status_code=400,
             )
 
+        with Database() as db:
+            update_result = db.update_session_info(user_id=userID, session_id=sessionID)
+
+            if not update_result["success"]:
+                return JSONResponse(
+                    content={"message": update_result["message"]},
+                    status_code=400,
+                )
+
         # Get required data from Redis
         index, filtered_content, boost_info, index_header = processor.filter_search(
             domain_content=redis_manager.get_data(f"user:{userID}:domain_content"),
@@ -282,11 +291,6 @@ async def generate_answer(
             return JSONResponse(
                 content={"message": "Nothing in here..."},
                 status_code=400,
-            )
-
-        with Database() as db:
-            question_count = db.update_session_info(
-                user_id=userID, session_id=sessionID
             )
 
         # Process search
@@ -311,7 +315,7 @@ async def generate_answer(
                 "answer": answer,
                 "resources": resources,
                 "resource_sentences": resource_sentences,
-                "question_count": question_count,
+                "question_count": update_result["question_count"],
             },
             status_code=200,
         )

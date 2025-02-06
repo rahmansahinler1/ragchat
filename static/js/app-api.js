@@ -368,6 +368,13 @@ window.sendMessage = async function(message, userId, sessionId, fileIds) {
 
         const data = await response.json();
 
+        if (data.message && data.message.includes("Daily question limit reached")) {
+            return {
+                message: data.message || 'Daily question limit reached!',
+                status: 400
+            };
+        }
+
         if (!response.ok) {
             return {
                 message: data.message || 'Server error!',

@@ -585,6 +585,14 @@ class Database:
             raise e
 
     def update_session_info(self, user_id: str, session_id: str):
+        query_get_daily_count = """
+        SELECT sum(question_count), u.user_type
+        FROM session_info s
+        JOIN user_info u ON s.user_id = u.user_id
+        WHERE s.user_id = 'f7ac60c6-529c-4b41-998c-9b0448463486' 
+        AND s.created_at >= CURRENT_TIMESTAMP - INTERVAL '24 hours'AND s.created_at <= CURRENT_TIMESTAMP
+        GROUP BY u.user_type;
+        """
         query = """
         UPDATE session_info 
         SET question_count = question_count + 1
@@ -592,9 +600,35 @@ class Database:
         RETURNING question_count
         """
         try:
+            self.cursor.execute(query_get_daily_count, (user_id,))
+            result = self.cursor.fetchall()
+
+            if not result:
+                # No questions today, get user type
+                self.cursor.execute(
+                    "SELECT user_type FROM user_info WHERE user_id = %s", (user_id,)
+                )
+                user_type = self.cursor.fetchone()[0]
+                daily_count = 0
+            else:
+                daily_count, user_type = result[0][0], result[0][1]
+
+            # Check free user limits
+            if user_type == "free" and daily_count >= 50:
+                return {
+                    "success": False,
+                    "message": "Daily question limit reached for free users. Please try again tomorrow or upgrade your plan!",
+                    "question_count": daily_count,
+                }
+
             self.cursor.execute(query, (user_id, session_id))
             question_count = self.cursor.fetchone()[0]
-            return question_count
+
+            return {
+                "success": True,
+                "message": "success",
+                "question_count": question_count,
+            }
         except Exception as e:
             self.conn.rollback()
             raise e
