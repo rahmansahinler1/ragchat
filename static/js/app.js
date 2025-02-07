@@ -1653,10 +1653,12 @@ class ChatManager extends Component {
                 this.addMessage(response.answer, 'ai');
                 this.updateResources(response.resources, response.resource_sentences);
                 this.events.emit('ratingModalOpen');
+                window.app.profileLimitsModal.updateDailyCount(response.daily_count);
             } 
             else if (response.answer) {
                 this.addMessage(response.answer, 'ai');
                 this.updateResources(response.resources, response.resource_sentences);
+                window.app.profileLimitsModal.updateDailyCount(response.daily_count);
             } 
             else {
                 this.addMessage(response.message, 'ai');
@@ -2119,6 +2121,15 @@ class Sidebar extends Component {
             feedbackLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.events.emit('feedbackClick');
+            });
+        }
+
+        const profileMenuItem = userSection.querySelector('.menu-item:first-child');
+        if (profileMenuItem) {
+            profileMenuItem.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userSection.classList.remove('active');
+                this.events.emit('showProfileLimits');
             });
         }
     }
@@ -2935,6 +2946,151 @@ class URLInputModal extends Component {
 
 }
 
+// Add this class after other modal classes
+class ProfileLimitsModal extends Component {
+    constructor(domainManager) {
+        const element = document.createElement('div');
+        element.className = 'modal fade';
+        element.id = 'profileLimitsModal';
+        element.setAttribute('tabindex', '-1');
+        element.setAttribute('aria-hidden', 'true');
+        super(element);
+        
+        this.domainManager = domainManager;
+        this.render();
+        this.setupEventListeners();
+        this.dailyQuestionsCount = 0; 
+    }
+
+    render() {
+        this.element.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="domain-modal-wrapper">
+                        <div class="modal-header border-0">
+                            <h5 class="modal-title">Usage Limits</h5>
+                            <button type="button" class="close-button" data-bs-dismiss="modal">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="limits-container">
+                            <!-- Sources Limit -->
+                            <div class="limit-indicator mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <small class="text-secondary d-block">Total Sources</small>
+                                        <small class="text-white-50">Upload limit across all domains</small>
+                                    </div>
+                                    <small class="text-secondary sources-count">0/20</small>
+                                </div>
+                                <div class="progress" style="height: 6px; background: rgba(255, 255, 255, 0.1);">
+                                    <div class="progress-bar bg-primary-green" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Domains Limit -->
+                            <div class="limit-indicator mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <small class="text-secondary d-block">Knowledge Bases</small>
+                                        <small class="text-white-50">Number of domains you can create</small>
+                                    </div>
+                                    <small class="text-secondary domains-count">0/3</small>
+                                </div>
+                                <div class="progress" style="height: 6px; background: rgba(255, 255, 255, 0.1);">
+                                    <div class="progress-bar bg-primary-green" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Daily Questions Limit -->
+                            <div class="limit-indicator">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <small class="text-secondary d-block">Daily Questions</small>
+                                        <small class="text-white-50">Resets daily at midnight UTC</small>
+                                    </div>
+                                    <small class="text-secondary questions-count">0/50</small>
+                                </div>
+                                <div class="progress" style="height: 6px; background: rgba(255, 255, 255, 0.1);">
+                                    <div class="progress-bar bg-primary-green" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div class="upgrade-section mt-4 text-center">
+                                <button class="upgrade-button">
+                                    <i class="bi bi-gem me-2"></i>
+                                    Upgrade to Premium
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(this.element);
+    }
+
+    updateLimits() {
+        const domains = this.domainManager.getAllDomains();
+        let totalSources = 0;
+
+        domains.forEach(domain => {
+            if (domain.fileCount) {
+                totalSources += domain.fileCount;
+            }
+        });
+        
+        this.updateProgressBar('sources', totalSources, 20);
+
+        const domainCount = domains.length;
+        this.updateProgressBar('domains', domainCount, 3);
+
+        this.updateProgressBar('questions', this.dailyQuestionsCount, 50);
+
+    }
+
+    updateDailyCount(count) {
+        this.dailyQuestionsCount = count;
+        if (this.element.classList.contains('show')) {
+            this.updateProgressBar('questions', count, 50);
+        }
+    }
+
+    updateProgressBar(type, current, max) {
+        const countElement = this.element.querySelector(`.${type}-count`);
+        const progressBar = countElement?.closest('.limit-indicator').querySelector('.progress-bar');
+        
+        if (countElement && progressBar) {
+            const percentage = (current / max) * 100;
+            countElement.textContent = `${current}/${max}`;
+            progressBar.style.width = `${percentage}%`;
+        }
+    }
+
+    setupEventListeners() {
+        const upgradeButton = this.element.querySelector('.upgrade-button');
+        upgradeButton?.addEventListener('click', () => {
+            this.hide();
+            window.app.premiumModal.show();
+        });
+    }
+
+    show() {
+        this.updateLimits();
+        const modal = new bootstrap.Modal(this.element);
+        modal.show();
+    }
+
+    hide() {
+        const modal = bootstrap.Modal.getInstance(this.element);
+        if (modal) {
+            modal.hide();
+        }
+    }
+}
+
 // Application
 class App {
     constructor() {
@@ -2953,6 +3109,7 @@ class App {
         this.successAlert = new SuccessAlert();
         this.logoutModal = new LogoutModal();
         this.ratingModal = new RatingModal();
+        this.profileLimitsModal = new ProfileLimitsModal(this.domainManager);
         this.chatManager.disableChat();
         this.setupEventListeners();
     }
@@ -3178,6 +3335,10 @@ class App {
         logoutItem?.addEventListener('click', (e) => {
             e.preventDefault();
             this.logoutModal.show();
+        });
+
+        this.sidebar.events.on('showProfileLimits', () => {
+            this.profileLimitsModal.show()
         });
         
     }
