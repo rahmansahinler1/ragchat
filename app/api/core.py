@@ -32,7 +32,8 @@ class Encryptor:
     def __init__(self):
         load_dotenv()
         self.key = os.getenv("ENCRYPTION_KEY")
-        self
+        self.email_auth = "EMAIL_AUTH_DATA_2025"
+        self.email_nonce = self.email_auth.encode("utf-8")[:12].ljust(12, b"\0")
         try:
             self._key_bytes = base64.b64decode(self.key)
             self.aesgcm = AESGCM(self._key_bytes)
