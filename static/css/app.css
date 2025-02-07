@@ -1133,6 +1133,30 @@ body {
   display: none;
 }
 
+.limit-indicator {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.limit-indicator .progress {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.limit-indicator .progress-bar {
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.bg-warning {
+  background-color: #ffc107 !important;
+}
+
+.limit-indicator small {
+  font-size: 12px;
+}
+
 #deleteConfirmModal .modal-backdrop.show {
   backdrop-filter: none !important;
   background-color: rgba(0, 0, 0, 0.5) !important;

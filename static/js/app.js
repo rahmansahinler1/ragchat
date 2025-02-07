@@ -157,6 +157,7 @@ class FileBasket {
             if (queueIndex > -1) {
                 this.uploadQueue.splice(queueIndex, 1);
             }
+            this.updateSourceCount();
             return true;
         }
         return false;
@@ -374,7 +375,15 @@ class DomainSettingsModal extends Component {
                                 <i class="bi bi-x"></i>
                             </button>
                         </div>
-
+                        <div class="limit-indicator mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-secondary">Domain Usage</small>
+                                <small class="text-secondary domains-count">0/3</small>
+                            </div>
+                            <div class="progress" style="height: 6px; background: rgba(255, 255, 255, 0.1);">
+                                <div class="progress-bar bg-primary-green" style="width: 0%"></div>
+                            </div>
+                        </div>
                         <div class="domain-search">
                             <i class="bi bi-search"></i>
                             <input type="text" placeholder="Search domains..." class="domain-search-input" id="domainSearchInput">
@@ -626,6 +635,7 @@ class DomainSettingsModal extends Component {
                         id: result.id,
                         name: name
                     });
+                    this.updateDomainCount();
                     inputCard.remove();
                 } else {
                     if (result.message && result.message.includes('up to 3 domains')) {
@@ -749,9 +759,25 @@ class DomainSettingsModal extends Component {
         }
     }
 
+    updateDomainCount() {
+        const domains = this.domainManager.getAllDomains();
+        const count = domains.length;
+        const percentage = (count / 3) * 100;
+        
+        const countElement = this.element.querySelector('.domains-count');
+        const progressBar = this.element.querySelector('.progress-bar');
+        
+        if (countElement && progressBar) {
+            countElement.textContent = `${count}/3`;
+            progressBar.style.width = `${percentage}%`;
+            
+        }
+    }
+
     show() {
         const modal = new bootstrap.Modal(this.element);
         this.resetTemporarySelection();
+        this.updateDomainCount();
         modal.show();
     }
 
@@ -814,6 +840,7 @@ class DomainSettingsModal extends Component {
         if (result.success) {
             this.events.emit('domainDelete', domainId);
             this.hideDomainDeleteModal();
+            this.updateDomainCount();
             this.events.emit('message', {
                 text: 'Domain successfully deleted',
                 type: 'success'
@@ -832,7 +859,7 @@ class DomainSettingsModal extends Component {
 }
 
 class FileUploadModal extends Component {
-    constructor() {
+    constructor(DomainManager) {
         const element = document.createElement('div');
         element.id = 'fileUploadModal';
         element.className = 'modal fade';
@@ -843,6 +870,7 @@ class FileUploadModal extends Component {
         this.isUploading = false;
         this.fileBasket = new FileBasket();
         this.urlInputModal = new URLInputModal()
+        this.domainManager = DomainManager;
 
         this.render();
         this.setupEventListeners();
@@ -863,6 +891,16 @@ class FileUploadModal extends Component {
                                 <i class="bi bi-x"></i>
                             </button>
                         </div>
+                        <div class="limit-indicator mt-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-secondary">Total Sources</small>
+                                <small class="text-secondary sources-count">0/20</small>
+                            </div>
+                            <div class="progress" style="height: 6px; background: rgba(255, 255, 255, 0.1);">
+                                <div class="progress-bar bg-primary-green" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
 
                         <div class="upload-container">
                             <div id="fileList" class="file-list mb-3"></div>
@@ -1039,6 +1077,7 @@ class FileUploadModal extends Component {
         });
         
         this.updateUploadUI(fileList, uploadBtn, uploadArea);
+        this.updateSourceCount();
     }
 
     createFileItem(fileName) {
@@ -1137,6 +1176,7 @@ class FileUploadModal extends Component {
                 if (uploadResult.success) {
                     this.events.emit('filesUploaded', uploadResult.data);
                     this.resetUploadUI();
+                    this.updateSourceCount();
                     this.events.emit('message', {
                         text: `Successfully uploaded ${successCount} files`,
                         type: 'success'
@@ -1463,11 +1503,34 @@ class FileUploadModal extends Component {
         }
     }
 
+    updateSourceCount() {
+        const domains =  this.domainManager.getAllDomains();
+        let totalSources = 0;
+        
+        domains.forEach(domain => {
+            if (domain.fileCount) {
+                totalSources += domain.fileCount;
+            }
+        });
+        
+        const percentage = (totalSources / 20) * 100;
+        
+        const countElement = this.element.querySelector('.sources-count');
+        const progressBar = this.element.querySelector('.progress-bar');
+        
+        if (countElement && progressBar) {
+            countElement.textContent = `${totalSources}/20`;
+            progressBar.style.width = `${percentage}%`;
+            
+        }
+    }
+
     show(domainName = '') {
         const domainNameElement = this.element.querySelector('.domain-name');
         if (domainNameElement) {
             domainNameElement.textContent = domainName;
         }
+        this.updateSourceCount();
         const modal = new bootstrap.Modal(this.element);
         modal.show();
     }
@@ -1477,6 +1540,7 @@ class FileUploadModal extends Component {
         if (modal) {
             modal.hide();
             this.events.emit('modalClose');
+            this.fileBasket.clear();
             this.resetUploadUI();
         }
     }
@@ -2878,7 +2942,7 @@ class App {
         this.sidebar = new Sidebar(this.domainManager);
         this.feedbackModal = new FeedbackModal();
         this.domainSettingsModal = new DomainSettingsModal(this.domainManager);
-        this.fileUploadModal = new FileUploadModal();
+        this.fileUploadModal = new FileUploadModal(this.domainManager);
         this.events = new EventEmitter();
         this.userData = null;
         this.sourcesCount = 0;
@@ -2939,6 +3003,8 @@ class App {
         
             // Update the domains list in the modal
             this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());
+
+            this.updateDomainCount();
             
             this.events.emit('message', {
                 text: `Successfully created domain ${domainData.name}`,
@@ -3041,6 +3107,8 @@ class App {
                 
                 this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());
                 
+                this.updateDomainCount();
+
                 this.events.emit('message', {
                     text: 'Domain successfully deleted',
                     type: 'success'
