@@ -11,6 +11,7 @@ from ..functions.reading_functions import ReadingFunctions
 from ..functions.embedding_functions import EmbeddingFunctions
 from ..functions.indexing_functions import IndexingFunctions
 from ..functions.chatbot_functions import ChatbotFunctions
+from ..functions.scraping_functions import Webscraper
 
 
 class Authenticator:
@@ -36,6 +37,8 @@ class Encryptor:
         try:
             self._key_bytes = base64.b64decode(self.key)
             self.aesgcm = AESGCM(self._key_bytes)
+            self.email_auth = "EMAIL_AUTH_DATA_2025"
+            self.email_nonce = self.email_auth.encode("utf-8")[:12].ljust(12, b"\0")
         except Exception as e:
             raise ValueError(f"Invalid encryption key format: {str(e)}")
 
@@ -96,6 +99,7 @@ class Processor:
         self.indf = IndexingFunctions()
         self.cf = ChatbotFunctions()
         self.en = Encryptor()
+        self.ws = Webscraper()
 
     def create_index(self, embeddings: np.ndarray, index_type: str = "flat"):
         if index_type == "flat":
@@ -471,9 +475,15 @@ class Processor:
         )
 
         for i in range(0, detected_sentence_amount):
-            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", domain_content[i][0]) or (
-                domain_content[i][0][0] == "|" and domain_content[i][0][-1] == "|"
+            decrypted_content = self.en.decrypt(
+                domain_content[i][0], domain_content[i][4]
+            )
+            if re.match(r"\b[a-zA-Z]{" + str(4) + r",}\b", decrypted_content) or (
+                decrypted_content[0] == "|" and decrypted_content[-1] == "|"
             ):
-                lang = self.cf.detect_language(domain_content[i][0])
+                lang = self.cf.detect_language(decrypted_content)
                 file_lang[lang] = file_lang.get(lang, 0) + 1
-        return max(file_lang, key=file_lang.get)
+        try:
+            return max(file_lang, key=file_lang.get)
+        except ValueError:
+            return "en"

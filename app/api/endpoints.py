@@ -492,6 +492,60 @@ async def store_drive_file(
         )
 
 
+@router.post("/io/store_url")
+async def store_url(userID: str = Query(...), url: str = Form(...)):
+    try:
+        if not processor.ws.url_validator(url):
+            return JSONResponse(
+                content={"message": "Invalid URL. Please enter a valid URL."},
+                status_code=400,
+            )
+
+        html = processor.ws.request_creator(url)
+        if not html:
+            return JSONResponse(
+                content={"message": "Error fetching the URL. Please try again later."},
+                status_code=400,
+            )
+
+        file_data = processor.rf.read_url(html_content=html)
+
+        if not file_data["sentences"]:
+            return JSONResponse(
+                content={
+                    "message": f"No content to extract in {url}. If there is please report this to us!"
+                },
+                status_code=400,
+            )
+
+        file_embeddings = processor.ef.create_embeddings_from_sentences(
+            sentences=file_data["sentences"]
+        )
+
+        redis_key = f"user:{userID}:upload:{url}"
+        upload_data = {
+            "file_name": url,
+            "last_modified": datetime.now().strftime("%Y-%m-%d"),
+            "sentences": file_data["sentences"],
+            "page_numbers": file_data["page_number"],
+            "is_headers": file_data["is_header"],
+            "is_tables": file_data["is_table"],
+            "embeddings": file_embeddings,
+        }
+
+        redis_manager.set_data(redis_key, upload_data, expiry=3600)
+
+        return JSONResponse(
+            content={"message": "success", "file_name": url}, status_code=200
+        )
+
+    except Exception as e:
+        logging.error(f"Error storing URL {url}: {str(e)}")
+        return JSONResponse(
+            content={"message": f"Error storing URL: {str(e)}"}, status_code=500
+        )
+
+
 @router.post("/io/upload_files")
 async def upload_files(userID: str = Query(...)):
     try:
