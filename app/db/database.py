@@ -66,7 +66,7 @@ class Database:
 
     def get_user_info_w_email(self, user_email: str):
         query_get_user_info = """
-        SELECT DISTINCT user_id, user_name, user_surname, user_password, user_type, is_active, user_created_at
+        SELECT DISTINCT user_id, user_name, user_surname, user_password, user_type, is_active, user_created_at, access_token
         FROM user_info
         WHERE user_email = %s
         """
@@ -82,6 +82,7 @@ class Database:
                     "user_type": data[4],
                     "is_active": data[5],
                     "user_created_at": str(data[6]),
+                    "access_token": data[7],
                 }
                 if data
                 else None
@@ -92,7 +93,7 @@ class Database:
 
     def get_user_info_w_id(self, user_id: str):
         query_get_user_info = """
-        SELECT DISTINCT user_name, user_surname, user_email, user_type, user_created_at
+        SELECT DISTINCT user_name, user_surname, user_email, user_type, user_created_at, user_id
         FROM user_info
         WHERE user_id = %s
         """
@@ -121,6 +122,7 @@ class Database:
                 "user_email": user_info_data[2],
                 "user_type": user_info_data[3],
                 "user_created_at": str(user_info_data[4]),
+                "user_id": user_info_data[5],
             }
 
             self.cursor.execute(query_get_domain_ids, (user_id,))
