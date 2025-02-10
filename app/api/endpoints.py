@@ -697,6 +697,26 @@ async def remove_file_upload(
         )
 
 
+@router.post("/io/export_response")
+async def export_response(
+    userID: str = Query(...),
+    text: str = Form(...),
+):
+    try:
+        # Export response
+        response = processor.ex.export_pdf(data=text)
+
+        return JSONResponse(
+            content={"message": "success", "response": response}, status_code=200
+        )
+
+    except Exception as e:
+        logging.error(f"Error exporting response: {str(e)}")
+        return JSONResponse(
+            content={"message": f"Error exporting response: {str(e)}"}, status_code=500
+        )
+
+
 @router.post("/auth/login")
 async def login(
     request: Request,

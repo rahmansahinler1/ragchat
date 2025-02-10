@@ -311,6 +311,33 @@ window.uploadFiles = async function(userID) {
     }
 };
 
+window.exportResponse = async function(userID, text) {
+    try { 
+        const url = `/api/v1/io/export_response?userID=${encodeURIComponent(userID)}`;
+
+        const formData = new FormData();
+        formData.append('text', text);
+
+        const response = await fetch(url, {
+            method: 'POST',
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to export response');
+        }
+        return {
+            success: true
+        };
+    }
+    catch (error) {
+        console.error('Error uploading files:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+};
+
 window.removeFile = async function(fileId, domainId, userId) {
     try {
         const url = `/api/v1/db/remove_file_upload?userID=${encodeURIComponent(userId)}`;

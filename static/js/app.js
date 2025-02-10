@@ -1685,12 +1685,48 @@ class ChatManager extends Component {
         
         if (type === 'ai') {
             text.innerHTML = this.formatMessage(content);
+
+            bubble.appendChild(text);
+
+            const actionBar = document.createElement('div');
+            actionBar.className = 'message-actions';
+
+            const actionContainer = document.createElement('div');
+            actionContainer.className = 'action-container';
+            
+            const copyButton = document.createElement('button');
+            copyButton.className = 'copy-button';
+            copyButton.innerHTML = `
+            <i class="bi bi-clipboard"></i>
+            <span class="action-text">Copy</span>`;
+            
+            copyButton.addEventListener('click', () => {
+                const messageContent = text.innerHTML;
+                this.copyToClipboard(messageContent);
+                
+                copyButton.innerHTML = `
+                <i class="bi bi-check2"></i>
+                <span class="action-text">Copied!</span>`;
+                copyButton.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyButton.innerHTML = `
+                    <i class="bi bi-clipboard"></i>
+                    <span class="action-text">Copy</span>`;
+                    copyButton.classList.remove('copied');
+                }, 2000);
+            });
+            
+            actionContainer.appendChild(copyButton);
+            actionBar.appendChild(copyButton);
+            bubble.appendChild(actionBar);
+            message.appendChild(bubble);
         } else {
             text.textContent = content;
+            bubble.appendChild(text);
+            message.appendChild(bubble);
         }
         
-        bubble.appendChild(text);
-        message.appendChild(bubble);
         this.messageContainer.appendChild(message);
         this.scrollToBottom();
         
@@ -1869,6 +1905,20 @@ class ChatManager extends Component {
                 
             container.appendChild(item);
         });
+    }
+
+    copyToClipboard(content) {
+        const cleanText = content.replace(/<div class="message-header">(.*?)<\/div>/g, '$1\n')
+            .replace(/<div class="message-item.*?">(.*?)<\/div>/g, '- $1')
+            .replace(/<div class="message-item nested-1">(.*?)<\/div>/g, '  - $1')
+            .replace(/<div class="message-item nested-2">(.*?)<\/div>/g, '    - $1')
+            .replace(/<strong class="message-bold">(.*?)<\/strong>/g, '$1')
+            .replace(/<[^>]+>/g, '')
+            .replace(/\n\s*\n/g, '\n\n')
+            .trim();
+    
+        navigator.clipboard.writeText(cleanText)
+            .catch(err => console.error('Failed to copy text:', err));
     }
 
     scrollToBottom() {
