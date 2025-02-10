@@ -1133,6 +1133,57 @@ body {
   display: none;
 }
 
+.limit-indicator {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.limit-indicator .progress {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.limit-indicator .progress-bar {
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.bg-warning {
+  background-color: #ffc107 !important;
+}
+
+.limit-indicator small {
+  font-size: 12px;
+}
+
+.limits-container {
+  padding: 1rem 0;
+}
+
+.upgrade-button {
+  background-color: #10B981;
+  color: white;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.upgrade-button:hover {
+  background-color: #0DA271;
+  transform: translateY(-1px);
+}
+
+.text-white-50 {
+  font-size: 11px;
+  opacity: 0.5;
+}
+
 #deleteConfirmModal .modal-backdrop.show {
   backdrop-filter: none !important;
   background-color: rgba(0, 0, 0, 0.5) !important;
