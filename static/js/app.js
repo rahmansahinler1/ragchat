@@ -1653,12 +1653,12 @@ class ChatManager extends Component {
                 this.addMessage(response.answer, 'ai');
                 this.updateResources(response.resources, response.resource_sentences);
                 this.events.emit('ratingModalOpen');
-                window.app.profileLimitsModal.updateDailyCount(response.daily_count);
+                window.app.profileLimitsModal.updateDailyCount(response.question_count);
             } 
             else if (response.answer) {
                 this.addMessage(response.answer, 'ai');
                 this.updateResources(response.resources, response.resource_sentences);
-                window.app.profileLimitsModal.updateDailyCount(response.daily_count);
+                window.app.profileLimitsModal.updateDailyCount(response.question_count);
             } 
             else {
                 this.addMessage(response.message, 'ai');
