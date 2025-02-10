@@ -157,6 +157,7 @@ class FileBasket {
             if (queueIndex > -1) {
                 this.uploadQueue.splice(queueIndex, 1);
             }
+            this.updateSourceCount();
             return true;
         }
         return false;
@@ -165,12 +166,6 @@ class FileBasket {
     getFileNames() {
         const regularFiles = Array.from(this.files.keys());
         const driveFiles = Array.from(this.drivefiles.keys());
-
-        console.log('Getting file names:', {
-            regularFiles,
-            driveFiles,
-            total: [...regularFiles, ...driveFiles]
-        });
         return [...regularFiles, ...driveFiles];
     }
 
@@ -380,7 +375,15 @@ class DomainSettingsModal extends Component {
                                 <i class="bi bi-x"></i>
                             </button>
                         </div>
-
+                        <div class="limit-indicator mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-secondary">Domain Usage</small>
+                                <small class="text-secondary domains-count">0/3</small>
+                            </div>
+                            <div class="progress" style="height: 6px; background: rgba(255, 255, 255, 0.1);">
+                                <div class="progress-bar bg-primary-green" style="width: 0%"></div>
+                            </div>
+                        </div>
                         <div class="domain-search">
                             <i class="bi bi-search"></i>
                             <input type="text" placeholder="Search domains..." class="domain-search-input" id="domainSearchInput">
@@ -632,9 +635,44 @@ class DomainSettingsModal extends Component {
                         id: result.id,
                         name: name
                     });
+                    this.updateDomainCount();
                     inputCard.remove();
                 } else {
-                    this.events.emit('warning', 'Failed to create domain');
+                    if (result.message && result.message.includes('up to 3 domains')) {
+                        const alertElement = document.createElement('div');
+                        alertElement.className = 'alert-modal';
+                        alertElement.innerHTML = `
+                            <div class="alert-content">
+                                <div class="alert-icon">
+                                    <i class="bi bi-exclamation-circle text-primary-green"></i>
+                                </div>
+                                <h5 class="alert-title">Domain Limit Reached</h5>
+                                <p class="alert-message">${result.message}</p>
+                                <div class="domain-count mt-3 text-secondary">
+                                    <small>Domains Used: ${this.domainManager.getAllDomains().length}/3</small>
+                                </div>
+                                <button class="alert-button">Got it</button>
+                            </div>
+                        `;
+
+                        document.body.appendChild(alertElement);
+
+                        const closeButton = alertElement.querySelector('.alert-button');
+                        closeButton.addEventListener('click', () => {
+                            alertElement.classList.remove('show');
+                            document.body.style.overflow = '';
+                            setTimeout(() => alertElement.remove(), 100);
+                        });
+        
+                        requestAnimationFrame(() => {
+                            alertElement.classList.add('show');
+                            document.body.style.overflow = 'hidden';
+                        });
+                        
+                    } else {
+                        this.events.emit('warning', 'Failed to create domain. Please try again.');
+                    }
+                    inputCard.remove(); 
                 }
             }
         };
@@ -721,9 +759,25 @@ class DomainSettingsModal extends Component {
         }
     }
 
+    updateDomainCount() {
+        const domains = this.domainManager.getAllDomains();
+        const count = domains.length;
+        const percentage = (count / 3) * 100;
+        
+        const countElement = this.element.querySelector('.domains-count');
+        const progressBar = this.element.querySelector('.progress-bar');
+        
+        if (countElement && progressBar) {
+            countElement.textContent = `${count}/3`;
+            progressBar.style.width = `${percentage}%`;
+            
+        }
+    }
+
     show() {
         const modal = new bootstrap.Modal(this.element);
         this.resetTemporarySelection();
+        this.updateDomainCount();
         modal.show();
     }
 
@@ -786,6 +840,7 @@ class DomainSettingsModal extends Component {
         if (result.success) {
             this.events.emit('domainDelete', domainId);
             this.hideDomainDeleteModal();
+            this.updateDomainCount();
             this.events.emit('message', {
                 text: 'Domain successfully deleted',
                 type: 'success'
@@ -804,7 +859,7 @@ class DomainSettingsModal extends Component {
 }
 
 class FileUploadModal extends Component {
-    constructor() {
+    constructor(DomainManager) {
         const element = document.createElement('div');
         element.id = 'fileUploadModal';
         element.className = 'modal fade';
@@ -815,6 +870,7 @@ class FileUploadModal extends Component {
         this.isUploading = false;
         this.fileBasket = new FileBasket();
         this.urlInputModal = new URLInputModal()
+        this.domainManager = DomainManager;
 
         this.render();
         this.setupEventListeners();
@@ -835,6 +891,16 @@ class FileUploadModal extends Component {
                                 <i class="bi bi-x"></i>
                             </button>
                         </div>
+                        <div class="limit-indicator mt-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-secondary">Total Sources</small>
+                                <small class="text-secondary sources-count">0/20</small>
+                            </div>
+                            <div class="progress" style="height: 6px; background: rgba(255, 255, 255, 0.1);">
+                                <div class="progress-bar bg-primary-green" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
 
                         <div class="upload-container">
                             <div id="fileList" class="file-list mb-3"></div>
@@ -1006,12 +1072,12 @@ class FileUploadModal extends Component {
         // Update UI
         fileList.innerHTML = '';
         this.fileBasket.getFileNames().forEach(fileName => {
-            console.log('Creating file item for:', fileName);
             const fileItem = this.createFileItem(fileName);
             fileList.appendChild(fileItem);
         });
         
         this.updateUploadUI(fileList, uploadBtn, uploadArea);
+        this.updateSourceCount();
     }
 
     createFileItem(fileName) {
@@ -1110,6 +1176,7 @@ class FileUploadModal extends Component {
                 if (uploadResult.success) {
                     this.events.emit('filesUploaded', uploadResult.data);
                     this.resetUploadUI();
+                    this.updateSourceCount();
                     this.events.emit('message', {
                         text: `Successfully uploaded ${successCount} files`,
                         type: 'success'
@@ -1118,7 +1185,38 @@ class FileUploadModal extends Component {
                         this.hide();
                         this.events.emit('modalClose');
                     }, 500);
+                } else if (uploadResult.error && uploadResult.error.includes('Upgrade')) {
+                    console.log('first')
+                    console.log(uploadResult.error)
+                    const alertElement = document.createElement('div');
+                    alertElement.className = 'alert-modal';
+                    alertElement.innerHTML = `
+                        <div class="alert-content">
+                            <div class="alert-icon">
+                                <i class="bi bi-exclamation-circle text-primary-green"></i>
+                            </div>
+                            <h5 class="alert-title">File Limit Reached</h5>
+                            <p class="alert-message">${uploadResult.error}</p>
+                            <button class="alert-button">Got it</button>
+                        </div>
+                    `;
+
+                    document.body.appendChild(alertElement);
+                    
+                    const closeButton = alertElement.querySelector('.alert-button');
+                    closeButton.addEventListener('click', () => {
+                        alertElement.classList.remove('show');
+                        document.body.style.overflow = '';
+                        setTimeout(() => alertElement.remove(), 300);
+                    });
+
+                    requestAnimationFrame(() => {
+                        alertElement.classList.add('show');
+                        document.body.style.overflow = 'hidden';
+                    });
                 } else {
+                    console.log('second')
+                    console.log(uploadResult.error)
                     throw new Error(uploadResult.error);
                 }
             }
@@ -1405,11 +1503,34 @@ class FileUploadModal extends Component {
         }
     }
 
+    updateSourceCount() {
+        const domains =  this.domainManager.getAllDomains();
+        let totalSources = 0;
+        
+        domains.forEach(domain => {
+            if (domain.fileCount) {
+                totalSources += domain.fileCount;
+            }
+        });
+        
+        const percentage = (totalSources / 20) * 100;
+        
+        const countElement = this.element.querySelector('.sources-count');
+        const progressBar = this.element.querySelector('.progress-bar');
+        
+        if (countElement && progressBar) {
+            countElement.textContent = `${totalSources}/20`;
+            progressBar.style.width = `${percentage}%`;
+            
+        }
+    }
+
     show(domainName = '') {
         const domainNameElement = this.element.querySelector('.domain-name');
         if (domainNameElement) {
             domainNameElement.textContent = domainName;
         }
+        this.updateSourceCount();
         const modal = new bootstrap.Modal(this.element);
         modal.show();
     }
@@ -1419,6 +1540,7 @@ class FileUploadModal extends Component {
         if (modal) {
             modal.hide();
             this.events.emit('modalClose');
+            this.fileBasket.clear();
             this.resetUploadUI();
         }
     }
@@ -1490,7 +1612,40 @@ class ChatManager extends Component {
             loadingMessage.remove();
     
             if (response.status === 400) {
-                this.addMessage(response.message, 'ai');
+                if (response.message.includes('Daily question limit')) {
+                    // Show limit reached modal
+                    const alertElement = document.createElement('div');
+                    alertElement.className = 'alert-modal';
+                    alertElement.innerHTML = `
+                        <div class="alert-content">
+                            <div class="alert-icon">
+                                <i class="bi bi-exclamation-circle text-primary-green"></i>
+                            </div>
+                            <h5 class="alert-title">Daily Limit Reached</h5>
+                            <p class="alert-message">${response.message}</p>
+                            <div class="usage-count mt-3">
+                                <small>Questions Used Today: 50/50</small>
+                            </div>
+                            <button class="alert-button">Got it</button>
+                        </div>
+                    `;
+    
+                    document.body.appendChild(alertElement);
+                    
+                    const closeButton = alertElement.querySelector('.alert-button');
+                    closeButton.addEventListener('click', () => {
+                        alertElement.classList.remove('show');
+                        document.body.style.overflow = '';
+                        setTimeout(() => alertElement.remove(), 300);
+                    });
+    
+                    requestAnimationFrame(() => {
+                        alertElement.classList.add('show');
+                        document.body.style.overflow = 'hidden';
+                    });
+                } else {
+                    this.addMessage(response.message, 'ai');
+                }
                 return;
             }
     
@@ -1498,10 +1653,12 @@ class ChatManager extends Component {
                 this.addMessage(response.answer, 'ai');
                 this.updateResources(response.resources, response.resource_sentences);
                 this.events.emit('ratingModalOpen');
+                window.app.profileLimitsModal.updateDailyCount(response.question_count);
             } 
             else if (response.answer) {
                 this.addMessage(response.answer, 'ai');
                 this.updateResources(response.resources, response.resource_sentences);
+                window.app.profileLimitsModal.updateDailyCount(response.question_count);
             } 
             else {
                 this.addMessage(response.message, 'ai');
@@ -1964,6 +2121,15 @@ class Sidebar extends Component {
             feedbackLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.events.emit('feedbackClick');
+            });
+        }
+
+        const profileMenuItem = userSection.querySelector('.menu-item:first-child');
+        if (profileMenuItem) {
+            profileMenuItem.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userSection.classList.remove('active');
+                this.events.emit('showProfileLimits');
             });
         }
     }
@@ -2780,6 +2946,151 @@ class URLInputModal extends Component {
 
 }
 
+// Add this class after other modal classes
+class ProfileLimitsModal extends Component {
+    constructor(domainManager) {
+        const element = document.createElement('div');
+        element.className = 'modal fade';
+        element.id = 'profileLimitsModal';
+        element.setAttribute('tabindex', '-1');
+        element.setAttribute('aria-hidden', 'true');
+        super(element);
+        
+        this.domainManager = domainManager;
+        this.render();
+        this.setupEventListeners();
+        this.dailyQuestionsCount = 0; 
+    }
+
+    render() {
+        this.element.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="domain-modal-wrapper">
+                        <div class="modal-header border-0">
+                            <h5 class="modal-title">Usage Limits</h5>
+                            <button type="button" class="close-button" data-bs-dismiss="modal">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="limits-container">
+                            <!-- Sources Limit -->
+                            <div class="limit-indicator mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <small class="text-secondary d-block">Total Sources</small>
+                                        <small class="text-white-50">Upload limit across all domains</small>
+                                    </div>
+                                    <small class="text-secondary sources-count">0/20</small>
+                                </div>
+                                <div class="progress" style="height: 6px; background: rgba(255, 255, 255, 0.1);">
+                                    <div class="progress-bar bg-primary-green" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Domains Limit -->
+                            <div class="limit-indicator mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <small class="text-secondary d-block">Knowledge Bases</small>
+                                        <small class="text-white-50">Number of domains you can create</small>
+                                    </div>
+                                    <small class="text-secondary domains-count">0/3</small>
+                                </div>
+                                <div class="progress" style="height: 6px; background: rgba(255, 255, 255, 0.1);">
+                                    <div class="progress-bar bg-primary-green" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Daily Questions Limit -->
+                            <div class="limit-indicator">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <small class="text-secondary d-block">Daily Questions</small>
+                                        <small class="text-white-50">Resets daily at midnight UTC</small>
+                                    </div>
+                                    <small class="text-secondary questions-count">0/50</small>
+                                </div>
+                                <div class="progress" style="height: 6px; background: rgba(255, 255, 255, 0.1);">
+                                    <div class="progress-bar bg-primary-green" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div class="upgrade-section mt-4 text-center">
+                                <button class="upgrade-button">
+                                    <i class="bi bi-gem me-2"></i>
+                                    Upgrade to Premium
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(this.element);
+    }
+
+    updateLimits() {
+        const domains = this.domainManager.getAllDomains();
+        let totalSources = 0;
+
+        domains.forEach(domain => {
+            if (domain.fileCount) {
+                totalSources += domain.fileCount;
+            }
+        });
+        
+        this.updateProgressBar('sources', totalSources, 20);
+
+        const domainCount = domains.length;
+        this.updateProgressBar('domains', domainCount, 3);
+
+        this.updateProgressBar('questions', this.dailyQuestionsCount, 50);
+
+    }
+
+    updateDailyCount(count) {
+        this.dailyQuestionsCount = count;
+        if (this.element.classList.contains('show')) {
+            this.updateProgressBar('questions', count, 50);
+        }
+    }
+
+    updateProgressBar(type, current, max) {
+        const countElement = this.element.querySelector(`.${type}-count`);
+        const progressBar = countElement?.closest('.limit-indicator').querySelector('.progress-bar');
+        
+        if (countElement && progressBar) {
+            const percentage = (current / max) * 100;
+            countElement.textContent = `${current}/${max}`;
+            progressBar.style.width = `${percentage}%`;
+        }
+    }
+
+    setupEventListeners() {
+        const upgradeButton = this.element.querySelector('.upgrade-button');
+        upgradeButton?.addEventListener('click', () => {
+            this.hide();
+            window.app.premiumModal.show();
+        });
+    }
+
+    show() {
+        this.updateLimits();
+        const modal = new bootstrap.Modal(this.element);
+        modal.show();
+    }
+
+    hide() {
+        const modal = bootstrap.Modal.getInstance(this.element);
+        if (modal) {
+            modal.hide();
+        }
+    }
+}
+
 // Application
 class App {
     constructor() {
@@ -2787,7 +3098,7 @@ class App {
         this.sidebar = new Sidebar(this.domainManager);
         this.feedbackModal = new FeedbackModal();
         this.domainSettingsModal = new DomainSettingsModal(this.domainManager);
-        this.fileUploadModal = new FileUploadModal();
+        this.fileUploadModal = new FileUploadModal(this.domainManager);
         this.events = new EventEmitter();
         this.userData = null;
         this.sourcesCount = 0;
@@ -2798,6 +3109,7 @@ class App {
         this.successAlert = new SuccessAlert();
         this.logoutModal = new LogoutModal();
         this.ratingModal = new RatingModal();
+        this.profileLimitsModal = new ProfileLimitsModal(this.domainManager);
         this.chatManager.disableChat();
         this.setupEventListeners();
     }
@@ -2848,6 +3160,8 @@ class App {
         
             // Update the domains list in the modal
             this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());
+
+            this.updateDomainCount();
             
             this.events.emit('message', {
                 text: `Successfully created domain ${domainData.name}`,
@@ -2950,6 +3264,8 @@ class App {
                 
                 this.domainSettingsModal.updateDomainsList(this.domainManager.getAllDomains());
                 
+                this.updateDomainCount();
+
                 this.events.emit('message', {
                     text: 'Domain successfully deleted',
                     type: 'success'
@@ -3019,6 +3335,10 @@ class App {
         logoutItem?.addEventListener('click', (e) => {
             e.preventDefault();
             this.logoutModal.show();
+        });
+
+        this.sidebar.events.on('showProfileLimits', () => {
+            this.profileLimitsModal.show()
         });
         
     }
