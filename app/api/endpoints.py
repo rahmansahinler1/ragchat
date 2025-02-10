@@ -5,7 +5,7 @@ from google.auth.transport import requests
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from datetime import datetime
 import os
 import logging
@@ -698,23 +698,22 @@ async def remove_file_upload(
 
 
 @router.post("/io/export_response")
-async def export_response(
-    userID: str = Query(...),
-    text: str = Form(...),
-):
+async def export_response(request: Request):
     try:
-        # Export response
+        data = await request.json()
+        text = data.get("content")
+
         response = processor.ex.export_pdf(data=text)
 
-        return JSONResponse(
-            content={"message": "success", "response": response}, status_code=200
+        return StreamingResponse(
+            iter([response.getvalue()]),
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=doclink_export.pdf"},
         )
-
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logging.error(f"Error exporting response: {str(e)}")
-        return JSONResponse(
-            content={"message": f"Error exporting response: {str(e)}"}, status_code=500
-        )
+        raise HTTPException(status_code=500, detail=f"PDF generation failed Error: {e}")
 
 
 @router.post("/auth/login")
