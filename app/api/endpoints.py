@@ -706,9 +706,12 @@ async def export_response(request: Request):
         response = processor.ex.export_pdf(data=text)
 
         return StreamingResponse(
-            iter([response.getvalue()]),
+            io.BytesIO(response.getvalue()),
             media_type="application/pdf",
-            headers={"Content-Disposition": "attachment; filename=doclink_export.pdf"},
+            headers={
+                "Content-Disposition": "attachment; filename=DoclinkExport.pdf",
+                "Content-Type": "application/pdf",
+            },
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -1699,6 +1699,13 @@ class ChatManager extends Component {
             copyButton.innerHTML = `
             <i class="bi bi-clipboard"></i>
             <span class="action-text">Copy</span>`;
+
+            const exportButton = document.createElement('button');
+            exportButton.className = 'pdf-button';
+            exportButton.innerHTML = `
+                <i class="bi bi-file-pdf"></i>
+                <span class="action-text">PDF</span>
+            `;
             
             copyButton.addEventListener('click', () => {
                 const messageContent = text.innerHTML;
@@ -1716,9 +1723,48 @@ class ChatManager extends Component {
                     copyButton.classList.remove('copied');
                 }, 2000);
             });
+
+            exportButton.addEventListener('click', async () => {
+                const messageContent = text.innerHTML;
+                exportButton.innerHTML = `
+                    <i class="bi bi-hourglass-split"></i>
+                    <span class="action-text">Exporting...</span>
+                `;
+                exportButton.disabled = true;
+        
+                try {
+                    const result = await window.exportResponse(messageContent);
+                    if (result.success === true) {
+                        exportButton.innerHTML = `
+                            <i class="bi bi-check2"></i>
+                            <span class="action-text">Exported!</span>
+                        `;
+                    } else {
+                        exportButton.innerHTML = `
+                            <i class="bi bi-exclamation-circle"></i>
+                            <span class="action-text">Failed</span>
+                        `;
+                    }
+                } catch (error) {
+                    exportButton.innerHTML = `
+                        <i class="bi bi-exclamation-circle"></i>
+                        <span class="action-text">Failed</span>
+                    `;
+                }
+        
+                setTimeout(() => {
+                    exportButton.innerHTML = `
+                        <i class="bi bi-file-pdf"></i>
+                        <span class="action-text">PDF</span>
+                    `;
+                    exportButton.disabled = false;
+                }, 2000);
+            });
             
             actionContainer.appendChild(copyButton);
+            actionContainer.appendChild(exportButton);
             actionBar.appendChild(copyButton);
+            actionBar.appendChild(exportButton);
             bubble.appendChild(actionBar);
             message.appendChild(bubble);
         } else {
@@ -2380,7 +2426,6 @@ class Sidebar extends Component {
     }
 
     getFileIcon(extension) {
-        console.log(extension)
         const iconMap = {
             pdf: 'bi-file-pdf',
             docx: 'bi-file-word',

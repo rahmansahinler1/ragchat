@@ -311,20 +311,33 @@ window.uploadFiles = async function(userID) {
     }
 };
 
-window.exportResponse = async function(userID, text) {
+window.exportResponse = async function(content) {
     try { 
-        const url = `/api/v1/io/export_response?userID=${encodeURIComponent(userID)}`;
-
-        const formData = new FormData();
-        formData.append('text', text);
-
-        const response = await fetch(url, {
+        const response = await fetch('/api/v1/io/export_response', {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'  
+            },
+            body: JSON.stringify({content: content })
         });
 
         if (!response.ok) {
-            throw new Error('Failed to export response');
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to generate PDF');
         }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'DoclinkExport.pdf';
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
         return {
             success: true
         };

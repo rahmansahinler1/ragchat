@@ -11,7 +11,7 @@ class Exporter:
         self.styles = getSampleStyleSheet()
         self.setup_styles()
         self.doc = SimpleDocTemplate(
-            "Export.pdf",
+            "DoclinkExport.pdf",
             leftMargin=30,
             rightMargin=30,
             topMargin=30,
@@ -32,13 +32,17 @@ class Exporter:
 
         self.styles.add(
             ParagraphStyle(
-                name="Normal", fontSize=11, textColor=colors.black, spaceAfter=8
+                name="Content", fontSize=11, textColor=colors.black, spaceAfter=8
             )
         )
 
         self.styles.add(
             ParagraphStyle(
-                name="Bullet", fontSize=11, leftIndent=20, bulletIndent=10, spaceAfter=5
+                name="Bullet-Point",
+                fontSize=11,
+                leftIndent=20,
+                bulletIndent=10,
+                spaceAfter=5,
             )
         )
 
@@ -47,7 +51,7 @@ class Exporter:
         text = re.sub(r"\[bold\](.*?)\[/bold\]", r"<b>\1</b>", text)
         return text
 
-    def create_watermark(self, canvas):
+    def create_watermark(self, canvas, doc):
         canvas.saveState()
         canvas.setFillColor(colors.HexColor("#10B981"))
         canvas.setFont("Helvetica", 8)
@@ -63,25 +67,25 @@ class Exporter:
 
         for line in lines:
             if line.strip():
-                if line.startswith("<h1>"):
+                if line.startswith("<h1>") or "header" in line:
                     # Header section
                     text = line.replace("<h1>", "").replace("</h1>", "")
                     content.append(Paragraph(text, self.styles["Header"]))
                 elif line.startswith("-"):
                     # Bullet point
                     text = line[1:].strip()
-                    content.append(Paragraph(f"• {text}", self.styles["Bullet"]))
+                    content.append(Paragraph(f"• {text}", self.styles["Bullet-Point"]))
                 else:
                     # Normal text
-                    content.append(Paragraph(line, self.styles["Normal"]))
+                    content.append(Paragraph(line, self.styles["Content"]))
 
                 content.append(Spacer(1, 2))
 
         try:
             self.doc.build(
                 content,
-                onFirstPage=self._create_watermark,
-                onLaterPages=self._create_watermark,
+                onFirstPage=self.create_watermark,
+                onLaterPages=self.create_watermark,
             )
             buffer.seek(0)
             return buffer
