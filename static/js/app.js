@@ -1767,9 +1767,9 @@ class ChatManager extends Component {
                 actionBar.appendChild(exportButton);
                 bubble.appendChild(actionBar);
                 message.appendChild(bubble);
-        } else {
-            message.appendChild(bubble);
-        }
+            } else {
+                message.appendChild(bubble);
+            }
         } else {
             text.textContent = content;
             bubble.appendChild(text);

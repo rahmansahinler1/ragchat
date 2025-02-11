@@ -297,6 +297,10 @@ body {
   gap: 4px;
 }
 
+.pdf-button:hover {
+  color: #10B981;
+}
+
 .sidebar-container {
   width: 294px;
   height: 100%;
