@@ -1567,6 +1567,12 @@ class ChatManager extends Component {
             <button class="send-button" disabled>
                 <i class="bi bi-send send-icon"></i>
             </button>
+            <button class="export-button" disabled title="Export Selected Messages">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 4h12v2H4v14h14V10h2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z" fill="currentColor"/>
+                <path d="M16 4l1.41 1.41L12 10.83l1.41 1.41L19 6.66V10h2V3h-7v2h2z" fill="currentColor"/>
+            </svg>
+            </button>
         `;
     
         const input = container.querySelector('.message-input');
@@ -1688,84 +1694,19 @@ class ChatManager extends Component {
             bubble.appendChild(text);
             
             if (!content.includes('what can I find for you?')) {
-                const actionBar = document.createElement('div');
-                actionBar.className = 'message-actions';
+                message.setAttribute('data-exportable', 'true');
 
-                const actionContainer = document.createElement('div');
-                actionContainer.className = 'action-container';
+                const selectionMark = document.createElement('div');
+                selectionMark.className = 'selection-mark';
+                selectionMark.innerHTML = '<i class="bi bi-check-circle"></i>';
                 
-                const copyButton = document.createElement('button');
-                copyButton.className = 'copy-button';
-                copyButton.innerHTML = `
-                <i class="bi bi-clipboard"></i>
-                <span class="action-text">Copy</span>`;
-
-                const exportButton = document.createElement('button');
-                exportButton.className = 'pdf-button';
-                exportButton.innerHTML = `
-                    <i class="bi bi-file-pdf"></i>
-                    <span class="action-text">PDF</span>
-                `;
                 
-                copyButton.addEventListener('click', () => {
-                    const messageContent = text.innerHTML;
-                    this.copyToClipboard(messageContent);
-                    
-                    copyButton.innerHTML = `
-                    <i class="bi bi-check2"></i>
-                    <span class="action-text">Copied!</span>`;
-                    copyButton.classList.add('copied');
-                    
-                    setTimeout(() => {
-                        copyButton.innerHTML = `
-                        <i class="bi bi-clipboard"></i>
-                        <span class="action-text">Copy</span>`;
-                        copyButton.classList.remove('copied');
-                    }, 2000);
-                });
-
-                exportButton.addEventListener('click', async () => {
-                    const messageContent = text.innerHTML;
-                    exportButton.innerHTML = `
-                        <i class="bi bi-hourglass-split"></i>
-                        <span class="action-text">Exporting...</span>
-                    `;
-                    exportButton.disabled = true;
-            
-                    try {
-                        const result = await window.exportResponse(messageContent);
-                        if (result.success === true) {
-                            exportButton.innerHTML = `
-                                <i class="bi bi-check2"></i>
-                                <span class="action-text">Exported!</span>
-                            `;
-                        } else {
-                            exportButton.innerHTML = `
-                                <i class="bi bi-exclamation-circle"></i>
-                                <span class="action-text">Failed</span>
-                            `;
-                        }
-                    } catch (error) {
-                        exportButton.innerHTML = `
-                            <i class="bi bi-exclamation-circle"></i>
-                            <span class="action-text">Failed</span>
-                        `;
-                    }
-            
-                    setTimeout(() => {
-                        exportButton.innerHTML = `
-                            <i class="bi bi-file-pdf"></i>
-                            <span class="action-text">PDF</span>
-                        `;
-                        exportButton.disabled = false;
-                    }, 2000);
+                message.addEventListener('click', () => {
+                    message.classList.toggle('selected');
+                    this.updateExportButton();
                 });
                 
-                actionContainer.appendChild(copyButton);
-                actionContainer.appendChild(exportButton);
-                actionBar.appendChild(copyButton);
-                actionBar.appendChild(exportButton);
-                bubble.appendChild(actionBar);
+                bubble.appendChild(selectionMark);
                 message.appendChild(bubble);
             } else {
                 message.appendChild(bubble);
@@ -1780,6 +1721,12 @@ class ChatManager extends Component {
         this.scrollToBottom();
         
         return message;
+    }
+
+    updateExportButton() {
+        const exportButton = document.querySelector('.export-button');
+        const selectedMessages = document.querySelectorAll('.chat-message.ai.selected');
+        exportButton.disabled = selectedMessages.length === 0;
     }
 
     updateHeader(domainName = null) {

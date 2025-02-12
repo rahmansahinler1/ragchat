@@ -235,29 +235,51 @@ body {
   padding: 4px 0;
 }
 
-.copy-button {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-  padding: 4px 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.export-button {
+  background-color: var(--primary-green);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  right: 1px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  transition: all 0.2s ease;
+  position: absolute;
 }
 
-.copy-button:hover {
-  color: #10B981;
+.export-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.copy-button.copied {
-  color: #10B981;
-  pointer-events: none;
+.export-button:hover {
+  background-color: #0da271;
 }
 
-.copy-button i {
-  font-size: 16px;
+.export-button:not(:disabled):hover {
+  background-color: var(--primary-green);
+}
+
+.selection-mark {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  z-index: 2;
+  color: var(--primary-green);
 }
 
 .message-bubble.ai-bubble {
@@ -280,26 +302,6 @@ body {
   gap: 4px;
 }
 
-.action-text {
-  font-size: 12px;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-}
-
-.pdf-button {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-  padding: 4px 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.pdf-button:hover {
-  color: #10B981;
-}
 
 .sidebar-container {
   width: 294px;
@@ -710,10 +712,11 @@ body {
   width: 100%;
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .message-input {
-  width: 100%;
+  width: calc(100% - 90px);
   background-color: var(--sidebar-bg);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 35px;
@@ -740,7 +743,7 @@ body {
 
 .send-button {
   position: absolute;
-  right: 12px;
+  right: 45px;
   background-color: var(--primary-green);
   border: none;
   border-radius: 50%;
@@ -1641,6 +1644,11 @@ body {
   justify-content: flex-start;
   position: relative;
   margin-bottom: 30px;
+  cursor: pointer;
+}
+
+.chat-message.ai.selected .selection-mark {
+  opacity: 1;
 }
 
 .message-bubble {
