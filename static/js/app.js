@@ -1569,9 +1569,10 @@ class ChatManager extends Component {
                 <i class="bi bi-send send-icon"></i>
             </button>
             <button class="export-button" disabled title="Export Selected Messages">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 4h12v2H4v14h14V10h2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z" fill="currentColor"/>
-                <path d="M16 4l1.41 1.41L12 10.83l1.41 1.41L19 6.66V10h2V3h-7v2h2z" fill="currentColor"/>
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 4h14a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" stroke-width="2"/>
+                <path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M16 12l3 3m0 0l3-3m-3 3V4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             </button>
         `;
