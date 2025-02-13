@@ -1782,7 +1782,7 @@ class ChatManager extends Component {
 
     async handleExportSelected() {
         const selectedContents = this.getSelectedMessages();
-        if (selectedContents.length === 0) return;
+        if (selectedContents.length === 0 || selectedContents.length > 10 ) return;
 
         const exportButton = document.querySelector('.export-button');
         const originalHTML = exportButton.innerHTML;
