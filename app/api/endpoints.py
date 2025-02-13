@@ -701,9 +701,14 @@ async def remove_file_upload(
 async def export_response(request: Request):
     try:
         data = await request.json()
-        text = data.get("content")
+        text = data.get("contents", [])
 
-        response = processor.ex.export_pdf(data=text)
+        if not text:
+            raise ValueError("No content selected for export")
+
+        formatted_text = "\n\n------------------\n\n".join(text)
+
+        response = processor.ex.export_pdf(data=formatted_text)
 
         return StreamingResponse(
             io.BytesIO(response.getvalue()),
@@ -711,6 +716,7 @@ async def export_response(request: Request):
             headers={
                 "Content-Disposition": "attachment; filename=DoclinkExport.pdf",
                 "Content-Type": "application/pdf",
+                "Content-Length": str(len(response.getvalue())),
             },
         )
     except ValueError as e:

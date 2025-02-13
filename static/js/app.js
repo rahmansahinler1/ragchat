@@ -1553,6 +1553,7 @@ class ChatManager extends Component {
         
         this.messageContainer = this.element.querySelector('.chat-messages');
         this.setupMessageInput();
+        this.setupExportButton();
     }
 
     setupMessageInput() {
@@ -1696,19 +1697,52 @@ class ChatManager extends Component {
             if (!content.includes('what can I find for you?')) {
                 message.setAttribute('data-exportable', 'true');
 
+                const actionBar = document.createElement('div');
+                actionBar.className = 'message-actions';
+
+                const actionContainer = document.createElement('div');
+                actionContainer.className = 'action-container';
+
                 const selectionMark = document.createElement('div');
                 selectionMark.className = 'selection-mark';
                 selectionMark.innerHTML = '<i class="bi bi-check-circle"></i>';
                 
+                const copyButton = document.createElement('button');
+                copyButton.className = 'copy-button';
+                copyButton.innerHTML = `
+                <i class="bi bi-clipboard"></i>
+                <span class="action-text">Copy</span>`;
                 
-                message.addEventListener('click', () => {
+                copyButton.addEventListener('click', () => {
+                    const messageContent = text.innerHTML;
+                    this.copyToClipboard(messageContent);
+                    
+                    copyButton.innerHTML = `
+                    <i class="bi bi-check2"></i>
+                    <span class="action-text">Copied!</span>`;
+                    copyButton.classList.add('copied');
+                    
+                    setTimeout(() => {
+                        copyButton.innerHTML = `
+                        <i class="bi bi-clipboard"></i>
+                        <span class="action-text">Copy</span>`;
+                        copyButton.classList.remove('copied');
+                    }, 2000);
+                });
+                
+                selectionMark.addEventListener('click', () => {
                     message.classList.toggle('selected');
                     this.updateExportButton();
                 });
                 
+                actionContainer.appendChild(copyButton);
+                actionBar.appendChild(copyButton);
                 bubble.appendChild(selectionMark);
+                bubble.appendChild(actionBar);
                 message.appendChild(bubble);
             } else {
+                message.appendChild(bubble);
+                bubble.appendChild(text);
                 message.appendChild(bubble);
             }
         } else {
@@ -1723,10 +1757,73 @@ class ChatManager extends Component {
         return message;
     }
 
+    setupExportButton() {
+        const exportButton = document.querySelector('.export-button');
+        if (exportButton) {
+            exportButton.addEventListener('click', () => this.handleExportSelected());
+            exportButton.disabled = true;
+        }
+    }
+
     updateExportButton() {
         const exportButton = document.querySelector('.export-button');
+        if (exportButton) {
+            const selectedMessages = document.querySelectorAll('.chat-message.ai.selected');
+            exportButton.disabled = selectedMessages.length === 0;
+        }
+    }
+
+    getSelectedMessages() {
         const selectedMessages = document.querySelectorAll('.chat-message.ai.selected');
-        exportButton.disabled = selectedMessages.length === 0;
+        return Array.from(selectedMessages).map(message => {
+            return message.querySelector('.message-text').innerHTML;
+        });
+    }
+
+    async handleExportSelected() {
+        const selectedContents = this.getSelectedMessages();
+        if (selectedContents.length === 0) return;
+
+        const exportButton = document.querySelector('.export-button');
+        const originalHTML = exportButton.innerHTML;
+        
+        try {
+            // Show loading state
+            exportButton.innerHTML = `<div class="spinner-border spinner-border-sm" role="status"></div>`;
+            exportButton.disabled = true;
+
+            const result = await window.exportResponse(selectedContents);
+            
+            if (result === true) {
+                // Success state
+                exportButton.innerHTML = '<i class="bi bi-check2"></i>';
+                setTimeout(() => {
+                    // Reset state
+                    exportButton.innerHTML = originalHTML;
+                    exportButton.disabled = false;
+                    
+                    // Deselect all messages
+                    document.querySelectorAll('.chat-message.ai.selected').forEach(msg => {
+                        msg.classList.remove('selected');
+                    });
+                    this.updateExportButton();
+                }, 2000);
+            } else {
+                // Error state
+                exportButton.innerHTML = '<i class="bi bi-x-circle"></i>';
+                setTimeout(() => {
+                    exportButton.innerHTML = originalHTML;
+                    exportButton.disabled = false;
+                }, 2000);
+            }
+        } catch (error) {
+            console.error('Export failed:', error);
+            exportButton.innerHTML = '<i class="bi bi-x-circle"></i>';
+            setTimeout(() => {
+                exportButton.innerHTML = originalHTML;
+                exportButton.disabled = false;
+            }, 2000);
+        }
     }
 
     updateHeader(domainName = null) {

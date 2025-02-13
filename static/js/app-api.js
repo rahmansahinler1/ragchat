@@ -311,14 +311,14 @@ window.uploadFiles = async function(userID) {
     }
 };
 
-window.exportResponse = async function(content) {
+window.exportResponse = async function(contents) {
     try { 
         const response = await fetch('/api/v1/io/export_response', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'  
             },
-            body: JSON.stringify({content: content })
+            body: JSON.stringify({contents})
         });
 
         if (!response.ok) {
@@ -327,17 +327,27 @@ window.exportResponse = async function(content) {
         }
 
         const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
 
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'DoclinkExport.pdf';
+        if (blob.size === 0) {
+            throw new Error('Received empty PDF');
+        }
+
+         const url = window.URL.createObjectURL(
+            new Blob([blob], { type: 'application/pdf' })
+        );
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'DoclinkExport.pdf';
         
-        document.body.appendChild(a);
-        a.click();
-        
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        document.body.appendChild(link);
+        link.click();
+
+        document.body.removeChild(link);
+
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+        }, 100);
+
         return {
             success: true
         };

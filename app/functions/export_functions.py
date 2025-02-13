@@ -2,6 +2,9 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.fonts import addMapping
 from io import BytesIO
 import re
 
@@ -10,15 +13,10 @@ class Exporter:
     def __init__(self):
         self.styles = getSampleStyleSheet()
         self.setup_styles()
-        self.doc = SimpleDocTemplate(
-            "DoclinkExport.pdf",
-            leftMargin=30,
-            rightMargin=30,
-            topMargin=30,
-            bottomMargin=30,
-            fontFamily="Helvetica",
-            pagesize=A4,
-        )
+
+    def _register_fonts(self):
+        pdfmetrics.registerFont(TTFont("Helvetica", "Helvetica"))
+        pdfmetrics.registerFont(TTFont("Helvetica-Bold", "Helvetica-Bold"))
 
     def setup_styles(self):
         self.styles.add(
@@ -27,12 +25,19 @@ class Exporter:
                 fontSize=14,
                 textColor=colors.HexColor("#10B981"),
                 spaceAfter=12,
+                fontName="Helvetica-Bold",
+                encoding="utf-8",
             )
         )
 
         self.styles.add(
             ParagraphStyle(
-                name="Content", fontSize=11, textColor=colors.black, spaceAfter=8
+                name="Content",
+                fontSize=11,
+                textColor=colors.black,
+                spaceAfter=8,
+                fontName="Helvetica",
+                encoding="utf-8",
             )
         )
 
@@ -43,11 +48,25 @@ class Exporter:
                 leftIndent=20,
                 bulletIndent=10,
                 spaceAfter=5,
+                fontName="Helvetica",
+                encoding="utf-8",
             )
         )
 
     def clean_text(self, text: str) -> str:
-        text = re.sub(r"\[header\](.*?)\[/header\]", r"<h1>\1</h1>", text)
+        if not isinstance(text, str):
+            text = text.decode("utf-8")
+
+        text = text.replace("ı", "i").replace("İ", "I")
+        text = text.replace("ğ", "g").replace("Ğ", "G")
+        text = text.replace("ü", "u").replace("Ü", "U")
+        text = text.replace("ş", "s").replace("Ş", "S")
+        text = text.replace("ö", "o").replace("Ö", "O")
+        text = text.replace("ç", "c").replace("Ç", "C")
+
+        text = re.sub(
+            r"\[header\](.*?)\[/header\]", r'<para style="Header">\1</para>', text
+        )
         text = re.sub(r"\[bold\](.*?)\[/bold\]", r"<b>\1</b>", text)
         return text
 
@@ -63,18 +82,31 @@ class Exporter:
         content = []
         cleaned_text = self.clean_text(data)
 
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=30,
+            leftMargin=30,
+            topMargin=30,
+            bottomMargin=30,
+        )
+
         lines = cleaned_text.split("\n")
 
         for line in lines:
             if line.strip():
-                if line.startswith("<h1>") or "header" in line:
+                if (
+                    line.startswith("<h1>")
+                    or line.startswith('<para style="Header">')
+                    or "header" in line
+                ):
                     # Header section
                     text = line.replace("<h1>", "").replace("</h1>", "")
                     content.append(Paragraph(text, self.styles["Header"]))
                 elif line.startswith("-"):
                     # Bullet point
-                    text = line[1:].strip()
-                    content.append(Paragraph(f"• {text}", self.styles["Bullet-Point"]))
+                    text = line.strip()
+                    content.append(Paragraph(f"- {text}", self.styles["Bullet-Point"]))
                 else:
                     # Normal text
                     content.append(Paragraph(line, self.styles["Content"]))
@@ -82,7 +114,7 @@ class Exporter:
                 content.append(Spacer(1, 2))
 
         try:
-            self.doc.build(
+            doc.build(
                 content,
                 onFirstPage=self.create_watermark,
                 onLaterPages=self.create_watermark,
