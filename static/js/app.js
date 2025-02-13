@@ -1768,9 +1768,25 @@ class ChatManager extends Component {
 
     updateExportButton() {
         const exportButton = document.querySelector('.export-button');
-        if (exportButton) {
-            const selectedMessages = document.querySelectorAll('.chat-message.ai.selected');
-            exportButton.disabled = selectedMessages.length === 0;
+        const selectedMessages = document.querySelectorAll('.chat-message.ai.selected');
+        const count = selectedMessages.length;
+
+        let counter = document.querySelector('.export-counter');
+        if (!counter) {
+            counter = document.createElement('div');
+            counter.className = 'export-counter';
+            exportButton.parentElement.appendChild(counter);
+        }
+
+        counter.textContent = `${count}/10`;
+        counter.style.color = count === 10 ? '#10B981' : 'white';
+        
+        exportButton.disabled = count === 0;
+        
+        if (count > 10) {
+            const lastSelected = selectedMessages[selectedMessages.length - 1];
+            lastSelected.classList.remove('selected');
+            this.updateExportButton();
         }
     }
 
